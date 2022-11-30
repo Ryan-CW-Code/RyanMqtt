@@ -1,4 +1,10 @@
 #include "rtconfig.h"
+
+#define RyanMqttHostName ("填写你的mqtt服务器ip")
+#define RyanMqttPort ("填写你的mqtt服务器端口，字符串格式")
+#define RyanMqttUserName ("填写你的mqtt服务器用户名") // 为空时填写""
+#define RyanMqttPassword ("填写你的mqtt服务器密码")   // 为空时填写""
+
 #ifdef PKG_USING_RYANMQTT_EXAMPLE
 
 #include <stdio.h>
@@ -123,10 +129,10 @@ void mqttEventHandle(void *pclient, RyanMqttEventId_e event, const void const *e
 
         RyanMqttClientConfig_t mqttConfig = {
             .clientId = "RyanMqttTest", // 这里只修改了客户端名字
-            .userName = "test",
-            .password = "test",
-            .host = "39.164.131.143",
-            .port = "1883",
+            .userName = RyanMqttHostName,
+            .password = RyanMqttPassword,
+            .host = RyanMqttHostName,
+            .port = RyanMqttPort,
             .taskName = "mqttThread",
             .taskPrio = 16,
             .taskStack = 4096,
@@ -197,10 +203,10 @@ void mqttConnectFun()
     RyanMqttError_e result = RyanMqttSuccessError;
     RyanMqttClientConfig_t mqttConfig = {
         .clientId = "RyanMqttTessdfwrt",
-        .userName = "test",
-        .password = "test",
-        .host = "39.164.131.143",
-        .port = "1883",
+        .userName = RyanMqttHostName,
+        .password = RyanMqttPassword,
+        .host = RyanMqttHostName,
+        .port = RyanMqttPort,
         .taskName = "mqttThread",
         .taskPrio = 16,
         .taskStack = 4096,
