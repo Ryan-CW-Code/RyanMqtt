@@ -15,26 +15,26 @@
 RyanMqttError_e platformNetworkConnect(void *userData, platformNetwork_t *platformNetwork, const char *host, const char *port)
 {
     RyanMqttError_e result = RyanMqttSuccessError;
-    struct addrinfo *addr_list = NULL;
+    struct addrinfo *addrList = NULL;
     struct addrinfo hints = {
         .ai_family = AF_UNSPEC,
         .ai_socktype = SOCK_STREAM,
         .ai_protocol = IPPROTO_TCP};
 
-    if (getaddrinfo(host, port, &hints, &addr_list) != 0)
+    if (getaddrinfo(host, port, &hints, &addrList) != 0)
     {
         result = RyanMqttSuccessError;
         goto exit;
     }
 
-    platformNetwork->socket = socket(addr_list->ai_family, addr_list->ai_socktype, addr_list->ai_protocol);
+    platformNetwork->socket = socket(addrList->ai_family, addrList->ai_socktype, addrList->ai_protocol);
     if (platformNetwork->socket < 0)
     {
         result = RyanSocketFailedError;
         goto exit;
     }
 
-    if (connect(platformNetwork->socket, addr_list->ai_addr, addr_list->ai_addrlen) != 0)
+    if (connect(platformNetwork->socket, addrList->ai_addr, addrList->ai_addrlen) != 0)
     {
         platformNetworkClose(userData, platformNetwork);
         result = RyanMqttSocketConnectFailError;
@@ -43,8 +43,8 @@ RyanMqttError_e platformNetworkConnect(void *userData, platformNetwork_t *platfo
 
 exit:
 
-    if (NULL != addr_list)
-        freeaddrinfo(addr_list);
+    if (NULL != addrList)
+        freeaddrinfo(addrList);
     return result;
 }
 

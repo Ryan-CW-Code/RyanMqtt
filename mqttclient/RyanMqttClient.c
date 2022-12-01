@@ -208,7 +208,7 @@ RyanMqttError_e RyanMqttStart(RyanMqttClient_t *client)
  * @param sendDiscFlag RyanTrue表示发送断开连接报文，RyanFalse表示不发送断开连接报文
  * @return RyanMqttError_e
  */
-RyanMqttError_e RyanMqttDisconnect(RyanMqttClient_t *client, RyanBool_t sendDiscFlag)
+RyanMqttError_e RyanMqttDisconnect(RyanMqttClient_t *client, RyanBool_e sendDiscFlag)
 {
 
     int32_t connectState = RyanMqttConnectAccepted;
@@ -366,7 +366,7 @@ RyanMqttError_e RyanMqttUnSubscribe(RyanMqttClient_t *client, char *topic)
  * @param retain
  * @return RyanMqttError_e
  */
-RyanMqttError_e RyanMqttPublish(RyanMqttClient_t *client, char *topic, char *payload, uint32_t payloadLen, RyanMqttQos_e qos, RyanBool_t retain)
+RyanMqttError_e RyanMqttPublish(RyanMqttClient_t *client, char *topic, char *payload, uint32_t payloadLen, RyanMqttQos_e qos, RyanBool_e retain)
 {
     RyanMqttError_e result = RyanMqttSuccessError;
     int32_t packetLen = 0;
@@ -639,7 +639,7 @@ exit:
  * @param payload
  * @return RyanMqttError_e
  */
-RyanMqttError_e RyanMqttSetLwt(RyanMqttClient_t *client, char *topicName, char *payload, uint32_t payloadLen, RyanMqttQos_e qos, RyanBool_t retain)
+RyanMqttError_e RyanMqttSetLwt(RyanMqttClient_t *client, char *topicName, char *payload, uint32_t payloadLen, RyanMqttQos_e qos, RyanBool_e retain)
 {
     RyanMqttError_e result = RyanMqttSuccessError;
     RyanMqttCheck(NULL != client, RyanMqttParamInvalidError);

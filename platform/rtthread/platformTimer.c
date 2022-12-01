@@ -15,7 +15,8 @@ uint32_t platformUptimeMs(void)
 }
 
 /**
- * @brief 将时间设置为0
+ * @brief 初始化定时器,没有使用，
+ * timer结构体比较简单，没有做init和destory。看后面需求
  *
  * @param platformTimer
  */

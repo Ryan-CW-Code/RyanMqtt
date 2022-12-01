@@ -144,7 +144,7 @@ static RyanMqttError_e RyanMqttPubrecPacketHandler(RyanMqttClient_t *client)
 {
     RyanMqttError_e result = RyanMqttFailedError;
     uint8_t dup = 0;
-    RyanBool_t fastFlag = RyanFalse;
+    RyanBool_e fastFlag = RyanFalse;
     uint8_t packetType = 0;
     uint16_t packetId = 0;
     int32_t packetLen = 0;
@@ -218,7 +218,7 @@ static RyanMqttError_e RyanMqttPublishPacketHandler(RyanMqttClient_t *client)
 {
     RyanMqttError_e result = RyanMqttSuccessError;
     int32_t packetLen = 0;
-    RyanBool_t deliverMsgFlag = RyanFalse;
+    RyanBool_e deliverMsgFlag = RyanFalse;
     MQTTString topicName = MQTTString_initializer;
     RyanMqttMsgData_t msgData = {0};
     RyanMqttMsgHandler_t *msgHandler = NULL;
@@ -256,7 +256,7 @@ static RyanMqttError_e RyanMqttPublishPacketHandler(RyanMqttClient_t *client)
 
     case QOS2:
     {
-        RyanBool_t fastFlag = RyanFalse;
+        RyanBool_e fastFlag = RyanFalse;
         // 收到publish就期望收到PUBREL，如果PUBREL报文已经存在说明不是首次收到publish不进行qos2消息处理
         result = RyanMqttAckListNodeFind(client, PUBREL, msgData.packetId, &ackHandler);
         if (RyanMqttSuccessError != result)
@@ -484,7 +484,7 @@ RyanMqttError_e RyanMqttReadPacketHandler(RyanMqttClient_t *client, uint8_t *pac
  *      WaitFlag : RyanFalse 表示不需要等待超时立即处理这些数据包。通常在重新连接后立即进行处理
  *      WaitFlag : RyanTrue 表示需要等待超时再处理这些消息，一般是稳定连接下的超时处理
  */
-void RyanMqttAckListScan(RyanMqttClient_t *client, RyanBool_t WaitFlag)
+void RyanMqttAckListScan(RyanMqttClient_t *client, RyanBool_e WaitFlag)
 {
     RyanList_t *curr = NULL,
                *next = NULL;
@@ -516,7 +516,6 @@ void RyanMqttAckListScan(RyanMqttClient_t *client, RyanBool_t WaitFlag)
             if (mqttConnectState != RyanMqttGetClientState(client))
                 continue;
 
-            printfArrStr(ackHandler->packet, ackHandler->packetLen, "重发数据:");
             // 重发数据事件回调
             RyanMqttEventMachine(client, RyanMqttEventRepeatPublishPacket, (void *)ackHandler);
 

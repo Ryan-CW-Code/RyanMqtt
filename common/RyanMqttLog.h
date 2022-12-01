@@ -14,7 +14,6 @@ extern "C"
 #ifdef RT_USING_ULOG
 #include "ulog.h"
 #else
-
 #define ulog_d(TAG, ...)            \
     {                               \
         printf("%s", TAG);          \

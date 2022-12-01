@@ -9,8 +9,8 @@ extern "C"
 {
 #endif
 
-extern void RyanMqttThread(void *argument);
-extern void RyanMqttEventMachine(RyanMqttClient_t *client, RyanMqttEventId_e eventId, void *eventData);
+    extern void RyanMqttThread(void *argument);
+    extern void RyanMqttEventMachine(RyanMqttClient_t *client, RyanMqttEventId_e eventId, void *eventData);
 
 #ifdef __cplusplus
 }

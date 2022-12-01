@@ -2,15 +2,6 @@
 #include "RyanMqttUtile.h"
 #include "RyanMqttThread.h"
 
-void printfArrStr(char *buf, uint32_t len, char *userData)
-{
-    rt_kprintf("%s", userData);
-    for (uint32_t i = 0; i < len; i++)
-        rt_kprintf("%x", buf[i]);
-
-    rt_kprintf("\r\n");
-}
-
 /**
  * @brief 清理session
  *
@@ -62,7 +53,7 @@ RyanMqttError_e RyanMqttStringCopy(char **dest, char *rest, uint32_t strLen)
     char *str2 = NULL;
     RyanMqttAssert(NULL != dest);
     RyanMqttAssert(NULL != rest);
-    RyanMqttCheck(0 != strLen, RyanMqttFailedError);
+    // RyanMqttCheck(0 != strLen, RyanMqttFailedError);
 
     str2 = (char *)platformMemoryMalloc(strLen + 1);
     if (NULL == str2)
@@ -195,8 +186,7 @@ void RyanMqttSetClientState(RyanMqttClient_t *client, RyanMqttState_e state)
 RyanMqttState_e RyanMqttGetClientState(RyanMqttClient_t *client)
 {
     RyanMqttAssert(NULL != client);
-    // 原子操作不必互斥
-    return client->clientState;
+    return client->clientState; // 原子操作不必互斥
 }
 
 /**
@@ -207,15 +197,15 @@ RyanMqttState_e RyanMqttGetClientState(RyanMqttClient_t *client)
  * @param topicLength 主题名称的长度。
  * @param topicFilter 要检查的主题过滤器。
  * @param topicFilterLength 要检查的主题过滤器长度
- * @return RyanBool_t
+ * @return RyanBool_e
  */
-RyanBool_t RyanMqttMatchTopic(const char *topic,
+RyanBool_e RyanMqttMatchTopic(const char *topic,
                               const uint16_t topicLength,
                               const char *topicFilter,
                               const uint16_t topicFilterLength)
 {
 
-    RyanBool_t topicFilterStartsWithWildcard = RyanFalse,
+    RyanBool_e topicFilterStartsWithWildcard = RyanFalse,
                matchFound = RyanFalse,
                shouldStopMatching = RyanFalse;
     uint16_t topicIndex = 0,
@@ -239,24 +229,24 @@ RyanBool_t RyanMqttMatchTopic(const char *topic,
         if (topic[topicIndex] == topicFilter[topicFilterIndex])
         {
             // 当主题名称已被消耗但主题过滤器中还有剩余字符需要匹配时，此功能处理以下两种情况：
-            // -当主题过滤器以“/+”或“/#”字符结尾时，主题名称以“/”结尾。
-            // -当主题过滤器以“/#”字符结尾时，主题名称以父级别结尾。
+            // -当主题过滤器以"/+"或"/#"字符结尾时，主题名称以"/"结尾。
+            // -当主题过滤器以"/#"字符结尾时，主题名称以父级别结尾。
             if (topicIndex == (topicLength - 1U))
             {
 
-                // 检查主题筛选器是否有2个剩余字符，并且以“/#”结尾。
-                // 此检查处理将筛选器“sport/#”与主题“sport”匹配的情况。
-                // 原因是“#”通配符表示主题名称中的父级和任意数量的子级。
+                // 检查主题筛选器是否有2个剩余字符，并且以"/#"结尾。
+                // 此检查处理将筛选器"sport/#"与主题"sport"匹配的情况。
+                // 原因是"#"通配符表示主题名称中的父级和任意数量的子级。
                 if ((topicFilterLength >= 3U) &&
                     (topicFilterIndex == (topicFilterLength - 3U)) &&
                     (topicFilter[topicFilterIndex + 1U] == '/') &&
                     (topicFilter[topicFilterIndex + 2U] == '#'))
                     matchFound = RyanTrue;
 
-                // 检查下一个字符是否为“#”或“+”，主题过滤器以“/#”或“/+”结尾。
+                // 检查下一个字符是否为"#"或"+"，主题过滤器以"/#"或"/+"结尾。
                 // 此检查处理要匹配的情况：
-                // -主题过滤器“sport/+”与主题“sport/”。
-                // -主题过滤器“sport/#”，主题为“sport/”。
+                // -主题过滤器"sport/+"与主题"sport/"。
+                // -主题过滤器"sport/#"，主题为"sport/"。
                 if ((topicFilterIndex == (topicFilterLength - 2U)) &&
                     (topicFilter[topicFilterIndex] == '/'))
                     // 检查最后一个字符是否为通配符
@@ -266,18 +256,18 @@ RyanBool_t RyanMqttMatchTopic(const char *topic,
         else
         {
             // 检查是否匹配通配符
-            RyanBool_t locationIsValidForWildcard;
+            RyanBool_e locationIsValidForWildcard;
 
-            // 主题过滤器中的通配符仅在起始位置或前面有“/”时有效。
+            // 主题过滤器中的通配符仅在起始位置或前面有"/"时有效。
             locationIsValidForWildcard = ((topicFilterIndex == 0u) ||
                                           (topicFilter[topicFilterIndex - 1U] == '/'));
 
             if ((topicFilter[topicFilterIndex] == '+') && (locationIsValidForWildcard == RyanTrue))
             {
-                RyanBool_t nextLevelExistsInTopicName = RyanFalse;
-                RyanBool_t nextLevelExistsinTopicFilter = RyanFalse;
+                RyanBool_e nextLevelExistsInTopicName = RyanFalse;
+                RyanBool_e nextLevelExistsinTopicFilter = RyanFalse;
 
-                // 将主题名称索引移动到当前级别的末尾。 当前级别的结束由下一个级别分隔符“/”之前的最后一个字符标识。
+                // 将主题名称索引移动到当前级别的末尾, 当前级别的结束由下一个级别分隔符"/"之前的最后一个字符标识。
                 while (topicIndex < topicLength)
                 {
                     // 如果我们碰到级别分隔符，则退出循环
@@ -290,7 +280,7 @@ RyanBool_t RyanMqttMatchTopic(const char *topic,
                     (topicIndex)++;
                 }
 
-                // 确定主题过滤器是否包含在由“+”通配符表示的当前级别之后的子级别。
+                // 确定主题过滤器是否包含在由"+"通配符表示的当前级别之后的子级别。
                 if ((topicFilterIndex < (topicFilterLength - 1U)) &&
                     (topicFilter[topicFilterIndex + 1U] == '/'))
                     nextLevelExistsinTopicFilter = RyanTrue;
@@ -307,13 +297,13 @@ RyanBool_t RyanMqttMatchTopic(const char *topic,
                 else if (nextLevelExistsInTopicName == RyanTrue)
                     (topicFilterIndex)++;
 
-                // 如果我们已经到达这里，循环以（*pNameIndex<topicLength）条件终止，
+                // 如果我们已经到达这里，循环以（*pNameIndex < topicLength）条件终止，
                 // 这意味着已经超过主题名称的末尾，因此，我们将索引缩减为主题名称中的最后一个字符。
                 else
                     (topicIndex)--;
             }
 
-            // “#”匹配主题名称中剩余的所有内容。它必须是主题过滤器中的最后一个字符。
+            // "#"匹配主题名称中剩余的所有内容。它必须是主题过滤器中的最后一个字符。
             else if ((topicFilter[topicFilterIndex] == '#') &&
                      (topicFilterIndex == (topicFilterLength - 1U)) &&
                      (locationIsValidForWildcard == RyanTrue))
@@ -324,7 +314,7 @@ RyanBool_t RyanMqttMatchTopic(const char *topic,
             }
             else
             {
-                // 除“+”或“#”以外的任何字符不匹配均表示主题名称与主题过滤器不匹配。
+                // 除"+"或"#"以外的任何字符不匹配均表示主题名称与主题过滤器不匹配。
                 matchFound = RyanFalse;
                 shouldStopMatching = RyanTrue;
             }
@@ -338,8 +328,8 @@ RyanBool_t RyanMqttMatchTopic(const char *topic,
         topicFilterIndex++;
     }
 
-    // 如果已到达两个字符串的末尾，则它们匹配。这表示当主题过滤器在非起始位置包含 “+” 通配符时的情况。
-    // 例如，当将 “sport/+/player” 或 “sport/hockey/+” 主题过滤器与 “sport/hockey/player” 主题名称匹配时。
+    // 如果已到达两个字符串的末尾，则它们匹配。这表示当主题过滤器在非起始位置包含 "+" 通配符时的情况。
+    // 例如，当将 "sport/+/player" 或 "sport/hockey/+" 主题过滤器与 "sport/hockey/player" 主题名称匹配时。
     if (matchFound == RyanFalse)
         matchFound = (topicIndex == topicLength) && (topicFilterIndex == topicFilterLength);
 
@@ -371,7 +361,7 @@ RyanMqttError_e RyanMqttMsgHandlerCreate(char *topic, uint16_t topicLen, RyanMqt
     RyanMqttListInit(&msgHandler->list);
 
     msgHandler->qos = qos;
-    result = RyanMqttStringCopy((char **)&msgHandler->topic, (char *)topic, topicLen);
+    result = RyanMqttStringCopy(&msgHandler->topic, topic, topicLen);
     RyanMqttCheckCode(RyanMqttSuccessError == result, RyanMqttNotEnoughMemError, platformMemoryFree(msgHandler); msgHandler = NULL);
 
     *pMsgHandler = msgHandler;
@@ -406,12 +396,11 @@ void RyanMqttMsgHandlerDestory(RyanMqttMsgHandler_t *msgHandler)
  * @param pMsgHandler
  * @return RyanMqttError_e
  */
-RyanMqttError_e RyanMqttMsgHandlerFind(RyanMqttClient_t *client, char *topic, uint16_t topicLen, RyanBool_t topicMatchedFlag, RyanMqttMsgHandler_t **pMsgHandler)
+RyanMqttError_e RyanMqttMsgHandlerFind(RyanMqttClient_t *client, char *topic, uint16_t topicLen, RyanBool_e topicMatchedFlag, RyanMqttMsgHandler_t **pMsgHandler)
 {
     RyanList_t *curr = NULL,
                *next = NULL;
     RyanMqttMsgHandler_t *msgHandler = NULL;
-    uint16_t topicFilterLen = 0;
 
     RyanMqttAssert(NULL != client);
     RyanMqttAssert(NULL != topic && 0 != topicLen);
@@ -429,8 +418,7 @@ RyanMqttError_e RyanMqttMsgHandlerFind(RyanMqttClient_t *client, char *topic, ui
             continue;
 
         // 不相等跳过
-        topicFilterLen = strlen(msgHandler->topic);
-        if (topicLen != topicFilterLen && RyanTrue != topicMatchedFlag)
+        if (topicLen != strlen(msgHandler->topic) && RyanTrue != topicMatchedFlag)
             continue;
 
         // 主题名称不相等且没有使能通配符匹配
@@ -438,7 +426,7 @@ RyanMqttError_e RyanMqttMsgHandlerFind(RyanMqttClient_t *client, char *topic, ui
             continue;
 
         // 进行通配符匹配
-        if (RyanTrue != RyanMqttMatchTopic(topic, topicLen, msgHandler->topic, topicFilterLen))
+        if (RyanTrue != RyanMqttMatchTopic(topic, topicLen, msgHandler->topic, strlen(msgHandler->topic)))
             continue;
 
         *pMsgHandler = msgHandler;
@@ -477,16 +465,16 @@ RyanMqttError_e RyanMqttMsgHandlerAdd(RyanMqttClient_t *client, RyanMqttMsgHandl
  * @param packetId
  * @param packetLen
  * @param msgHandler
- * @param packHandler
+ * @param pAckHandler
  * @return RyanMqttError_e
  */
-RyanMqttError_e RyanMqttAckHandlerCreate(RyanMqttClient_t *client, enum msgTypes packetType, uint16_t packetId, uint16_t packetLen, RyanMqttMsgHandler_t *msgHandler, RyanMqttAckHandler_t **packHandler)
+RyanMqttError_e RyanMqttAckHandlerCreate(RyanMqttClient_t *client, enum msgTypes packetType, uint16_t packetId, uint16_t packetLen, RyanMqttMsgHandler_t *msgHandler, RyanMqttAckHandler_t **pAckHandler)
 {
     RyanMqttAckHandler_t *ackHandler = NULL;
     RyanMqttAssert(NULL != client);
     RyanMqttAssert(NULL != msgHandler);
     RyanMqttAssert(NULL != msgHandler->topic);
-    RyanMqttAssert(NULL != packHandler);
+    RyanMqttAssert(NULL != pAckHandler);
 
     // 给消息主题添加空格
     ackHandler = (RyanMqttAckHandler_t *)platformMemoryMalloc(sizeof(RyanMqttAckHandler_t) + packetLen);
@@ -504,7 +492,7 @@ RyanMqttError_e RyanMqttAckHandlerCreate(RyanMqttClient_t *client, enum msgTypes
     ackHandler->packet = (char *)ackHandler + sizeof(RyanMqttAckHandler_t);
     memcpy(ackHandler->packet, client->config->sendBuffer, packetLen); // 将packet数据保存到ack中
 
-    *packHandler = ackHandler;
+    *pAckHandler = ackHandler;
 
     return RyanMqttSuccessError;
 }
@@ -541,15 +529,15 @@ void RyanMqttAckHandlerDestroy(RyanMqttClient_t *client, RyanMqttAckHandler_t *a
  * @param client
  * @param packetType
  * @param packetId
- * @param packHandler
+ * @param pAckHandler
  * @return RyanMqttError_e
  */
-RyanMqttError_e RyanMqttAckListNodeFind(RyanMqttClient_t *client, enum msgTypes packetType, uint16_t packetId, RyanMqttAckHandler_t **packHandler)
+RyanMqttError_e RyanMqttAckListNodeFind(RyanMqttClient_t *client, enum msgTypes packetType, uint16_t packetId, RyanMqttAckHandler_t **pAckHandler)
 {
     RyanList_t *curr, *next;
     RyanMqttAckHandler_t *ackHandler;
     RyanMqttAssert(NULL != client);
-    RyanMqttAssert(NULL != packHandler);
+    RyanMqttAssert(NULL != pAckHandler);
 
     if (RyanListIsEmpty(&client->ackHandlerList))
         return RyanMqttNoRescourceError;
@@ -562,7 +550,7 @@ RyanMqttError_e RyanMqttAckListNodeFind(RyanMqttClient_t *client, enum msgTypes 
         // 标识符，用于确定节点是否已存在并避免重复。
         if ((packetId == ackHandler->packetId) && (packetType == ackHandler->packetType))
         {
-            *packHandler = ackHandler;
+            *pAckHandler = ackHandler;
             return RyanMqttSuccessError;
         }
     }

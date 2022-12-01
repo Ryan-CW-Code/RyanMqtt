@@ -1,9 +1,9 @@
 #include "rtconfig.h"
 
-#define RyanMqttHostName ("填写你的mqtt服务器ip")
-#define RyanMqttPort ("填写你的mqtt服务器端口，字符串格式")
-#define RyanMqttUserName ("填写你的mqtt服务器用户名") // 为空时填写""
-#define RyanMqttPassword ("填写你的mqtt服务器密码")   // 为空时填写""
+#define RyanMqttHostName ("broker.emqx.io") // 填写你的mqtt服务器ip
+#define RyanMqttPort ("1883")               // mqtt服务器端口
+#define RyanMqttUserName ("")               // 为空时填写""
+#define RyanMqttPassword ("")               // 为空时填写""
 
 #ifdef PKG_USING_RYANMQTT_EXAMPLE
 
@@ -36,6 +36,15 @@ ccmBss static char mqttSendBuffer[2048];
 static uint32_t mqttTest[10] = {0};
 #define dataEventCount (0)      // 接收到几次数据
 #define PublishedEventCount (1) // 发布成功的次数
+
+void printfArrStr(char *buf, uint32_t len, char *userData)
+{
+    rt_kprintf("%s", userData);
+    for (uint32_t i = 0; i < len; i++)
+        rt_kprintf("%x", buf[i]);
+
+    rt_kprintf("\r\n");
+}
 
 /**
  * @brief mqtt事件回调处理函数
@@ -118,7 +127,7 @@ void mqttEventHandle(void *pclient, RyanMqttEventId_e event, const void const *e
                __FILE__, __LINE__, __FUNCTION__,
                ackHandler->packetType, ackHandler->packetId, ackHandler->msgHandler->topic, ackHandler->msgHandler->qos);
 
-        printfArrStr(ackHandler->packet, ackHandler->packetLen, "data: ");
+        printfArrStr(ackHandler->packet, ackHandler->packetLen, "重发数据: ");
 
         break;
     }
