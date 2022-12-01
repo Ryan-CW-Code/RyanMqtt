@@ -111,7 +111,7 @@ void mqttEventHandle(void *pclient, RyanMqttEventId_e event, const void const *e
     case RyanMqttEventData:
     {
         RyanMqttMsgData_t *msgData = (RyanMqttMsgData_t *)eventData;
-        ulog_i(TAG, " umqtt topic recv callback! topic: %s, packetId: %d, payload len: %d \r\n \\
+        ulog_i(TAG, " RyanMqtt topic recv callback! topic: %s, packetId: %d, payload len: %d \r\n \\
                     data: %.*s",
                msgData->topic, msgData->packetId, msgData->payloadLen,
                msgData->payloadLen, msgData->payload);
