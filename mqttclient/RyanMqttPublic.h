@@ -28,6 +28,7 @@ extern "C"
         return ErrorCode;                                               \
     }
 
+    // 定义枚举类型
     typedef enum
     {
         RyanBit31 = 0x80000000,
@@ -151,6 +152,10 @@ extern "C"
         RyanMqttConnectUserDisconnected,    // 用户手动断开连接
         RyanMqttConnectTimeout              // 超时断开
     } RyanMqttConnectStatus_e;
+
+    // 定义结构体类型
+
+    /* extern variables-----------------------------------------------------------*/
 
 #include "MQTTPacket.h"
 #include "RyanMqttLog.h"

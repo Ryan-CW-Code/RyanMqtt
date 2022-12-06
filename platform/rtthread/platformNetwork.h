@@ -30,10 +30,15 @@ extern "C"
 #include "lwip/netdb.h"
 #endif
 
+    // 定义枚举类型
+
+    // 定义结构体类型
     typedef struct
     {
         int socket;
     } platformNetwork_t;
+
+    /* extern variables-----------------------------------------------------------*/
 
     extern RyanMqttError_e platformNetworkConnect(void *userData, platformNetwork_t *platformNetwork, const char *host, const char *port);
     extern RyanMqttError_e platformNetworkRecvAsync(void *userData, platformNetwork_t *platformNetwork, char *recvBuf, int recvLen, int timeout);

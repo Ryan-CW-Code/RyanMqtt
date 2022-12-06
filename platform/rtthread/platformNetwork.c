@@ -23,7 +23,7 @@ RyanMqttError_e platformNetworkConnect(void *userData, platformNetwork_t *platfo
 
     if (getaddrinfo(host, port, &hints, &addrList) != 0)
     {
-        result = RyanMqttSuccessError;
+        result = RyanSocketFailedError;
         goto exit;
     }
 

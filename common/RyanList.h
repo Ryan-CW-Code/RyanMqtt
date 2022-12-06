@@ -7,12 +7,6 @@ extern "C"
 {
 #endif
 
-    typedef struct RyanListNode
-    {
-        struct RyanListNode *next;
-        struct RyanListNode *prev;
-    } RyanList_t;
-
 #define RyanOffsetOf(type, member) ((size_t) & (((type *)0)->member))
 
 #define RyanContainerOf(ptr, type, member) \
@@ -50,17 +44,29 @@ extern "C"
          (curr) != (list);                             \
          (curr) = (next), (next) = (curr)->prev)
 
-    void RyanMqttListInit(RyanList_t *list);
+    // 定义枚举类型
 
-    void RyanListAdd(RyanList_t *node, RyanList_t *list);
-    void RyanListAddTail(RyanList_t *node, RyanList_t *list);
+    // 定义结构体类型
+    typedef struct RyanListNode
+    {
+        struct RyanListNode *next;
+        struct RyanListNode *prev;
+    } RyanList_t;
 
-    void RyanListDel(RyanList_t *entry);
-    void RyanListDelInit(RyanList_t *entry);
+    /* extern variables-----------------------------------------------------------*/
 
-    void RyanListMove(RyanList_t *node, RyanList_t *list);
-    void RyanListMoveTail(RyanList_t *node, RyanList_t *list);
-    int RyanListIsEmpty(RyanList_t *list);
+    extern void RyanMqttListInit(RyanList_t *list);
+
+    extern void RyanListAdd(RyanList_t *node, RyanList_t *list);
+    extern void RyanListAddTail(RyanList_t *node, RyanList_t *list);
+
+    extern void RyanListDel(RyanList_t *entry);
+    extern void RyanListDelInit(RyanList_t *entry);
+
+    extern void RyanListMove(RyanList_t *node, RyanList_t *list);
+    extern void RyanListMoveTail(RyanList_t *node, RyanList_t *list);
+
+    extern int RyanListIsEmpty(RyanList_t *list);
 
 #ifdef __cplusplus
 }

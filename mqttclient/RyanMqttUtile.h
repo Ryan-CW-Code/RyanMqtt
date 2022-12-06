@@ -8,6 +8,13 @@ extern "C"
 #endif
 
 #include "RyanMqttClient.h"
+
+    // 定义枚举类型
+
+    // 定义结构体类型
+
+    /* extern variables-----------------------------------------------------------*/
+
     extern void RyanMqttSetClientState(RyanMqttClient_t *client, RyanMqttState_e state);
     extern RyanMqttState_e RyanMqttGetClientState(RyanMqttClient_t *client);
     extern RyanMqttError_e RyanMqttIsConnected(RyanMqttClient_t *client);
