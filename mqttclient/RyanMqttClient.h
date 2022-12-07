@@ -10,6 +10,9 @@ extern "C"
 
 #include "RyanMqttPublic.h"
 
+    // 接收到订阅消息回调函数类型，eventData用户不要进行修改否则mqtt客户端可能崩溃
+    typedef void (*RyanMqttEventHandle)(void *client, RyanMqttEventId_e event, const void const *eventData);
+
     // 定义枚举类型
 
     // 定义结构体类型
@@ -102,9 +105,6 @@ extern "C"
     } RyanMqttClient_t;
 
     /* extern variables-----------------------------------------------------------*/
-
-    // 接收到订阅消息回调函数类型，eventData用户不要进行修改否则mqtt客户端可能崩溃
-    typedef void (*RyanMqttEventHandle)(void *client, RyanMqttEventId_e event, const void const *eventData);
 
     extern RyanMqttError_e RyanMqttInit(RyanMqttClient_t **pClient);
     extern RyanMqttError_e RyanMqttDestroy(RyanMqttClient_t *client);
