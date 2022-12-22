@@ -2,6 +2,11 @@
 
 #include "platformTimer.h"
 
+/**
+ * @brief 自系统启动以来的毫秒时间戳
+ * 
+ * @return uint32_t 
+ */
 uint32_t platformUptimeMs(void)
 {
 #if (RT_TICK_PER_SECOND == 1000)
