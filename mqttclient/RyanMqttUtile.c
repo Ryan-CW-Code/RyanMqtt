@@ -358,11 +358,11 @@ RyanMqttError_e RyanMqttMsgHandlerCreate(char *topic, uint16_t topicLen, RyanMqt
     memset(msgHandler, 0, sizeof(RyanMqttMsgHandler_t));
 
     // 初始化链表
-    RyanMqttListInit(&msgHandler->list);
+    RyanListInit(&msgHandler->list);
 
     msgHandler->qos = qos;
     result = RyanMqttStringCopy(&msgHandler->topic, topic, topicLen);
-    RyanMqttCheckCode(RyanMqttSuccessError == result, RyanMqttNotEnoughMemError, platformMemoryFree(msgHandler); msgHandler = NULL);
+    RyanMqttCheckCode(RyanMqttSuccessError == result, RyanMqttNotEnoughMemError, {platformMemoryFree(msgHandler); msgHandler = NULL; });
 
     *pMsgHandler = msgHandler;
     return RyanMqttSuccessError;
@@ -481,7 +481,7 @@ RyanMqttError_e RyanMqttAckHandlerCreate(RyanMqttClient_t *client, enum msgTypes
     RyanMqttCheck(NULL != ackHandler, RyanMqttNotEnoughMemError);
     memset(ackHandler, 0, sizeof(RyanMqttAckHandler_t) + packetLen);
 
-    RyanMqttListInit(&ackHandler->list);
+    RyanListInit(&ackHandler->list);
     platformTimerCutdown(&ackHandler->timer, client->config->ackTimeout); // 超时内没有响应将被销毁或重新发送
 
     ackHandler->repeatCount = 0;

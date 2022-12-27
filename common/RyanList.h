@@ -55,7 +55,7 @@ extern "C"
 
     /* extern variables-----------------------------------------------------------*/
 
-    extern void RyanMqttListInit(RyanList_t *list);
+    extern void RyanListInit(RyanList_t *list);
 
     extern void RyanListAdd(RyanList_t *node, RyanList_t *list);
     extern void RyanListAddTail(RyanList_t *node, RyanList_t *list);

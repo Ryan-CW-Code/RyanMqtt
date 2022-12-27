@@ -1,12 +1,6 @@
 
 #include "platformSystem.h"
 
-// 存放未初始化
-// #define ccmBss __attribute__((section(".ccmbss")))
-
-// ccmBss static struct rt_thread mqttThreadHandle;
-// ccmBss static char mqttThreadStack[512 * 4];
-
 void *platformMemoryMalloc(size_t size)
 {
     return rt_malloc(size);

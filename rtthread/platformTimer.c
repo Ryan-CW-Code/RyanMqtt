@@ -4,8 +4,8 @@
 
 /**
  * @brief 自系统启动以来的毫秒时间戳
- * 
- * @return uint32_t 
+ *
+ * @return uint32_t
  */
 uint32_t platformUptimeMs(void)
 {

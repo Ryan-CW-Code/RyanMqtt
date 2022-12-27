@@ -2,6 +2,9 @@
 
 #include "RyanList.h"
 
+// 此库为公共库，别的包也有使用
+#define __weak __attribute__((weak)) // 防止函数重定义, gcc / ARM编译器有效  IAR可以注释此行
+
 /**
  * @brief 在prev和next之前插入节点
  *
@@ -44,7 +47,7 @@ static void _RyanListDel_entry(RyanList_t *entry)
  *
  * @param list
  */
-void RyanMqttListInit(RyanList_t *list)
+__weak void RyanListInit(RyanList_t *list)
 {
     list->next = list;
     list->prev = list;
@@ -56,7 +59,7 @@ void RyanMqttListInit(RyanList_t *list)
  * @param node
  * @param list
  */
-void RyanListAdd(RyanList_t *node, RyanList_t *list)
+__weak void RyanListAdd(RyanList_t *node, RyanList_t *list)
 {
     _RyanListAdd(node, list, list->next);
 }
@@ -67,7 +70,7 @@ void RyanListAdd(RyanList_t *node, RyanList_t *list)
  * @param node
  * @param list
  */
-void RyanListAddTail(RyanList_t *node, RyanList_t *list)
+__weak void RyanListAddTail(RyanList_t *node, RyanList_t *list)
 {
     _RyanListAdd(node, list->prev, list);
 }
@@ -77,7 +80,7 @@ void RyanListAddTail(RyanList_t *node, RyanList_t *list)
  *
  * @param entry
  */
-void RyanListDel(RyanList_t *entry)
+__weak void RyanListDel(RyanList_t *entry)
 {
     _RyanListDel_entry(entry);
 }
@@ -87,10 +90,10 @@ void RyanListDel(RyanList_t *entry)
  *
  * @param entry
  */
-void RyanListDelInit(RyanList_t *entry)
+__weak void RyanListDelInit(RyanList_t *entry)
 {
     _RyanListDel_entry(entry);
-    RyanMqttListInit(entry);
+    RyanListInit(entry);
 }
 
 /**
@@ -99,7 +102,7 @@ void RyanListDelInit(RyanList_t *entry)
  * @param node
  * @param list
  */
-void RyanListMove(RyanList_t *node, RyanList_t *list)
+__weak void RyanListMove(RyanList_t *node, RyanList_t *list)
 {
     _RyanListDel_entry(node);
     RyanListAdd(node, list);
@@ -111,7 +114,7 @@ void RyanListMove(RyanList_t *node, RyanList_t *list)
  * @param node
  * @param list
  */
-void RyanListMoveTail(RyanList_t *node, RyanList_t *list)
+__weak void RyanListMoveTail(RyanList_t *node, RyanList_t *list)
 {
     _RyanListDel_entry(node);
     RyanListAddTail(node, list);
@@ -123,7 +126,7 @@ void RyanListMoveTail(RyanList_t *node, RyanList_t *list)
  * @param list
  * @return int
  */
-int RyanListIsEmpty(RyanList_t *list)
+__weak int RyanListIsEmpty(RyanList_t *list)
 {
     return list->next == list;
 }

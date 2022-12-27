@@ -65,7 +65,6 @@ void mqttEventHandle(void *pclient, RyanMqttEventId_e event, const void const *e
 
     case RyanMqttEventConnected: // 不管有没有使能clearSession，都非常推荐在连接成功回调函数中订阅主题
         ulog_i(TAG, "mqtt连接成功回调");
-        RyanMqttSubscribe(client, "sub/#", QOS0);
         break;
 
     case RyanMqttEventDisconnected:

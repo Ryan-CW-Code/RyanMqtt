@@ -13,19 +13,24 @@ extern "C"
 #include <string.h>
 #include <errno.h>
 
+#define DBG_ENABLE
+#define DBG_SECTION_NAME RyanMqttTag
+#define DBG_LEVEL LOG_LVL_WARNING
+#define DBG_COLOR
+
 #define RyanMqttMaxPacketId (0xFFFFU - 1U)  // 你允许的mqtt paketid最大值，协议标准为个非零的 16 位数
 #define RyanMqttMaxPayloadLen (268435455UL) // 你允许的mqtt可变报头和有效载荷最长长度。默认值为协议标准
 #define RyanMqttVersion ("0.0.1")
 
-#define RyanMqttCheck(EX, ErrorCode) RyanMqttCheckCode(EX, ErrorCode, NULL)
+#define RyanMqttCheck(EX, ErrorCode) RyanMqttCheckCode(EX, ErrorCode, { NULL; })
 
-#define RyanMqttCheckCode(EX, ErrorCode, code)                          \
-    if (!(EX))                                                          \
-    {                                                                   \
-        code;                                                           \
-        ulog_d(RyanMqttTag, "%s:%d ErrorCode: %d, strError: %s",        \
-               __FILE__, __LINE__, ErrorCode, RyanStrError(ErrorCode)); \
-        return ErrorCode;                                               \
+#define RyanMqttCheckCode(EX, ErrorCode, code)                         \
+    if (!(EX))                                                         \
+    {                                                                  \
+        {code};                                                        \
+        LOG_D("%s:%d ErrorCode: %d, strError: %s",                     \
+              __FILE__, __LINE__, ErrorCode, RyanStrError(ErrorCode)); \
+        return ErrorCode;                                              \
     }
 
     // 定义枚举类型

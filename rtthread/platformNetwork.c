@@ -17,15 +17,18 @@ RyanMqttError_e platformNetworkConnect(void *userData, platformNetwork_t *platfo
     RyanMqttError_e result = RyanMqttSuccessError;
     struct addrinfo *addrList = NULL;
     struct addrinfo hints = {
-        .ai_family = AF_UNSPEC,
-        .ai_socktype = SOCK_STREAM,
-        .ai_protocol = IPPROTO_TCP};
+        .ai_family = AF_UNSPEC,     // 指定返回地址的地址族
+        .ai_socktype = SOCK_STREAM, // 指定返回地址的地址族
+        .ai_protocol = IPPROTO_IP}; // 指定socket的协议
 
     if (getaddrinfo(host, port, &hints, &addrList) != 0)
     {
         result = RyanSocketFailedError;
         goto exit;
     }
+
+    if (NULL == addrList)
+        goto exit;
 
     platformNetwork->socket = socket(addrList->ai_family, addrList->ai_socktype, addrList->ai_protocol);
     if (platformNetwork->socket < 0)
@@ -89,8 +92,7 @@ RyanMqttError_e platformNetworkRecvAsync(void *userData, platformNetwork_t *plat
         setsockopt(platformNetwork->socket, SOL_SOCKET, SO_RCVTIMEO, (char *)&tv, sizeof(struct timeval)); // 设置接收超时
 
         recvResult = recv(platformNetwork->socket, recvBuf, recvLen - offset, 0);
-
-        if (recvResult < 0) // 小于零，表示错误，个别错误不代表socket错误
+        if (recvResult < 0)
         {
             if ((errno == EAGAIN ||      // 套接字已标记为非阻塞，而接收操作被阻塞或者接收超时
                  errno == EWOULDBLOCK || // 发送时套接字发送缓冲区已满，或接收时套接字接收缓冲区为空
@@ -152,10 +154,8 @@ RyanMqttError_e platformNetworkSendAsync(void *userData, platformNetwork_t *plat
         setsockopt(platformNetwork->socket, SOL_SOCKET, SO_SNDTIMEO, (char *)&tv, sizeof(struct timeval)); // 设置发送超时
 
         sendResult = send(platformNetwork->socket, sendBuf, sendLen - offset, 0);
-
-        if (sendResult < 0) // 小于零，表示错误，个别错误不代表socket错误
+        if (sendResult < 0)
         {
-            // 下列3种表示没问题,但需要推出发送
             if ((errno == EAGAIN ||      // 套接字已标记为非阻塞，而接收操作被阻塞或者接收超时
                  errno == EWOULDBLOCK || // 发送时套接字发送缓冲区已满，或接收时套接字接收缓冲区为空
                  errno == EINTR))        // 操作被信号中断
