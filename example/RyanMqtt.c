@@ -110,10 +110,10 @@ void mqttEventHandle(void *pclient, RyanMqttEventId_e event, const void const *e
     case RyanMqttEventData:
     {
         RyanMqttMsgData_t *msgData = (RyanMqttMsgData_t *)eventData;
-        ulog_i(TAG, " RyanMqtt topic recv callback! topic: %s, packetId: %d, payload len: %d \r\n \\
-                    data: %.*s",
-               msgData->topic, msgData->packetId, msgData->payloadLen,
-               msgData->payloadLen, msgData->payload);
+        ulog_i(TAG, " RyanMqtt topic recv callback! topic: %s, packetId: %d, payload len: %d",
+               msgData->topic, msgData->packetId, msgData->payloadLen);
+
+        rt_kprintf("%.*s\r\n", msgData->payloadLen, msgData->payload);
 
         mqttTest[dataEventCount]++;
         break;
@@ -206,7 +206,7 @@ void mqttEventHandle(void *pclient, RyanMqttEventId_e event, const void const *e
     }
 }
 
-void mqttConnectFun()
+int mqttConnectFun()
 {
     RyanMqttError_e result = RyanMqttSuccessError;
     RyanMqttClientConfig_t mqttConfig = {
@@ -256,6 +256,7 @@ void mqttConnectFun()
     // 启动mqtt客户端线程
     result = RyanMqttStart(client);
     RyanMqttCheck(RyanMqttSuccessError == result, result);
+    return 0;
 }
 
 /**
@@ -313,7 +314,7 @@ static int MqttState(int argc, char *argv[])
         break;
     }
 
-    ulog_i(TAG, "client state: %s", clientState);
+    ulog_i(TAG, "client state: %s", str);
 
     return 0;
 }
@@ -645,7 +646,7 @@ static int RyanMqttMsh(int argc, char *argv[])
     if (runCmd->fun != NULL)
         result = runCmd->fun(argc, argv);
 
-    return 0;
+    return result;
 }
 
 #if defined(RT_USING_MSH)

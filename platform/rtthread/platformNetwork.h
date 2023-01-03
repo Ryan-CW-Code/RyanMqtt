@@ -20,6 +20,7 @@ extern "C"
 #include <sys/errno.h>
 #include <sys/time.h>
 #include "sal_netdb.h"
+#include "netdb.h"
 
 #else
 #include "lwip/opt.h"

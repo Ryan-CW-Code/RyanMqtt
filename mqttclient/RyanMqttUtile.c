@@ -588,7 +588,7 @@ const char *RyanStrError(RyanMqttError_e state)
 {
     const char *str = NULL;
 
-    switch (state)
+    switch ((int)state)
     {
     case RyanMqttRecvPacketTimeOutError:
         str = "读取数据超时";

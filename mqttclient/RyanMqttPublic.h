@@ -24,15 +24,6 @@ extern "C"
 
 #define RyanMqttCheck(EX, ErrorCode) RyanMqttCheckCode(EX, ErrorCode, { NULL; })
 
-#define RyanMqttCheckCode(EX, ErrorCode, code)                         \
-    if (!(EX))                                                         \
-    {                                                                  \
-        {code};                                                        \
-        LOG_D("%s:%d ErrorCode: %d, strError: %s",                     \
-              __FILE__, __LINE__, ErrorCode, RyanStrError(ErrorCode)); \
-        return ErrorCode;                                              \
-    }
-
     // 定义枚举类型
     typedef enum
     {
@@ -168,6 +159,16 @@ extern "C"
 #include "platformTimer.h"
 #include "platformSystem.h"
 #include "RyanList.h"
+
+    extern const char *RyanStrError(RyanMqttError_e state);
+#define RyanMqttCheckCode(EX, ErrorCode, code)                         \
+    if (!(EX))                                                         \
+    {                                                                  \
+        {code};                                                        \
+        LOG_D("%s:%d ErrorCode: %d, strError: %s",                     \
+              __FILE__, __LINE__, ErrorCode, RyanStrError(ErrorCode)); \
+        return ErrorCode;                                              \
+    }
 
 #ifdef __cplusplus
 }

@@ -26,7 +26,7 @@ static RyanMqttError_e setConfigValue(char **dest, char const *const rest)
     if (NULL != *dest)
         platformMemoryFree(*dest);
 
-    RyanMqttStringCopy(dest, rest, strlen(rest));
+    RyanMqttStringCopy(dest, (char *)rest, strlen(rest));
     if (NULL == *dest)
         return RyanMqttFailedError;
 
@@ -43,7 +43,6 @@ static RyanMqttError_e setConfigValue(char **dest, char const *const rest)
 RyanMqttError_e RyanMqttInit(RyanMqttClient_t **pClient)
 {
 
-    RyanMqttError_e result = RyanMqttSuccessError;
     RyanMqttClient_t *client = NULL;
     RyanMqttCheck(NULL != pClient, RyanMqttParamInvalidError);
 
@@ -194,7 +193,7 @@ RyanMqttError_e RyanMqttStart(RyanMqttClient_t *client)
                                 client,
                                 client->config->taskStack,
                                 client->config->taskPrio);
-    RyanMqttCheckCode(NULL == result, RyanMqttNotEnoughMemError, { RyanMqttSetClientState(client, mqttInitState); });
+    RyanMqttCheckCode(RyanMqttSuccessError != result, RyanMqttNotEnoughMemError, { RyanMqttSetClientState(client, mqttInitState); });
 
     RyanMqttSetClientState(client, mqttStartState);
     return RyanMqttSuccessError;
@@ -220,7 +219,7 @@ RyanMqttError_e RyanMqttDisconnect(RyanMqttClient_t *client, RyanBool_e sendDisc
     {
         platformMutexLock(client->config->userData, client->sendBufLock); // 获取互斥锁
         // 序列化断开连接数据包并发送
-        packetLen = MQTTSerialize_disconnect(client->config->sendBuffer, client->config->sendBufferSize);
+        packetLen = MQTTSerialize_disconnect((uint8_t *)client->config->sendBuffer, client->config->sendBufferSize);
         if (packetLen > 0)
             RyanMqttSendPacket(client, client->config->sendBuffer, packetLen);
         platformMutexUnLock(client->config->userData, client->sendBufLock); // 释放互斥锁
@@ -277,7 +276,7 @@ RyanMqttError_e RyanMqttSubscribe(RyanMqttClient_t *client, char *topic, RyanMqt
     platformMutexLock(client->config->userData, client->sendBufLock); // 获取互斥锁
     packetId = RyanMqttGetNextPacketId(client);
 
-    packetLen = MQTTSerialize_subscribe(client->config->sendBuffer, client->config->sendBufferSize, 0, packetId, 1, &topicName, &qos);
+    packetLen = MQTTSerialize_subscribe((uint8_t *)client->config->sendBuffer, client->config->sendBufferSize, 0, packetId, 1, &topicName, (int *)&qos);
     RyanMqttCheckCode(packetLen > 0, RyanMqttSerializePacketError, { platformMutexUnLock(client->config->userData, client->sendBufLock); });
 
     result = RyanMqttMsgHandlerCreate(topic, strlen(topic), qos, &msgHandler);
@@ -330,7 +329,7 @@ RyanMqttError_e RyanMqttUnSubscribe(RyanMqttClient_t *client, char *topic)
     platformMutexLock(client->config->userData, client->sendBufLock); // 获取互斥锁
     packetId = RyanMqttGetNextPacketId(client);
 
-    packetLen = MQTTSerialize_unsubscribe(client->config->sendBuffer, client->config->sendBufferSize, 0, packetId, 1, &topicName);
+    packetLen = MQTTSerialize_unsubscribe((uint8_t *)client->config->sendBuffer, client->config->sendBufferSize, 0, packetId, 1, &topicName);
     RyanMqttCheckCode(packetLen > 0, RyanMqttSerializePacketError,
                       { platformMutexUnLock(client->config->userData, client->sendBufLock); });
 
@@ -386,8 +385,8 @@ RyanMqttError_e RyanMqttPublish(RyanMqttClient_t *client, char *topic, char *pay
     if (QOS0 == qos)
     {
         platformMutexLock(client->config->userData, client->sendBufLock); // 获取互斥锁
-        packetLen = MQTTSerialize_publish(client->config->sendBuffer, client->config->sendBufferSize, 0, qos, retain, packetId,
-                                          topicName, payload, payloadLen);
+        packetLen = MQTTSerialize_publish((uint8_t *)client->config->sendBuffer, client->config->sendBufferSize, 0, qos, retain, packetId,
+                                          topicName, (uint8_t *)payload, payloadLen);
         RyanMqttCheckCode(packetLen > 0, RyanMqttSerializePacketError,
                           { platformMutexUnLock(client->config->userData, client->sendBufLock); });
 
@@ -400,8 +399,8 @@ RyanMqttError_e RyanMqttPublish(RyanMqttClient_t *client, char *topic, char *pay
     platformMutexLock(client->config->userData, client->sendBufLock); // 获取互斥锁
     packetId = RyanMqttGetNextPacketId(client);
 
-    packetLen = MQTTSerialize_publish(client->config->sendBuffer, client->config->sendBufferSize, 0, qos, retain, packetId,
-                                      topicName, payload, payloadLen);
+    packetLen = MQTTSerialize_publish((uint8_t *)client->config->sendBuffer, client->config->sendBufferSize, 0, qos, retain, packetId,
+                                      topicName, (uint8_t *)payload, payloadLen);
     RyanMqttCheckCode(packetLen > 0, RyanMqttSerializePacketError,
                       { platformMutexUnLock(client->config->userData, client->sendBufLock); });
 
@@ -456,10 +455,9 @@ RyanMqttState_e RyanMqttGetState(RyanMqttClient_t *client)
  * @param subscribeNum 函数内部返回已订阅主题的个数
  * @return RyanMqttState_e
  */
-RyanMqttState_e RyanMqttGetSubscribe(RyanMqttClient_t *client, RyanMqttMsgHandler_t *msgHandles, int32_t msgHandleSize, int32_t *subscribeNum)
+RyanMqttError_e RyanMqttGetSubscribe(RyanMqttClient_t *client, RyanMqttMsgHandler_t *msgHandles, int32_t msgHandleSize, int32_t *subscribeNum)
 {
 
-    RyanMqttError_e result = RyanMqttSuccessError;
     RyanList_t *curr = NULL,
                *next = NULL;
     RyanMqttMsgHandler_t *msgHandler = NULL;
@@ -482,7 +480,7 @@ RyanMqttState_e RyanMqttGetSubscribe(RyanMqttClient_t *client, RyanMqttMsgHandle
 
         (*subscribeNum)++;
 
-        if (subscribeNum >= msgHandleSize)
+        if (*subscribeNum >= msgHandleSize)
             return RyanMqttNoRescourceError;
     }
 
@@ -597,7 +595,7 @@ RyanMqttError_e RyanMqttSetConfig(RyanMqttClient_t *client, RyanMqttClientConfig
     client->config->ackTimeout = clientConfig->ackTimeout;
     client->config->keepaliveTimeoutS = clientConfig->keepaliveTimeoutS;
     client->config->mqttEventHandle = clientConfig->mqttEventHandle;
-    client->config->userData - clientConfig->userData;
+    client->config->userData = clientConfig->userData;
 
     client->config->recvBufferSize = clientConfig->recvBufferSize;
     client->config->sendBufferSize = clientConfig->sendBufferSize;
