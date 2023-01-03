@@ -1,5 +1,4 @@
 #define DBG_ENABLE
-
 #define DBG_SECTION_NAME RyanMqttTag
 #define DBG_LEVEL LOG_LVL_WARNING
 #define DBG_COLOR

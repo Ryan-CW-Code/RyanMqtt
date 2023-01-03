@@ -7,22 +7,15 @@
 extern "C"
 {
 #endif
-
+#include <rtthread.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
 #include <errno.h>
 
-#define DBG_ENABLE
-#define DBG_SECTION_NAME RyanMqttTag
-#define DBG_LEVEL LOG_LVL_WARNING
-#define DBG_COLOR
-
 #define RyanMqttMaxPacketId (0xFFFFU - 1U)  // 你允许的mqtt paketid最大值，协议标准为个非零的 16 位数
 #define RyanMqttMaxPayloadLen (268435455UL) // 你允许的mqtt可变报头和有效载荷最长长度。默认值为协议标准
 #define RyanMqttVersion ("0.0.1")
-
-#define RyanMqttCheck(EX, ErrorCode) RyanMqttCheckCode(EX, ErrorCode, { NULL; })
 
     // 定义枚举类型
     typedef enum
@@ -159,6 +152,8 @@ extern "C"
 #include "platformTimer.h"
 #include "platformSystem.h"
 #include "RyanList.h"
+
+#define RyanMqttCheck(EX, ErrorCode) RyanMqttCheckCode(EX, ErrorCode, { NULL; })
 
     extern const char *RyanStrError(RyanMqttError_e state);
 #define RyanMqttCheckCode(EX, ErrorCode, code)                         \
