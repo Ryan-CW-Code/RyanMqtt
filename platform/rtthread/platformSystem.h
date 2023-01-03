@@ -19,9 +19,6 @@ extern "C"
 #define RyanMqttAssert(EX) assert(EX)
 #endif
 
-    // 定义枚举类型
-
-    // 定义结构体类型
     typedef struct
     {
         rt_thread_t thread;
@@ -32,7 +29,6 @@ extern "C"
         rt_mutex_t mutex;
     } platformMutex_t;
 
-    /* extern variables-----------------------------------------------------------*/
     extern void *platformMemoryMalloc(size_t size);
     extern void platformMemoryFree(void *ptr);
 
