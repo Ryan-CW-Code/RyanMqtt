@@ -1,6 +1,13 @@
+
 #define DBG_ENABLE
 #define DBG_SECTION_NAME RyanMqttTag
-#define DBG_LEVEL LOG_LVL_WARNING
+
+#ifdef RyanDebugEnable
+#define DBG_LEVEL DBG_LOG
+#else
+#define DBG_LEVEL DBG_INFO
+#endif
+
 #define DBG_COLOR
 
 #include "RyanMqttPublic.h"
@@ -86,7 +93,7 @@ RyanMqttError_e RyanMqttSetPublishDup(char *headerBuf, uint8_t dup)
     RyanMqttAssert(NULL != headerBuf);
 
     header.byte = *headerBuf;
-    RyanMqttCheck(PUBLISH == header.bits.type, RyanMqttFailedError);
+    RyanMqttCheck(PUBLISH == header.bits.type, RyanMqttFailedError, ulog_d);
 
     header.bits.dup = dup;
     *headerBuf = header.byte;
@@ -112,7 +119,7 @@ RyanMqttError_e RyanMqttRecvPacket(RyanMqttClient_t *client, char *recvBuf, int3
     RyanMqttAssert(NULL != client->config);
     RyanMqttAssert(NULL != recvBuf);
 
-    RyanMqttCheck(0 != recvLen, RyanMqttSuccessError);
+    RyanMqttCheck(0 != recvLen, RyanMqttSuccessError, ulog_d);
 
     result = platformNetworkRecvAsync(client->config->userData, client->network, recvBuf, recvLen, client->config->recvTimeout);
 
@@ -148,7 +155,7 @@ RyanMqttError_e RyanMqttSendPacket(RyanMqttClient_t *client, char *sendBuf, int3
     RyanMqttAssert(NULL != client->config);
     RyanMqttAssert(NULL != sendBuf);
 
-    RyanMqttCheck(0 != sendLen, RyanMqttSuccessError);
+    RyanMqttCheck(0 != sendLen, RyanMqttSuccessError, ulog_d);
 
     result = platformNetworkSendAsync(client->config->userData, client->network, sendBuf, sendLen, client->config->sendTimeout);
     switch (result)
@@ -359,7 +366,7 @@ RyanMqttError_e RyanMqttMsgHandlerCreate(char *topic, uint16_t topicLen, RyanMqt
     RyanMqttAssert(QOS0 <= qos && QOS2 >= qos);
 
     msgHandler = (RyanMqttMsgHandler_t *)platformMemoryMalloc(sizeof(RyanMqttMsgHandler_t));
-    RyanMqttCheck(NULL != msgHandler, RyanMqttNotEnoughMemError);
+    RyanMqttCheck(NULL != msgHandler, RyanMqttNotEnoughMemError, ulog_d);
     memset(msgHandler, 0, sizeof(RyanMqttMsgHandler_t));
 
     // 初始化链表
@@ -367,7 +374,7 @@ RyanMqttError_e RyanMqttMsgHandlerCreate(char *topic, uint16_t topicLen, RyanMqt
 
     msgHandler->qos = qos;
     result = RyanMqttStringCopy(&msgHandler->topic, topic, topicLen);
-    RyanMqttCheckCode(RyanMqttSuccessError == result, RyanMqttNotEnoughMemError, {platformMemoryFree(msgHandler); msgHandler = NULL; });
+    RyanMqttCheckCode(RyanMqttSuccessError == result, RyanMqttNotEnoughMemError, ulog_d, {platformMemoryFree(msgHandler); msgHandler = NULL; });
 
     *pMsgHandler = msgHandler;
     return RyanMqttSuccessError;
@@ -483,7 +490,7 @@ RyanMqttError_e RyanMqttAckHandlerCreate(RyanMqttClient_t *client, enum msgTypes
 
     // 给消息主题添加空格
     ackHandler = (RyanMqttAckHandler_t *)platformMemoryMalloc(sizeof(RyanMqttAckHandler_t) + packetLen);
-    RyanMqttCheck(NULL != ackHandler, RyanMqttNotEnoughMemError);
+    RyanMqttCheck(NULL != ackHandler, RyanMqttNotEnoughMemError, ulog_d);
     memset(ackHandler, 0, sizeof(RyanMqttAckHandler_t) + packetLen);
 
     RyanListInit(&ackHandler->list);

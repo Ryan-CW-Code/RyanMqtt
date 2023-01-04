@@ -9,6 +9,8 @@ extern "C"
 #endif
 
 #include <rtthread.h>
+
+// #define RyanDebugEnable
 #define RyanMqttTag ("RyanMqtt")
 
 #ifdef RT_USING_ULOG

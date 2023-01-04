@@ -153,17 +153,26 @@ extern "C"
 #include "platformSystem.h"
 #include "RyanList.h"
 
-#define RyanMqttCheck(EX, ErrorCode) RyanMqttCheckCode(EX, ErrorCode, { NULL; })
+#define RyanW5500SetErrno(err) \
+    do                         \
+    {                          \
+        if (err)               \
+            errno = (err);     \
+    } while (0)
+
+#define RyanMqttCheck(EX, ErrorCode, level) RyanMqttCheckCode(EX, ErrorCode, level, { NULL; })
 
     extern const char *RyanStrError(RyanMqttError_e state);
-#define RyanMqttCheckCode(EX, ErrorCode, code)                         \
-    if (!(EX))                                                         \
-    {                                                                  \
-        LOG_D("%s:%d ErrorCode: %d, strError: %s",                     \
-              __FILE__, __LINE__, ErrorCode, RyanStrError(ErrorCode)); \
-        {code};                                                        \
-        return ErrorCode;                                              \
-    }
+#define RyanMqttCheckCode(EX, ErrorCode, Ryanlevel, code)
+
+    /* #define RyanMqttCheckCode(EX, ErrorCode, Ryanlevel, code)                  \
+        if (!(EX))                                                             \
+        {                                                                      \
+            {code};                                                            \
+            Ryanlevel(RyanMqttTag, "%s:%d ErrorCode: %d, strError: %s",        \
+                      __FILE__, __LINE__, ErrorCode, RyanStrError(ErrorCode)); \
+            return ErrorCode;                                                  \
+        } */
 
 #ifdef __cplusplus
 }

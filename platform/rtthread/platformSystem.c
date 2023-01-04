@@ -54,7 +54,7 @@ RyanMqttError_e platformThreadInit(void *userData,
                                               priority,  // 线程优先级
                                               10);       // 线程时间片
 
-    if (RT_NULL == platformThread->thread)
+    if (NULL == platformThread->thread)
         return RyanMqttNoRescourceError;
 
     rt_thread_startup(platformThread->thread);
