@@ -1,4 +1,9 @@
 
+
+#include "RyanMqttPublic.h"
+#include "RyanMqttUtile.h"
+#include "RyanMqttThread.h"
+
 #define DBG_ENABLE
 #define DBG_SECTION_NAME RyanMqttTag
 
@@ -9,10 +14,7 @@
 #endif
 
 #define DBG_COLOR
-
-#include "RyanMqttPublic.h"
-#include "RyanMqttUtile.h"
-#include "RyanMqttThread.h"
+#include "ulog.h"
 
 /**
  * @brief mqtt心跳保活
@@ -428,7 +430,7 @@ RyanMqttError_e RyanMqttReadPacketHandler(RyanMqttClient_t *client, uint8_t *pac
 
     // 填充联合体标头信息
     header.byte = client->config->recvBuffer[0];
-    LOG_I("packetType: %d", header.bits.type);
+    LOG_D("packetType: %d", header.bits.type);
     RyanMqttCheck(CONNECT <= header.bits.type && DISCONNECT >= header.bits.type, result, ulog_d);
 
     // 2.读取mqtt报文剩余长度。 这本身是可变的

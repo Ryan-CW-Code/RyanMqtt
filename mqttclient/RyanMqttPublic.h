@@ -13,6 +13,9 @@ extern "C"
 #include <string.h>
 #include <errno.h>
 
+// #define RyanDebugEnable
+#define RyanMqttTag ("RyanMqtt")
+
 #define RyanMqttMaxPacketId (0xFFFFU - 1U)  // 你允许的mqtt paketid最大值，协议标准为个非零的 16 位数
 #define RyanMqttMaxPayloadLen (268435455UL) // 你允许的mqtt可变报头和有效载荷最长长度。默认值为协议标准
 #define RyanMqttVersion ("0.0.1")
@@ -147,7 +150,6 @@ extern "C"
     /* extern variables-----------------------------------------------------------*/
 
 #include "MQTTPacket.h"
-#include "RyanMqttLog.h"
 #include "platformNetwork.h"
 #include "platformTimer.h"
 #include "platformSystem.h"
@@ -163,16 +165,15 @@ extern "C"
 #define RyanMqttCheck(EX, ErrorCode, level) RyanMqttCheckCode(EX, ErrorCode, level, { NULL; })
 
     extern const char *RyanStrError(RyanMqttError_e state);
-#define RyanMqttCheckCode(EX, ErrorCode, Ryanlevel, code)
 
-    /* #define RyanMqttCheckCode(EX, ErrorCode, Ryanlevel, code)                  \
-        if (!(EX))                                                             \
-        {                                                                      \
-            {code};                                                            \
-            Ryanlevel(RyanMqttTag, "%s:%d ErrorCode: %d, strError: %s",        \
-                      __FILE__, __LINE__, ErrorCode, RyanStrError(ErrorCode)); \
-            return ErrorCode;                                                  \
-        } */
+#define RyanMqttCheckCode(EX, ErrorCode, Ryanlevel, code)                  \
+    if (!(EX))                                                             \
+    {                                                                      \
+        {code};                                                            \
+        Ryanlevel(RyanMqttTag, "%s:%d ErrorCode: %d, strError: %s",        \
+                  __FILE__, __LINE__, ErrorCode, RyanStrError(ErrorCode)); \
+        return ErrorCode;                                                  \
+    }
 
 #ifdef __cplusplus
 }
