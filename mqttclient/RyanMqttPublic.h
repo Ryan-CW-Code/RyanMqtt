@@ -159,9 +159,9 @@ extern "C"
 #define RyanMqttCheckCode(EX, ErrorCode, code)                         \
     if (!(EX))                                                         \
     {                                                                  \
-        {code};                                                        \
         LOG_D("%s:%d ErrorCode: %d, strError: %s",                     \
               __FILE__, __LINE__, ErrorCode, RyanStrError(ErrorCode)); \
+        {code};                                                        \
         return ErrorCode;                                              \
     }
 
