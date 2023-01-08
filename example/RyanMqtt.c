@@ -238,23 +238,23 @@ int mqttConnectFun()
 
     // 初始化mqtt客户端
     result = RyanMqttInit(&client);
-    RyanMqttCheck(RyanMqttSuccessError == result, result);
+    RyanMqttCheck(RyanMqttSuccessError == result, result, ulog_d);
 
     // 注册需要的事件回调
     result = RyanMqttRegisterEventId(client, RyanMqttEventAnyId);
-    RyanMqttCheck(RyanMqttSuccessError == result, result);
+    RyanMqttCheck(RyanMqttSuccessError == result, result, ulog_d);
 
     // 设置mqtt客户端config
     result = RyanMqttSetConfig(client, &mqttConfig);
-    RyanMqttCheck(RyanMqttSuccessError == result, result);
+    RyanMqttCheck(RyanMqttSuccessError == result, result, ulog_d);
 
     // 设置遗嘱消息
     result = RyanMqttSetLwt(client, "pub/test", "this is will", strlen("this is will"), QOS0, 0);
-    RyanMqttCheck(RyanMqttSuccessError == result, result);
+    RyanMqttCheck(RyanMqttSuccessError == result, result, ulog_d);
 
     // 启动mqtt客户端线程
     result = RyanMqttStart(client);
-    RyanMqttCheck(RyanMqttSuccessError == result, result);
+    RyanMqttCheck(RyanMqttSuccessError == result, result, ulog_d);
     return 0;
 }
 
@@ -309,7 +309,7 @@ static int MqttState(int argc, char *argv[])
         break;
 
     default:
-        RyanMqttCheck(NULL, RyanMqttFailedError);
+        RyanMqttCheck(NULL, RyanMqttFailedError, ulog_d);
         break;
     }
 
