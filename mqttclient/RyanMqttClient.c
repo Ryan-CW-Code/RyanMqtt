@@ -197,7 +197,7 @@ RyanMqttError_e RyanMqttStart(RyanMqttClient_t *client)
     RyanMqttError_e result = RyanMqttSuccessError;
     RyanMqttCheck(NULL != client, RyanMqttParamInvalidError, ulog_d);
     RyanMqttCheck(mqttInitState == client->clientState, RyanMqttFailedError, ulog_d);
-
+    RyanMqttSetClientState(client, mqttStartState);
     // 连接成功，需要初始化 MQTT 线程
     result = platformThreadInit(client->config->userData,
                                 client->mqttThread,
@@ -209,7 +209,6 @@ RyanMqttError_e RyanMqttStart(RyanMqttClient_t *client)
 
     RyanMqttCheckCode(RyanMqttSuccessError == result, RyanMqttNotEnoughMemError, ulog_d, { RyanMqttSetClientState(client, mqttInitState); });
 
-    RyanMqttSetClientState(client, mqttStartState);
     return RyanMqttSuccessError;
 }
 
