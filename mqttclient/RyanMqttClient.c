@@ -66,6 +66,7 @@ RyanMqttError_e RyanMqttInit(RyanMqttClient_t **pClient)
     client->network = (platformNetwork_t *)platformMemoryMalloc(sizeof(platformNetwork_t));
     RyanMqttCheckCode(NULL != client->network, RyanMqttNotEnoughMemError, ulog_d, { RyanMqttDestroy(client); });
     memset(client->network, 0, sizeof(platformNetwork_t));
+    client->network->socket = -1;
 
     client->config = (RyanMqttClientConfig_t *)platformMemoryMalloc(sizeof(RyanMqttClientConfig_t));
     RyanMqttCheckCode(NULL != client->config, RyanMqttNotEnoughMemError, ulog_d, { RyanMqttDestroy(client); });
