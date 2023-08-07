@@ -10,23 +10,19 @@ extern "C"
 #include <stdio.h>
 #include <stdint.h>
 #include <assert.h>
+#include "cmsis_os2.h"
 #include "RyanMqttPublic.h"
 
-#include <rtthread.h>
-#ifdef RT_ASSERT
-#define RyanMqttAssert(EX) RT_ASSERT(EX)
-#else
 #define RyanMqttAssert(EX) assert(EX)
-#endif
 
     typedef struct
     {
-        rt_thread_t thread;
+        osThreadId_t thread;
     } platformThread_t;
 
     typedef struct
     {
-        rt_mutex_t mutex;
+        osMutexId_t mutex;
     } platformMutex_t;
 
     extern void *platformMemoryMalloc(size_t size);

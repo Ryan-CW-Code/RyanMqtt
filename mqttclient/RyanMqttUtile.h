@@ -6,9 +6,7 @@
 extern "C"
 {
 #endif
-
 #include "RyanMqttClient.h"
-
     // 定义枚举类型
 
     // 定义结构体类型
@@ -29,14 +27,13 @@ extern "C"
 
     extern RyanMqttError_e RyanMqttMsgHandlerCreate(char *topic, uint16_t topicLen, RyanMqttQos_e qos, RyanMqttMsgHandler_t **pMsgHandler);
     extern void RyanMqttMsgHandlerDestory(RyanMqttMsgHandler_t *msgHandler);
-    extern RyanMqttError_e RyanMqttMsgHandlerFind(RyanMqttClient_t *client, char *topic, uint16_t topicLen, RyanBool_e topicMatchedFlag, RyanMqttMsgHandler_t **pMsgHandler);
+    extern RyanMqttError_e RyanMqttMsgHandlerFind(RyanMqttClient_t *client, char *topic, uint16_t topicLen, RyanMqttBool_e topicMatchedFlag, RyanMqttMsgHandler_t **pMsgHandler);
     extern RyanMqttError_e RyanMqttMsgHandlerAdd(RyanMqttClient_t *client, RyanMqttMsgHandler_t *msgHandler);
 
     extern RyanMqttError_e RyanMqttStringCopy(char **dest, char *rest, uint32_t strLen);
     extern RyanMqttError_e RyanMqttSetPublishDup(char *headerBuf, uint8_t dup);
 
     extern void RyanMqttCleanSession(RyanMqttClient_t *client);
-    extern const char *RyanStrError(RyanMqttError_e state);
 
 #ifdef __cplusplus
 }

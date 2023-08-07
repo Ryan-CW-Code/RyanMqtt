@@ -1,15 +1,14 @@
 
 #include "platformSystem.h"
 
-// 存放未初始化
 void *platformMemoryMalloc(size_t size)
 {
-    return rt_malloc(size);
+    return malloc(size);
 }
 
 void platformMemoryFree(void *ptr)
 {
-    rt_free(ptr);
+    free(ptr);
 }
 
 /**
@@ -19,7 +18,7 @@ void platformMemoryFree(void *ptr)
  */
 void platformDelay(uint32_t ms)
 {
-    rt_thread_mdelay(ms);
+    osDelay(ms);
 }
 
 /**
@@ -42,22 +41,23 @@ RyanMqttError_e platformThreadInit(void *userData,
                                    uint32_t stackSize,
                                    uint32_t priority)
 {
-    platformThread->thread = rt_thread_create(name,      // 线程name
-                                              entry,     // 线程入口函数
-                                              param,     // 线程入口函数参数
-                                              stackSize, // 线程栈大小
-                                              priority,  // 线程优先级
-                                              10);       // 线程时间片
+
+    const osThreadAttr_t myTask02_attributes = {
+        .name = name,
+        .stack_size = stackSize,
+        .priority = (osPriority_t)priority,
+    };
+
+    platformThread->thread = osThreadNew(entry, param, &myTask02_attributes);
 
     if (NULL == platformThread->thread)
         return RyanMqttNoRescourceError;
 
-    rt_thread_startup(platformThread->thread);
     return RyanMqttSuccessError;
 }
 
 /**
- * @brief 销毁指定线程
+ * @brief 销毁自身线程
  *
  * @param userData
  * @param platformThread
@@ -65,8 +65,7 @@ RyanMqttError_e platformThreadInit(void *userData,
  */
 RyanMqttError_e platformThreadDestroy(void *userData, platformThread_t *platformThread)
 {
-    rt_thread_delete(platformThread->thread);
-    rt_schedule();
+    osThreadExit();
     return RyanMqttSuccessError;
 }
 
@@ -79,8 +78,7 @@ RyanMqttError_e platformThreadDestroy(void *userData, platformThread_t *platform
  */
 RyanMqttError_e platformThreadStart(void *userData, platformThread_t *platformThread)
 {
-    rt_thread_resume(platformThread->thread);
-    rt_schedule();
+    osThreadResume(platformThread->thread);
     return RyanMqttSuccessError;
 }
 
@@ -93,8 +91,7 @@ RyanMqttError_e platformThreadStart(void *userData, platformThread_t *platformTh
  */
 RyanMqttError_e platformThreadStop(void *userData, platformThread_t *platformThread)
 {
-    rt_thread_suspend(platformThread->thread);
-    rt_schedule(); // rtthread挂起线程后应立即调用线程上下文切换函数
+    osThreadSuspend(platformThread->thread);
     return RyanMqttSuccessError;
 }
 
@@ -107,7 +104,11 @@ RyanMqttError_e platformThreadStop(void *userData, platformThread_t *platformThr
  */
 RyanMqttError_e platformMutexInit(void *userData, platformMutex_t *platformMutex)
 {
-    platformMutex->mutex = rt_mutex_create("mqttMutex", RT_IPC_FLAG_PRIO);
+
+    const osMutexAttr_t myMutex01_attributes = {
+        .name = "mqttMutex"};
+
+    platformMutex->mutex = osMutexNew(&myMutex01_attributes);
     return RyanMqttSuccessError;
 }
 
@@ -120,7 +121,7 @@ RyanMqttError_e platformMutexInit(void *userData, platformMutex_t *platformMutex
  */
 RyanMqttError_e platformMutexDestroy(void *userData, platformMutex_t *platformMutex)
 {
-    rt_mutex_delete(platformMutex->mutex);
+    osMutexDelete(platformMutex->mutex);
     return RyanMqttSuccessError;
 }
 
@@ -133,7 +134,7 @@ RyanMqttError_e platformMutexDestroy(void *userData, platformMutex_t *platformMu
  */
 RyanMqttError_e platformMutexLock(void *userData, platformMutex_t *platformMutex)
 {
-    rt_mutex_take(platformMutex->mutex, RT_WAITING_FOREVER);
+    osMutexAcquire(platformMutex->mutex, osWaitForever);
     return RyanMqttSuccessError;
 }
 
@@ -146,7 +147,7 @@ RyanMqttError_e platformMutexLock(void *userData, platformMutex_t *platformMutex
  */
 RyanMqttError_e platformMutexUnLock(void *userData, platformMutex_t *platformMutex)
 {
-    rt_mutex_release(platformMutex->mutex);
+    osMutexRelease(platformMutex->mutex);
     return RyanMqttSuccessError;
 }
 
@@ -156,7 +157,8 @@ RyanMqttError_e platformMutexUnLock(void *userData, platformMutex_t *platformMut
  */
 void platformCriticalEnter(void)
 {
-    rt_enter_critical();
+    // rt_enter_critical();
+    osKernelLock();
 }
 
 /**
@@ -165,5 +167,6 @@ void platformCriticalEnter(void)
  */
 void platformCriticalExit(void)
 {
-    rt_exit_critical();
+    // rt_exit_critical();
+    osKernelUnlock();
 }

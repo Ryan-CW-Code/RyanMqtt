@@ -2,13 +2,11 @@
 #ifndef __mqttClientTask__
 #define __mqttClientTask__
 
-#include "RyanMqttClient.h"
-
 #ifdef __cplusplus
 extern "C"
 {
 #endif
-
+#include "RyanMqttClient.h"
     // 定义枚举类型
 
     // 定义结构体类型

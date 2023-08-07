@@ -1,6 +1,10 @@
-
+#define rlogEnable 1               // 是否使能日志
+#define rlogColorEnable 1          // 是否使能日志颜色
+#define rlogLevel (rlogLvlWarning) // 日志打印等级
+#define rlogTag "RyanMqttNet"      // 日志tag
 
 #include "platformNetwork.h"
+#include "RyanMqttLog.h"
 
 /**
  * @brief 连接mqtt服务器
@@ -89,7 +93,7 @@ RyanMqttError_e platformNetworkRecvAsync(void *userData, platformNetwork_t *plat
 
         setsockopt(platformNetwork->socket, SOL_SOCKET, SO_RCVTIMEO, (char *)&tv, sizeof(struct timeval)); // 设置错做模式为非阻塞
 
-        recvResult = recv(platformNetwork->socket, recvBuf, recvLen - offset, 0);
+        recvResult = recv(platformNetwork->socket, recvBuf + offset, recvLen - offset, 0);
 
         if (recvResult < 0) // 小于零，表示错误，个别错误不代表socket错误
         {
@@ -153,7 +157,7 @@ RyanMqttError_e platformNetworkSendAsync(void *userData, platformNetwork_t *plat
 
         setsockopt(platformNetwork->socket, SOL_SOCKET, SO_SNDTIMEO, (char *)&tv, sizeof(struct timeval)); // 设置错做模式为非阻塞
 
-        sendResult = send(platformNetwork->socket, sendBuf, sendLen - offset, 0);
+        sendResult = send(platformNetwork->socket, sendBuf + offset, sendLen - offset, 0);
 
         if (sendResult < 0) // 小于零，表示错误，个别错误不代表socket错误
         {

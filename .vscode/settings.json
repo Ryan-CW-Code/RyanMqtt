@@ -1,6 +1,0 @@
-{
-    "files.associations": {
-        "ryanmqttpublic.h": "c",
-        "mqttpacket.h": "c"
-    }
-}

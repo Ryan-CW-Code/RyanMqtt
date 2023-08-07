@@ -4,3 +4,5 @@
 # 平台移植层
 platform/linux/*
 platform/FreeRTOS/*
+
+null

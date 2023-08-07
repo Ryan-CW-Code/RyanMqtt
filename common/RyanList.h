@@ -1,6 +1,6 @@
 
-#ifndef __RyanList__
-#define __RyanList__
+#ifndef __RyanMqttList__
+#define __RyanMqttList__
 
 #ifdef __cplusplus
 extern "C"

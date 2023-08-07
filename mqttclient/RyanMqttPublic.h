@@ -1,20 +1,16 @@
 
 
-#ifndef __mqttClientStatic__
-#define __mqttClientStatic__
+#ifndef __mqttClientPublic__
+#define __mqttClientPublic__
 
 #ifdef __cplusplus
 extern "C"
 {
 #endif
-#include <rtthread.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
 #include <errno.h>
-
-// #define RyanDebugEnable
-#define RyanMqttTag ("RyanMqtt")
 
 #define RyanMqttMaxPacketId (0xFFFFU - 1U)  // 你允许的mqtt paketid最大值，协议标准为个非零的 16 位数
 #define RyanMqttMaxPayloadLen (268435455UL) // 你允许的mqtt可变报头和有效载荷最长长度。默认值为协议标准
@@ -23,84 +19,84 @@ extern "C"
     // 定义枚举类型
     typedef enum
     {
-        RyanBit31 = 0x80000000,
-        RyanBit30 = 0x40000000,
-        RyanBit29 = 0x20000000,
-        RyanBit28 = 0x10000000,
-        RyanBit27 = 0x08000000,
-        RyanBit26 = 0x04000000,
-        RyanBit25 = 0x02000000,
-        RyanBit24 = 0x01000000,
-        RyanBit23 = 0x00800000,
-        RyanBit22 = 0x00400000,
-        RyanBit21 = 0x00200000,
-        RyanBit20 = 0x00100000,
-        RyanBit19 = 0x00080000,
-        RyanBit18 = 0x00040000,
-        RyanBit17 = 0x00020000,
-        RyanBit16 = 0x00010000,
-        RyanBit15 = 0x00008000,
-        RyanBit14 = 0x00004000,
-        RyanBit13 = 0x00002000,
-        RyanBit12 = 0x00001000,
-        RyanBit11 = 0x00000800,
-        RyanBit10 = 0x00000400,
-        RyanBit9 = 0x00000200,
-        RyanBit8 = 0x00000100,
-        RyanBit7 = 0x00000080,
-        RyanBit6 = 0x00000040,
-        RyanBit5 = 0x00000020,
-        RyanBit4 = 0x00000010,
-        RyanBit3 = 0x00000008,
-        RyanBit2 = 0x00000004,
-        RyanBit1 = 0x00000002,
-        RyanBit0 = 0x00000001,
+        RyanMqttBit31 = 0x80000000,
+        RyanMqttBit30 = 0x40000000,
+        RyanMqttBit29 = 0x20000000,
+        RyanMqttBit28 = 0x10000000,
+        RyanMqttBit27 = 0x08000000,
+        RyanMqttBit26 = 0x04000000,
+        RyanMqttBit25 = 0x02000000,
+        RyanMqttBit24 = 0x01000000,
+        RyanMqttBit23 = 0x00800000,
+        RyanMqttBit22 = 0x00400000,
+        RyanMqttBit21 = 0x00200000,
+        RyanMqttBit20 = 0x00100000,
+        RyanMqttBit19 = 0x00080000,
+        RyanMqttBit18 = 0x00040000,
+        RyanMqttBit17 = 0x00020000,
+        RyanMqttBit16 = 0x00010000,
+        RyanMqttBit15 = 0x00008000,
+        RyanMqttBit14 = 0x00004000,
+        RyanMqttBit13 = 0x00002000,
+        RyanMqttBit12 = 0x00001000,
+        RyanMqttBit11 = 0x00000800,
+        RyanMqttBit10 = 0x00000400,
+        RyanMqttBit9 = 0x00000200,
+        RyanMqttBit8 = 0x00000100,
+        RyanMqttBit7 = 0x00000080,
+        RyanMqttBit6 = 0x00000040,
+        RyanMqttBit5 = 0x00000020,
+        RyanMqttBit4 = 0x00000010,
+        RyanMqttBit3 = 0x00000008,
+        RyanMqttBit2 = 0x00000004,
+        RyanMqttBit1 = 0x00000002,
+        RyanMqttBit0 = 0x00000001,
 
-    } RyanBit_e;
-
-    typedef enum
-    {
-        RyanFalse = 0,
-        RyanTrue = 1
-    } RyanBool_e;
+    } RyanMqttBit_e;
 
     typedef enum
     {
-        QOS0 = 0x00,
-        QOS1 = 0x01,
-        QOS2 = 0x02,
-        subFail = 0x80
+        RyanMqttFalse = 0,
+        RyanMqttTrue = 1
+    } RyanMqttBool_e;
+
+    typedef enum
+    {
+        RyanMqttQos0 = 0x00,
+        RyanMqttQos1 = 0x01,
+        RyanMqttQos2 = 0x02,
+        RyanMqttSubFail = 0x80
     } RyanMqttQos_e;
 
     typedef enum
     {
-        mqttInvalidState = -1, // 无效状态
-        mqttInitState = 0,     // 初始化状态
-        mqttStartState,        // 开始状态
-        mqttConnectState,      // 连接状态
-        mqttDisconnectState,   // 断开连接状态
-        mqttReconnectState,    // 重新连接状态
+        RyanMqttInvalidState = -1, // 无效状态
+        RyanMqttInitState = 0,     // 初始化状态
+        RyanMqttStartState,        // 开始状态
+        RyanMqttConnectState,      // 连接状态
+        RyanMqttDisconnectState,   // 断开连接状态
+        RyanMqttReconnectState,    // 重新连接状态
     } RyanMqttState_e;
 
     typedef enum
     {
-        RyanMqttEventError = RyanBit0,                 // 保留事件
-        RyanMqttEventConnected = RyanBit1,             // 连接成功 正数为RyanMqttConnectStatus_e*,负数为RyanMqttError_e*
-        RyanMqttEventDisconnected = RyanBit2,          // 可能由用户触发,断开连接 正数为RyanMqttConnectStatus_e*,负数为RyanMqttError_e*
-        RyanMqttEventSubscribed = RyanBit3,            // 订阅成功事件,服务端可以授予比订阅者要求的低的QoS等级。 RyanMqttMsgHandler_t*
-        RyanMqttEventSubscribedFaile = RyanBit4,       // 订阅失败事件,超时 / 服务器返回订阅失败 RyanMqttMsgHandler_t*
-        RyanMqttEventUnSubscribed = RyanBit5,          // 取消订阅事件 RyanMqttMsgHandler_t*
-        RyanMqttEventUnSubscribedFaile = RyanBit6,     // 取消订阅失败事件，超时 RyanMqttMsgHandler_t*
-        RyanMqttEventPublished = RyanBit7,             // qos1 / qos2发送成功事件。发送没有失败,只会重发或者用户手动丢弃。RyanMqttAckHandler_t*
-        RyanMqttEventRepeatPublishPacket = RyanBit8,   // qos1 / qos2数据(或者ack)重发回调函数 RyanMqttAckHandler_t*
-        RyanMqttEventAckRepeatCountWarning = RyanBit9, // ack重发次数超过警戒值 RyanMqttAckHandler_t*
-        RyanMqttEventAckCountWarning = RyanBit10,      // ack记数值超过警戒值 uint16_t* ackHandlerCount; // 等待ack的记录个数
-        RyanMqttEventAckHandlerdiscard = RyanBit11,    /*!< 用户触发,ack句柄丢弃事件,由用户手动调用RyanMqttDestroyAckHandler函数触发
-                                                        * 可能是发送qos1 / qos2消息丢弃 ack丢弃，也可能是publish报文的ack丢弃 RyanMqttAckHandler_t*
-                                                        */
-        RyanMqttEventReconnectBefore = RyanBit12,      // 重连前事件,用户可以在此时更改connect信息 NULL
-        RyanMqttEventDestoryBefore = RyanBit13,        // 用户触发，销毁客户端前回调 NULL
-        RyanMqttEventData = RyanBit14,                 // 接收到订阅主题数据事件,支持通配符识别，返回的主题信息是报文主题 RyanMqttMsgData_t*
+        RyanMqttEventError = RyanMqttBit0,                 // 保留事件
+        RyanMqttEventConnected = RyanMqttBit1,             // 连接成功 正数为RyanMqttConnectStatus_e*,负数为RyanMqttError_e*
+        RyanMqttEventDisconnected = RyanMqttBit2,          // 可能由用户触发,断开连接 正数为RyanMqttConnectStatus_e*,负数为RyanMqttError_e*
+        RyanMqttEventSubscribed = RyanMqttBit3,            // 订阅成功事件,服务端可以授予比订阅者要求的低的QoS等级。 RyanMqttMsgHandler_t*
+        RyanMqttEventSubscribedFaile = RyanMqttBit4,       // 订阅失败事件,超时 / 服务器返回订阅失败 RyanMqttMsgHandler_t*
+        RyanMqttEventUnSubscribed = RyanMqttBit5,          // 取消订阅事件 RyanMqttMsgHandler_t*
+        RyanMqttEventUnSubscribedFaile = RyanMqttBit6,     // 取消订阅失败事件，超时 RyanMqttMsgHandler_t*
+        RyanMqttEventPublished = RyanMqttBit7,             // qos1 / qos2发送成功事件。发送没有失败,只会重发或者用户手动丢弃。RyanMqttAckHandler_t*
+        RyanMqttEventRepeatPublishPacket = RyanMqttBit8,   // qos1 / qos2数据(或者ack)重发回调函数 RyanMqttAckHandler_t*
+        RyanMqttEventAckRepeatCountWarning = RyanMqttBit9, // ack重发次数超过警戒值 RyanMqttAckHandler_t*
+        RyanMqttEventAckCountWarning = RyanMqttBit10,      // ack记数值超过警戒值 uint16_t* ackHandlerCount; // 等待ack的记录个数
+        RyanMqttEventAckHandlerdiscard = RyanMqttBit11,    /*!< 用户触发,ack句柄丢弃事件,由用户手动调用RyanMqttDestroyAckHandler函数触发
+                                                            * 可能是发送qos1 / qos2消息丢弃 ack丢弃，也可能是publish报文的ack丢弃 RyanMqttAckHandler_t*
+                                                            */
+        RyanMqttEventReconnectBefore = RyanMqttBit12,      // 重连前事件,用户可以在此时更改connect信息 NULL
+        RyanMqttEventDestoryBefore = RyanMqttBit13,        // 用户触发，销毁客户端前回调 NULL
+        RyanMqttEventData = RyanMqttBit14,                 // 接收到订阅主题数据事件,支持通配符识别，返回的主题信息是报文主题 RyanMqttMsgData_t*
         RyanMqttEventAnyId = UINT32_MAX,
     } RyanMqttEventId_e;
 
@@ -149,32 +145,21 @@ extern "C"
 
     /* extern variables-----------------------------------------------------------*/
 
-#include "MQTTPacket.h"
-#include "platformNetwork.h"
-#include "platformTimer.h"
-#include "platformSystem.h"
-#include "RyanList.h"
-
-#define RyanW5500SetErrno(err) \
-    do                         \
-    {                          \
-        if (err)               \
-            errno = (err);     \
-    } while (0)
-
-#define RyanMqttCheck(EX, ErrorCode, level) RyanMqttCheckCode(EX, ErrorCode, level, { NULL; })
-
-    extern const char *RyanStrError(RyanMqttError_e state);
-
-#define RyanMqttCheckCode(EX, ErrorCode, Ryanlevel, code)                  \
-    if (!(EX))                                                             \
-    {                                                                      \
-        {code};                                                            \
-        Ryanlevel(RyanMqttTag, "%s:%d ErrorCode: %d, strError: %s",        \
-                  __FILE__, __LINE__, ErrorCode, RyanStrError(ErrorCode)); \
-        return ErrorCode;                                                  \
+    extern const char *RyanMqttStrError(RyanMqttError_e state);
+#define RyanMqttCheckCodeNoReturn(EX, ErrorCode, Ryanlevel, code) \
+    if (!(EX))                                                    \
+    {                                                             \
+                                                                  \
+        Ryanlevel("ErrorCode: %d, strError: %s",                  \
+                  ErrorCode, RyanMqttStrError(ErrorCode));        \
+        {code};                                                   \
     }
 
+#define RyanMqttCheckCode(EX, ErrorCode, level, code) RyanMqttCheckCodeNoReturn(EX, ErrorCode, level, { {code}; return ErrorCode; });
+
+#define RyanMqttCheckNoReturn(EX, ErrorCode, level) RyanMqttCheckCodeNoReturn(EX, ErrorCode, level, {})
+#define RyanMqttCheck(EX, ErrorCode, level) RyanMqttCheckCode(EX, ErrorCode, level, {})
+#define RyanMqttCheckAssert(EX, ErrorCode, level) RyanMqttCheckCodeNoReturn(EX, ErrorCode, level, { assert(NULL); })
 #ifdef __cplusplus
 }
 #endif

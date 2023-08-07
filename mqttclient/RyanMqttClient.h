@@ -8,7 +8,12 @@ extern "C"
 {
 #endif
 
+#include "MQTTPacket.h"
+#include "RyanList.h"
 #include "RyanMqttPublic.h"
+#include "platformTimer.h"
+#include "platformSystem.h"
+#include "platformNetwork.h"
 
     // 接收到订阅消息回调函数类型，eventData用户不要进行修改否则mqtt客户端可能崩溃
     typedef void (*RyanMqttEventHandle)(void *client, RyanMqttEventId_e event, const void const *eventData);
@@ -109,16 +114,16 @@ extern "C"
     extern RyanMqttError_e RyanMqttInit(RyanMqttClient_t **pClient);
     extern RyanMqttError_e RyanMqttDestroy(RyanMqttClient_t *client);
     extern RyanMqttError_e RyanMqttStart(RyanMqttClient_t *client);
-    extern RyanMqttError_e RyanMqttDisconnect(RyanMqttClient_t *client, RyanBool_e sendDiscFlag);
+    extern RyanMqttError_e RyanMqttDisconnect(RyanMqttClient_t *client, RyanMqttBool_e sendDiscFlag);
     extern RyanMqttError_e RyanMqttReconnect(RyanMqttClient_t *client);
     extern RyanMqttError_e RyanMqttSubscribe(RyanMqttClient_t *client, char *topic, RyanMqttQos_e qos);
     extern RyanMqttError_e RyanMqttUnSubscribe(RyanMqttClient_t *client, char *topic);
-    extern RyanMqttError_e RyanMqttPublish(RyanMqttClient_t *client, char *topic, char *payload, uint32_t payloadLen, RyanMqttQos_e qos, RyanBool_e retain);
+    extern RyanMqttError_e RyanMqttPublish(RyanMqttClient_t *client, char *topic, char *payload, uint32_t payloadLen, RyanMqttQos_e qos, RyanMqttBool_e retain);
 
     extern RyanMqttState_e RyanMqttGetState(RyanMqttClient_t *client);
     extern RyanMqttError_e RyanMqttGetSubscribe(RyanMqttClient_t *client, RyanMqttMsgHandler_t *msgHandles, int32_t msgHandleSize, int32_t *subscribeNum);
     extern RyanMqttError_e RyanMqttSetConfig(RyanMqttClient_t *client, RyanMqttClientConfig_t *clientConfig);
-    extern RyanMqttError_e RyanMqttSetLwt(RyanMqttClient_t *client, char *topicName, char *payload, uint32_t payloadLen, RyanMqttQos_e qos, RyanBool_e retain);
+    extern RyanMqttError_e RyanMqttSetLwt(RyanMqttClient_t *client, char *topicName, char *payload, uint32_t payloadLen, RyanMqttQos_e qos, RyanMqttBool_e retain);
 
     extern RyanMqttError_e RyanMqttDiscardAckHandler(RyanMqttClient_t *client, enum msgTypes packetType, uint16_t packetId);
     extern RyanMqttError_e RyanMqttRegisterEventId(RyanMqttClient_t *client, RyanMqttEventId_e eventId);

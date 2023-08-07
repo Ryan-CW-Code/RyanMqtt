@@ -14,21 +14,12 @@ extern "C"
 #include "RyanMqttPublic.h"
 #include "platformTimer.h"
 
-#include <rtthread.h>
-#ifdef RT_USING_SAL
-#include <sys/socket.h>
-#include <sys/errno.h>
-#include <sys/time.h>
-#include "sal_netdb.h"
-#include "netdb.h"
-
-#else
-#include "lwip/opt.h"
-#include "lwip/sys.h"
-#include "lwip/api.h"
-#include <lwip/sockets.h>
-#include "lwip/netdb.h"
-#endif
+#include "cmsis_os2.h"
+#include "ril.h"
+#include "ril_util.h "
+#include "ql_ps.h"
+#include "ql_socket.h"
+#include "ql_urc_register.h"
 
     typedef struct
     {

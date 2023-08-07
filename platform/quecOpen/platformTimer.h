@@ -7,7 +7,6 @@ extern "C"
 {
 #endif
 #include <stdint.h>
-#include <rtthread.h>
 
     typedef struct
     {
