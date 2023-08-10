@@ -8,10 +8,10 @@
 #include "platformNetwork.h"
 #include "RyanMqttLog.h"
 
-#define tcpConnect (RyanBit1)
-#define tcpSend (RyanBit2)
-#define tcpClose (RyanBit3)
-#define tcpRecv (RyanBit4)
+#define tcpConnect (RyanMqttBit1)
+#define tcpSend (RyanMqttBit2)
+#define tcpClose (RyanMqttBit3)
+#define tcpRecv (RyanMqttBit4)
 
 static osEventFlagsId_t mqttNetEventHandle;
 static const osEventFlagsAttr_t mqttNetEvent_attributes = {

@@ -655,7 +655,7 @@ void RyanMqttEventMachine(RyanMqttClient_t *client, RyanMqttEventId_e eventId, v
     case RyanMqttEventConnected:                                                                       // 连接成功
         client->keepaliveTimeoutCount = 0;                                                             // 重置心跳超时计数器
         platformTimerCutdown(&client->keepaliveTimer, (client->config->keepaliveTimeoutS * 1000 / 2)); // 启动心跳定时器
-        RyanMqttAckListScan(client, RyanMqttFalse);                                                        // 扫描确认列表，销毁已超时的确认处理程序或重新发送它们
+        RyanMqttAckListScan(client, RyanMqttFalse);                                                    // 扫描确认列表，销毁已超时的确认处理程序或重新发送它们
         RyanMqttSetClientState(client, RyanMqttConnectState);
         break;
 
@@ -697,6 +697,82 @@ void RyanMqttThread(void *argument)
 
     while (1)
     {
+
+        if (RyanMqttTrue == client->destoryFlag)
+        {
+
+            RyanMqttEventMachine(client, RyanMqttEventDestoryBefore, (void *)NULL);
+
+            // 清除网络组件
+            if (NULL != client->network)
+            {
+                platformNetworkClose(client->config->userData, client->network);
+                platformMemoryFree(client->network);
+                client->network = NULL;
+            }
+
+            // 清除互斥锁
+            if (NULL != client->sendBufLock)
+            {
+                platformMutexDestroy(client->config->userData, client->sendBufLock);
+                platformMemoryFree(client->sendBufLock);
+                client->sendBufLock = NULL;
+            }
+
+            // 清除config信息
+            if (NULL != client->config)
+            {
+                if (RyanMqttTrue != client->config->recvBufferStaticFlag && NULL != client->config->recvBuffer)
+                    platformMemoryFree(client->config->recvBuffer);
+
+                if (RyanMqttTrue != client->config->sendBufferStaticFlag && NULL != client->config->sendBuffer)
+                    platformMemoryFree(client->config->sendBuffer);
+
+                if (NULL != client->config->clientId)
+                    platformMemoryFree(client->config->clientId);
+
+                if (NULL != client->config->host)
+                    platformMemoryFree(client->config->host);
+
+                if (NULL != client->config->port)
+                    platformMemoryFree(client->config->port);
+
+                if (NULL != client->config->userName)
+                    platformMemoryFree(client->config->userName);
+
+                if (NULL != client->config->password)
+                    platformMemoryFree(client->config->password);
+
+                if (NULL != client->config->taskName)
+                    platformMemoryFree(client->config->taskName);
+
+                if (NULL != client->config)
+                    platformMemoryFree(client->config);
+            }
+
+            // 清除遗嘱相关配置
+            if (RyanMqttTrue == client->lwtFlag && NULL != client->lwtOptions)
+            {
+                if (NULL != client->lwtOptions->topic)
+                    platformMemoryFree(client->lwtOptions->topic);
+
+                platformMemoryFree(client->lwtOptions);
+            }
+
+            // 清除session  ack链表和msg链表
+            RyanMqttCleanSession(client);
+
+            // 清除掉线程动态资源
+            platformMemoryFree(client->mqttThread);
+            client->mqttThread = NULL;
+
+            platformMemoryFree(client);
+            client = NULL;
+
+            // 销毁自身线程
+            platformThreadDestroy(client->config->userData, client->mqttThread);
+        }
+
         switch (client->clientState)
         {
 

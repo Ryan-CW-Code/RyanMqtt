@@ -94,7 +94,8 @@ extern "C"
     typedef struct
     {
         uint8_t lwtFlag : 1;               // 遗嘱标志位
-        uint8_t keepaliveTimeoutCount : 7; // 心跳超时计数器
+        uint8_t destoryFlag : 1;           // 销毁标志位
+        uint8_t keepaliveTimeoutCount : 6; // 心跳超时计数器
         uint16_t ackHandlerCount;          // 等待ack的记录个数
         uint16_t packetId;                 // mqtt报文标识符,控制报文必须包含一个非零的 16 位报文标识符
         uint32_t eventFlag;                // 事件标志位

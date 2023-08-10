@@ -95,7 +95,9 @@ RyanMqttError_e RyanMqttInit(RyanMqttClient_t **pClient)
 
 /**
  * @brief 销毁mqtt客户端
- *
+ *  由于直接删除mqtt线程是很危险的行为。这里设置标志位，由mqtt线程自己删除自己所有资源。
+ *  mqtt删除自己的延时最大不会超过config里面 recvTimeout + 1秒
+ *  mqtt删除自己前会调用 RyanMqttEventDestoryBefore 事件回调
  * @param client
  * @return RyanMqttError_e
  */
@@ -104,77 +106,9 @@ RyanMqttError_e RyanMqttDestroy(RyanMqttClient_t *client)
 
     RyanMqttCheck(NULL != client, RyanMqttParamInvalidError, rlog_d);
 
-    RyanMqttEventMachine(client, RyanMqttEventDestoryBefore, (void *)NULL);
-
-    // 先清除掉线程
-    if (NULL != client->mqttThread)
-    {
-        platformThreadDestroy(client->config->userData, client->mqttThread);
-        platformMemoryFree(client->mqttThread);
-        client->mqttThread = NULL;
-    }
-
-    // 清除网络组件
-    if (NULL != client->network)
-    {
-        platformNetworkClose(client->config->userData, client->network);
-        platformMemoryFree(client->network);
-        client->network = NULL;
-    }
-
-    // 清除互斥锁
-    if (NULL != client->sendBufLock)
-    {
-        platformMutexDestroy(client->config->userData, client->sendBufLock);
-        platformMemoryFree(client->sendBufLock);
-        client->sendBufLock = NULL;
-    }
-
-    // 清除config信息
-    if (NULL != client->config)
-    {
-        if (RyanMqttTrue != client->config->recvBufferStaticFlag && NULL != client->config->recvBuffer)
-            platformMemoryFree(client->config->recvBuffer);
-
-        if (RyanMqttTrue != client->config->sendBufferStaticFlag && NULL != client->config->sendBuffer)
-            platformMemoryFree(client->config->sendBuffer);
-
-        if (NULL != client->config->clientId)
-            platformMemoryFree(client->config->clientId);
-
-        if (NULL != client->config->host)
-            platformMemoryFree(client->config->host);
-
-        if (NULL != client->config->port)
-            platformMemoryFree(client->config->port);
-
-        if (NULL != client->config->userName)
-            platformMemoryFree(client->config->userName);
-
-        if (NULL != client->config->password)
-            platformMemoryFree(client->config->password);
-
-        if (NULL != client->config->taskName)
-            platformMemoryFree(client->config->taskName);
-
-        if (NULL != client->config)
-            platformMemoryFree(client->config);
-    }
-
-    // 清除遗嘱相关配置
-    if (RyanMqttTrue == client->lwtFlag && NULL != client->lwtOptions)
-    {
-        if (NULL != client->lwtOptions->topic)
-            platformMemoryFree(client->lwtOptions->topic);
-
-        platformMemoryFree(client->lwtOptions);
-    }
-
-    // 清除session  ack链表和msg链表
-    RyanMqttCleanSession(client);
-
-    platformMemoryFree(client);
-    client = NULL;
+    platformCriticalEnter();
+    client->destoryFlag = RyanMqttTrue;
+    platformCriticalExit();
 
     return RyanMqttSuccessError;
 }
