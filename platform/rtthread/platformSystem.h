@@ -32,6 +32,7 @@ extern "C"
     extern void *platformMemoryMalloc(size_t size);
     extern void platformMemoryFree(void *ptr);
 
+    extern void platformPrint(char *str, uint16_t strLen);
     extern void platformDelay(uint32_t ms);
 
     extern RyanMqttError_e platformThreadInit(void *userData,

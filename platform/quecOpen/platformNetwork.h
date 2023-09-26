@@ -21,6 +21,7 @@ extern "C"
 #include "ql_socket.h"
 #include "ql_urc_register.h"
 
+
     typedef struct
     {
         int socket;

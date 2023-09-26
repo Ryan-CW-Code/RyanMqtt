@@ -1,18 +1,9 @@
 #ifndef __RyanMqttLog__
 #define __RyanMqttLog__
 
-#include <stdarg.h>
 #include <stdio.h>
-#include "RyanMqttPublic.h"
-
-#define RyanLogPrintf(fmt, ...) printf
-// #define RyanLogPrintf(fmt, ...)                                                                 \
-//     do                                                                                          \
-//     {                                                                                           \
-//         char str[256];                                                                          \
-//         snprintf(str, sizeof(str), fmt, ##__VA_ARGS__);                                         \
-//         Ql_UART_Write((Enum_SerialPort)(UART_PORT0), (u8 *)(str), strlen((const char *)(str))); \
-//     } while (0)
+#include <stdarg.h>
+#include "platformSystem.h"
 
 // 日志等级
 #define rlogLvlError 0
@@ -40,35 +31,54 @@
 #define rlogTag "LOG"
 #endif
 
-// RyanLogPrintf("\033[字背景颜色;字体颜色m  用户字符串 \033[0m" );
-#if rlogColorEnable > 0
-#define rlogColorStart(color_n) RyanLogPrintf("\033[" #color_n "m")
-#define rlogColorEnd RyanLogPrintf("\033[0m")
-#else
-#define rlogColorStart(color_n)
-#define rlogColorEnd
-#endif
-
-#if rlogEnable > 0
-
 /**
  * @brief 日志相关
  *
  */
-#define rlog_output(lvl, color_n, fmt, ...)   \
-    do                                        \
-    {                                         \
-        rlogColorStart(color_n);              \
-        RyanLogPrintf("[" lvl "/" rlogTag "]" \
-                      " %s:%d ",              \
-                      __FILE__,               \
-                      __LINE__);              \
-        RyanLogPrintf(fmt, ##__VA_ARGS__);    \
-        rlogColorEnd;                         \
-        RyanLogPrintf("\r\n");                \
-    } while (0)
+#if rlogEnable > 0
+static void rlog_output(char *lvl, uint8_t color_n, char *const fmt, ...)
+{
+    // RyanLogPrintf("\033[字背景颜色;字体颜色m  用户字符串 \033[0m" );
+    char dbgBuffer[386];
+    uint16_t len;
 
-#define rlog_output_raw(...) RyanLogPrintf(__VA_ARGS__);
+// 打印颜色
+#if rlogColorEnable > 0
+    len = snprintf(dbgBuffer, sizeof(dbgBuffer), "\033[%dm", color_n);
+    platformPrint(dbgBuffer, len);
+#endif
+
+    // 打印提示符
+    len = snprintf(dbgBuffer, sizeof(dbgBuffer), "[%s/%s]", lvl, rlogTag);
+    platformPrint(dbgBuffer, len);
+
+    // 打印用户输入
+    va_list args;
+    va_start(args, fmt);
+    len = vsnprintf(dbgBuffer, sizeof(dbgBuffer), fmt, args);
+    va_end(args);
+    platformPrint(dbgBuffer, len);
+
+// 打印颜色
+#if rlogColorEnable > 0
+    platformPrint("\033[0m", sizeof("\033[0m"));
+#endif
+
+    platformPrint("\r\n", sizeof("\r\n"));
+}
+
+static void rlog_output_raw(char *const fmt, ...)
+{
+    char dbgBuffer[256];
+    uint16_t len;
+
+    va_list args;
+    va_start(args, fmt);
+    len = vsnprintf(dbgBuffer, sizeof(dbgBuffer), fmt, args);
+    va_end(args);
+
+    platformPrint(dbgBuffer, len);
+}
 
 #else
 #define rlog_output(lvl, color_n, fmt, ...)

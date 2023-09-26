@@ -66,7 +66,7 @@ void mqttEventHandle(void *pclient, RyanMqttEventId_e event, const void const *e
         break;
 
     case RyanMqttEventDisconnected:
-        rlog_w("mqtt断开连接回调 %d", *(RyanMqttConnectAccepted *)eventData);
+        rlog_w("mqtt断开连接回调 %d", *(RyanMqttConnectStatus_e *)eventData);
         break;
 
     case RyanMqttEventSubscribed:
@@ -175,7 +175,7 @@ void mqttEventHandle(void *pclient, RyanMqttEventId_e event, const void const *e
     {
         // 这里选择直接丢弃该消息
         RyanMqttAckHandler_t *ackHandler = (RyanMqttAckHandler_t *)eventData;
-        rlog_w("ack重发次数超过警戒值回调 packetType: %d, packetId: %d, topic: %s, qos: %d" ackHandler->packetType, ackHandler->packetId, ackHandler->msgHandler->topic, ackHandler->msgHandler->qos);
+        rlog_w("ack重发次数超过警戒值回调 packetType: %d, packetId: %d, topic: %s, qos: %d", ackHandler->packetType, ackHandler->packetId, ackHandler->msgHandler->topic, ackHandler->msgHandler->qos);
         RyanMqttDiscardAckHandler(client, ackHandler->packetType, ackHandler->packetId);
 
         break;
@@ -222,10 +222,10 @@ int mqttConnectFun()
         .autoReconnectFlag = RyanMqttTrue,
         .cleanSessionFlag = RyanMqttFalse,
         .reconnectTimeout = 3000,
-        .recvTimeout = 11000,
+        .recvTimeout = 5000,
         .sendTimeout = 2000,
         .ackTimeout = 10000,
-        .keepaliveTimeoutS = 60,
+        .keepaliveTimeoutS = 120,
         .mqttEventHandle = mqttEventHandle,
         .userData = NULL};
 
@@ -585,18 +585,18 @@ static int Mqttdata(int argc, char *argv[])
 static const struct RyanMqttCmdDes cmdTab[] =
     {
         {"help", "打印帮助信息", MqttHelp},
-        {"state", "打印mqtt客户端状态", MqttState},
-        {"connect", "mqtt客户端连接服务器", MqttConnect},
-        {"disc", "mqtt客户端断开连接", MqttDisconnect},
-        {"reconnect", "mqtt断开连接时,重新连接mqtt服务器", MqttReconnect},
-        {"destory", "mqtt销毁客户端", MqttDestroy},
-        {"pub", "mqtt发布消息", Mqttpublish},
-        {"sub", "mqtt订阅主题", Mqttsubscribe},
-        {"unsub", "mqtt取消订阅主题", MqttUnSubscribe},
-        {"listsub", "mqtt获取已订阅主题", MqttListSubscribe},
-        {"listack", "打印ack链表", MqttListAck},
-        {"listmsg", "打印msg链表", MqttListMsg},
-        {"data", "打印测试信息，用户自定义的", Mqttdata},
+        {"state", "打印mqtt客户端状态   params: null", MqttState},
+        {"connect", "mqtt客户端连接服务器   params: null", MqttConnect},
+        {"disc", "mqtt客户端断开连接    params: null", MqttDisconnect},
+        {"reconnect", "mqtt断开连接时,重新连接mqtt服务器    params: null", MqttReconnect},
+        {"destory", "mqtt销毁客户端    params: null", MqttDestroy},
+        {"pub", "mqtt发布消息   params: topic、 qos、 payload内容、 发送条数、 间隔时间(可以为0)", Mqttpublish},
+        {"sub", "mqtt订阅主题   params: topic、 qos", Mqttsubscribe},
+        {"unsub", "mqtt取消订阅主题    params: 取消订阅主题", MqttUnSubscribe},
+        {"listsub", "mqtt获取已订阅主题    params: null", MqttListSubscribe},
+        {"listack", "打印ack链表    params: null", MqttListAck},
+        {"listmsg", "打印msg链表    params: null", MqttListMsg},
+        {"data", "打印测试信息，用户自定义的    params: null", Mqttdata},
 };
 
 static int MqttHelp(int argc, char *argv[])

@@ -12,10 +12,31 @@
 #define tcpSend (RyanMqttBit2)
 #define tcpClose (RyanMqttBit3)
 #define tcpRecv (RyanMqttBit4)
+#define GetIPByHostName (RyanMqttBit5)
 
 static osEventFlagsId_t mqttNetEventHandle;
 static const osEventFlagsAttr_t mqttNetEvent_attributes = {
     .name = "mqttNetEvent"};
+
+static char resolveIp[64] = {0};
+
+static void callback_socket_GetIPByHostName(u8 contexId, s32 errCode, u32 ipAddrCnt, u8 *ipAddr)
+{
+    if (errCode == SOC_SUCCESS_OK)
+    {
+        memset(resolveIp, 0, sizeof(resolveIp));
+        for (int i = 0; i < ipAddrCnt; i++)
+        {
+            strcpy((char *)resolveIp, (char *)ipAddr);
+            rlog_i("socket 获取ip成功: num_entry=%d, resolve_ip:[%s]", i, (u8 *)resolveIp);
+        }
+        osEventFlagsSet(mqttNetEventHandle, GetIPByHostName);
+    }
+    else
+    {
+        rlog_e("socket 获取ip失败: %d", errCode);
+    }
+}
 
 static void callback_socket_connect(s32 socketId, s32 errCode, void *customParam)
 {
@@ -94,6 +115,24 @@ RyanMqttError_e platformNetworkConnect(void *userData, platformNetwork_t *platfo
         goto __exit;
     }
 
+    // 解析域名
+    s32 getHostIpResult = Ql_IpHelper_GetIPByHostName(0,
+                                                      (u8 *)host,
+                                                      callback_socket_GetIPByHostName);
+    if (SOC_SUCCESS_OK != getHostIpResult && SOC_NONBLOCK != getHostIpResult)
+    {
+        rlog_w("aaaaaaaaaaaaaaa");
+        result = RyanMqttSocketConnectFailError;
+        goto __exit;
+    }
+
+    eventId = osEventFlagsWait(mqttNetEventHandle, GetIPByHostName, osFlagsWaitAny, 10000);
+    if (GetIPByHostName != eventId)
+    {
+        result = RyanMqttSocketConnectFailError;
+        goto __exit;
+    }
+
     // 创建socket
     platformNetwork->socket = Ql_SOC_Create(0, SOC_TYPE_TCP);
     if (platformNetwork->socket < 0)
@@ -103,7 +142,7 @@ RyanMqttError_e platformNetworkConnect(void *userData, platformNetwork_t *platfo
     }
 
     // 等待连接成功
-    s32 connectResult = Ql_SOC_Connect(platformNetwork->socket, (u8 *)host, atoi(port));
+    s32 connectResult = Ql_SOC_Connect(platformNetwork->socket, (u8 *)resolveIp, atoi(port));
     if (SOC_SUCCESS_OK != connectResult && SOC_NONBLOCK != connectResult)
     {
         platformNetworkClose(userData, platformNetwork);

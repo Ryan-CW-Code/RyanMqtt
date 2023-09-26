@@ -22,6 +22,13 @@ void platformDelay(uint32_t ms)
     rt_thread_mdelay(ms);
 }
 
+void platformPrint(char *str, uint16_t strLen)
+{
+    printf("%.*s", strLen, str);
+}
+
+#define RyanLogPrintf(str, strlen) printf("%.*s", strlen, str)
+
 /**
  * @brief 初始化并运行线程
  *

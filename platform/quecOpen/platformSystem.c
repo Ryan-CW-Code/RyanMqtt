@@ -11,6 +11,11 @@ void platformMemoryFree(void *ptr)
     free(ptr);
 }
 
+void platformPrint(char *str, uint16_t strLen)
+{
+    printf("%.*s", strLen, str);
+}
+
 /**
  * @brief ms延时
  *
