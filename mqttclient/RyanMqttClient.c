@@ -477,6 +477,7 @@ RyanMqttError_e RyanMqttGetSubscribe(RyanMqttClient_t *client, RyanMqttMsgHandle
 
 /**
  * @brief 设置mqtt config 这是很危险的操作，需要考虑mqtt thread线程和用户线程的资源互斥
+ * todo 此函数没有实现完整------
  * 推荐在 RyanMqttStart函数前 / 非用户手动触发的事件回调函数中 / mqtt thread处于挂起状态时调用
  * mqtt thread处于阻塞状态时调用此函数也是很危险的行为，因为无法确定此函数的执行时间，调用此函数的任务运行时间片有多少
  * 总之就是要保证mqtt线程和用户线程的资源互斥
@@ -540,22 +541,9 @@ RyanMqttError_e RyanMqttSetConfig(RyanMqttClient_t *client, RyanMqttClientConfig
 
     client->config->recvBufferSize = clientConfig->recvBufferSize;
     client->config->sendBufferSize = clientConfig->sendBufferSize;
-    client->config->recvBufferStaticFlag = clientConfig->recvBufferStaticFlag;
-    client->config->sendBufferStaticFlag = clientConfig->sendBufferStaticFlag;
     client->config->recvBuffer = clientConfig->recvBuffer;
     client->config->sendBuffer = clientConfig->sendBuffer;
 
-    if (RyanMqttTrue != client->config->recvBufferStaticFlag)
-    {
-        client->config->recvBuffer = (char *)platformMemoryMalloc(client->config->recvBufferSize);
-        RyanMqttCheckCode(NULL != client->config->recvBuffer, RyanMqttFailedError, rlog_d, { goto __exit; });
-    }
-
-    if (RyanMqttTrue != client->config->sendBufferStaticFlag)
-    {
-        client->config->sendBuffer = (char *)platformMemoryMalloc(client->config->sendBufferSize);
-        RyanMqttCheckCode(NULL != client->config->sendBuffer, RyanMqttFailedError, rlog_d, { goto __exit; });
-    }
     return RyanMqttSuccessError;
 
 __exit:

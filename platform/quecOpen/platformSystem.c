@@ -1,19 +1,25 @@
 
 #include "platformSystem.h"
 
+/**
+ * @brief 申请内存
+ *
+ * @param size
+ * @return void*
+ */
 void *platformMemoryMalloc(size_t size)
 {
     return malloc(size);
 }
 
+/**
+ * @brief 释放内存
+ *
+ * @param ptr
+ */
 void platformMemoryFree(void *ptr)
 {
     free(ptr);
-}
-
-void platformPrint(char *str, uint16_t strLen)
-{
-    printf("%.*s", strLen, str);
 }
 
 /**
@@ -24,6 +30,17 @@ void platformPrint(char *str, uint16_t strLen)
 void platformDelay(uint32_t ms)
 {
     osDelay(ms);
+}
+
+/**
+ * @brief 打印字符串函数,可通过串口打印出去
+ *
+ * @param str
+ * @param strLen
+ */
+void platformPrint(char *str, uint16_t strLen)
+{
+    Ql_UART_Write((Enum_SerialPort)(UART_PORT0), (u8 *)(str), strLen);
 }
 
 /**
@@ -162,7 +179,6 @@ RyanMqttError_e platformMutexUnLock(void *userData, platformMutex_t *platformMut
  */
 void platformCriticalEnter(void)
 {
-    // rt_enter_critical();
     osKernelLock();
 }
 
@@ -172,6 +188,5 @@ void platformCriticalEnter(void)
  */
 void platformCriticalExit(void)
 {
-    // rt_exit_critical();
     osKernelUnlock();
 }

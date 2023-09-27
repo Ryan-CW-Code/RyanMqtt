@@ -1,12 +1,22 @@
 
 #include "platformSystem.h"
 
-// 存放未初始化
+/**
+ * @brief 申请内存
+ *
+ * @param size
+ * @return void*
+ */
 void *platformMemoryMalloc(size_t size)
 {
     return rt_malloc(size);
 }
 
+/**
+ * @brief 释放内存
+ *
+ * @param ptr
+ */
 void platformMemoryFree(void *ptr)
 {
     rt_free(ptr);
@@ -22,12 +32,16 @@ void platformDelay(uint32_t ms)
     rt_thread_mdelay(ms);
 }
 
+/**
+ * @brief 打印字符串函数,可通过串口打印出去
+ *
+ * @param str
+ * @param strLen
+ */
 void platformPrint(char *str, uint16_t strLen)
 {
-    printf("%.*s", strLen, str);
+    rt_kprintf("%.*s", strLen, str);
 }
-
-#define RyanLogPrintf(str, strlen) printf("%.*s", strlen, str)
 
 /**
  * @brief 初始化并运行线程
@@ -64,7 +78,7 @@ RyanMqttError_e platformThreadInit(void *userData,
 }
 
 /**
- * @brief 销毁指定线程
+ * @brief 销毁自身线程
  *
  * @param userData
  * @param platformThread

@@ -71,8 +71,6 @@ extern "C"
         char *taskName;                        // 线程名字
         char *recvBuffer;                      // mqtt接收缓冲区
         char *sendBuffer;                      // mqtt发送缓冲区
-        uint8_t recvBufferStaticFlag : 1;      // 接收缓冲区是静态空间,不是动态申请
-        uint8_t sendBufferStaticFlag : 1;      // 发送缓冲区是静态空间,不是动态申请
         uint8_t autoReconnectFlag : 1;         // 自动重连标志位
         uint8_t cleanSessionFlag : 1;          // 清除会话标志位
         uint8_t mqttVersion : 4;               // mqtt版本 3.1.1是4, 3.1是3

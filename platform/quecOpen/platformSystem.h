@@ -8,17 +8,16 @@ extern "C"
 #endif
 
 #include <stdio.h>
-
 #include <stdint.h>
 #include <assert.h>
 #include "cmsis_os2.h"
+#include "ql_uart.h"
 #include "RyanMqttPublic.h"
 
 #define RyanMqttAssert(EX) assert(EX)
 
     typedef struct
     {
-
         osThreadId_t thread;
     } platformThread_t;
 

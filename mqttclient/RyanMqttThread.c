@@ -17,7 +17,7 @@
  * @param client
  * @return int32_t
  */
-RyanMqttError_e RyanMqttKeepalive(RyanMqttClient_t *client)
+static RyanMqttError_e RyanMqttKeepalive(RyanMqttClient_t *client)
 {
     int32_t connectState = RyanMqttConnectAccepted;
     int32_t packetLen = 0;
@@ -408,7 +408,7 @@ static RyanMqttError_e RyanMqttUnSubackHandler(RyanMqttClient_t *client)
  * @param packetType
  * @return RyanMqttError_e
  */
-RyanMqttError_e RyanMqttReadPacketHandler(RyanMqttClient_t *client, uint8_t *packetType)
+static RyanMqttError_e RyanMqttReadPacketHandler(RyanMqttClient_t *client, uint8_t *packetType)
 {
     RyanMqttError_e result = RyanMqttSuccessError;
     int32_t fixedHeaderLen = 1;
@@ -498,7 +498,7 @@ RyanMqttError_e RyanMqttReadPacketHandler(RyanMqttClient_t *client, uint8_t *pac
  *      WaitFlag : RyanMqttFalse 表示不需要等待超时立即处理这些数据包。通常在重新连接后立即进行处理
  *      WaitFlag : RyanMqttTrue 表示需要等待超时再处理这些消息，一般是稳定连接下的超时处理
  */
-void RyanMqttAckListScan(RyanMqttClient_t *client, RyanMqttBool_e WaitFlag)
+static void RyanMqttAckListScan(RyanMqttClient_t *client, RyanMqttBool_e WaitFlag)
 {
     RyanList_t *curr = NULL,
                *next = NULL;
@@ -574,7 +574,7 @@ void RyanMqttAckListScan(RyanMqttClient_t *client, RyanMqttBool_e WaitFlag)
  * @param client
  * @return RyanMqttError_e
  */
-RyanMqttError_e RyanMqttConnect(RyanMqttClient_t *client)
+static RyanMqttError_e RyanMqttConnect(RyanMqttClient_t *client)
 {
 
     RyanMqttError_e result = RyanMqttSuccessError;
@@ -698,6 +698,7 @@ void RyanMqttThread(void *argument)
     while (1)
     {
 
+        // 销毁客户端
         if (RyanMqttTrue == client->destoryFlag)
         {
 
@@ -722,12 +723,6 @@ void RyanMqttThread(void *argument)
             // 清除config信息
             if (NULL != client->config)
             {
-                if (RyanMqttTrue != client->config->recvBufferStaticFlag && NULL != client->config->recvBuffer)
-                    platformMemoryFree(client->config->recvBuffer);
-
-                if (RyanMqttTrue != client->config->sendBufferStaticFlag && NULL != client->config->sendBuffer)
-                    platformMemoryFree(client->config->sendBuffer);
-
                 if (NULL != client->config->clientId)
                     platformMemoryFree(client->config->clientId);
 
@@ -773,6 +768,7 @@ void RyanMqttThread(void *argument)
             platformThreadDestroy(client->config->userData, client->mqttThread);
         }
 
+        // 客户端状态变更状态机
         switch (client->clientState)
         {
 

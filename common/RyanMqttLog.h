@@ -39,7 +39,7 @@
 static void rlog_output(char *lvl, uint8_t color_n, char *const fmt, ...)
 {
     // RyanLogPrintf("\033[字背景颜色;字体颜色m  用户字符串 \033[0m" );
-    char dbgBuffer[386];
+    char dbgBuffer[256];
     uint16_t len;
 
 // 打印颜色
@@ -90,25 +90,25 @@ static void rlog_output_raw(char *const fmt, ...)
  *
  */
 #if (rlogLevel >= rlogLvlDebug)
-#define rlog_d(fmt, ...) rlog_output("D", 0, fmt, ##__VA_ARGS__)
+#define rlog_d(fmt, ...) rlog_output("D", 0, " %s:%d " fmt, __FILE__, __LINE__, ##__VA_ARGS__)
 #else
 #define rlog_d(...)
 #endif
 
 #if (rlogLevel >= rlogLvlInfo)
-#define rlog_i(fmt, ...) rlog_output("I", 32, fmt, ##__VA_ARGS__)
+#define rlog_i(fmt, ...) rlog_output("I", 32, " %s:%d " fmt, __FILE__, __LINE__, ##__VA_ARGS__)
 #else
 #define rlog_i(...)
 #endif
 
 #if (rlogLevel >= rlogLvlWarning)
-#define rlog_w(fmt, ...) rlog_output("W", 33, fmt, ##__VA_ARGS__)
+#define rlog_w(fmt, ...) rlog_output("W", 33, " %s:%d " fmt, __FILE__, __LINE__, ##__VA_ARGS__)
 #else
 #define rlog_w(...)
 #endif
 
 #if (rlogLevel >= rlogLvlError)
-#define rlog_e(fmt, ...) rlog_output("E", 31, fmt, ##__VA_ARGS__)
+#define rlog_e(fmt, ...) rlog_output("E", 31, " %s:%d " fmt, __FILE__, __LINE__, ##__VA_ARGS__)
 #else
 #define rlog_e(...)
 #endif

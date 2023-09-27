@@ -167,14 +167,14 @@ RyanMqttState_e RyanMqttGetClientState(RyanMqttClient_t *client)
  * @return RyanMqttBool_e
  */
 RyanMqttBool_e RyanMqttMatchTopic(const char *topic,
-                              const uint16_t topicLength,
-                              const char *topicFilter,
-                              const uint16_t topicFilterLength)
+                                  const uint16_t topicLength,
+                                  const char *topicFilter,
+                                  const uint16_t topicFilterLength)
 {
 
     RyanMqttBool_e topicFilterStartsWithWildcard = RyanMqttFalse,
-               matchFound = RyanMqttFalse,
-               shouldStopMatching = RyanMqttFalse;
+                   matchFound = RyanMqttFalse,
+                   shouldStopMatching = RyanMqttFalse;
     uint16_t topicIndex = 0,
              topicFilterIndex = 0;
 

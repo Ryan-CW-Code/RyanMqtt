@@ -1,9 +1,10 @@
 #include "rtconfig.h"
 
-#define RyanMqttHost ("broker.emqx.io") // 填写你的mqtt服务器ip
-#define RyanMqttPort ("1883")           // mqtt服务器端口
-#define RyanMqttUserName ("")           // 为空时填写""
-#define RyanMqttPassword ("")           // 为空时填写""
+#define RyanMqttClientId ("RyanMqttTessdfwrt") // 填写mqtt客户端id，要求唯一
+#define RyanMqttHost ("broker.emqx.io")        // 填写你的mqtt服务器ip
+#define RyanMqttPort ("1883")                  // mqtt服务器端口
+#define RyanMqttUserName ("")                  // 为空时填写""
+#define RyanMqttPassword ("")                  // 为空时填写""
 
 #ifdef PKG_USING_RYANMQTT_EXAMPLE
 #include <stdio.h>
@@ -27,21 +28,21 @@
 
 static RyanMqttClient_t *client = NULL;
 
-static char mqttRecvBuffer[2048];
-static char mqttSendBuffer[2048];
+static char mqttRecvBuffer[1024];
+static char mqttSendBuffer[1024];
 
 // 具体数值计算可以查看事件回调函数
 static uint32_t mqttTest[10] = {0};
-#define dataEventCount (0)      // 接收到几次数据
-#define PublishedEventCount (1) // 发布成功的次数
+#define dataEventCount (0)      // 接收到数据次数统计
+#define PublishedEventCount (1) // qos1和qos2发布成功的次数统计
 
 void printfArrStr(char *buf, uint32_t len, char *userData)
 {
-    rt_kprintf("%s", userData);
+    rlog_raw("%s", userData);
     for (uint32_t i = 0; i < len; i++)
-        rt_kprintf("%x", buf[i]);
+        rlog_raw("%x", buf[i]);
 
-    rt_kprintf("\r\n");
+    rlog_raw("\r\n");
 }
 
 /**
@@ -130,36 +131,6 @@ void mqttEventHandle(void *pclient, RyanMqttEventId_e event, const void const *e
     case RyanMqttEventReconnectBefore:
         // 如果每次connect都需要修改连接信息，这里是最好的选择。 否则需要注意资源互斥
         rlog_i("重连前事件回调");
-
-        RyanMqttClientConfig_t mqttConfig = {
-            .clientId = "RyanMqttTest", // 这里只修改了客户端名字
-            .userName = RyanMqttUserName,
-            .password = RyanMqttPassword,
-            .host = RyanMqttHost,
-            .port = RyanMqttPort,
-            .taskName = "mqttThread",
-            .taskPrio = 16,
-            .taskStack = 3072,
-            .recvBufferSize = sizeof(mqttRecvBuffer),
-            .sendBufferSize = sizeof(mqttSendBuffer),
-            .recvBuffer = mqttRecvBuffer,
-            .sendBuffer = mqttSendBuffer,
-            .recvBufferStaticFlag = RyanMqttTrue,
-            .sendBufferStaticFlag = RyanMqttTrue,
-            .mqttVersion = 4,
-            .ackHandlerRepeatCountWarning = 6,
-            .ackHandlerCountWarning = 20,
-            .autoReconnectFlag = RyanMqttTrue,
-            .cleanSessionFlag = 0,
-            .reconnectTimeout = 3000,
-            .recvTimeout = 11000,
-            .sendTimeout = 2000,
-            .ackTimeout = 10000,
-            .keepaliveTimeoutS = 60,
-            .mqttEventHandle = mqttEventHandle,
-            .userData = NULL};
-
-        RyanMqttSetConfig(client, &mqttConfig);
         break;
 
     case RyanMqttEventAckCountWarning: // qos2 / qos1的ack链表超过警戒值，不进行释放会一直重发，占用额外内存
@@ -196,59 +167,6 @@ void mqttEventHandle(void *pclient, RyanMqttEventId_e event, const void const *e
     default:
         break;
     }
-}
-
-int mqttConnectFun()
-{
-    RyanMqttError_e result = RyanMqttSuccessError;
-    RyanMqttClientConfig_t mqttConfig = {
-        .clientId = "RyanMqttTessdfwrt",
-        .userName = RyanMqttUserName,
-        .password = RyanMqttPassword,
-        .host = RyanMqttHost,
-        .port = RyanMqttPort,
-        .taskName = "mqttThread",
-        .taskPrio = 16,
-        .taskStack = 3072,
-        .recvBufferSize = sizeof(mqttRecvBuffer),
-        .sendBufferSize = sizeof(mqttSendBuffer),
-        .recvBuffer = mqttRecvBuffer,
-        .sendBuffer = mqttSendBuffer,
-        .recvBufferStaticFlag = RyanMqttTrue,
-        .sendBufferStaticFlag = RyanMqttTrue,
-        .mqttVersion = 4,
-        .ackHandlerRepeatCountWarning = 6,
-        .ackHandlerCountWarning = 20,
-        .autoReconnectFlag = RyanMqttTrue,
-        .cleanSessionFlag = RyanMqttFalse,
-        .reconnectTimeout = 3000,
-        .recvTimeout = 5000,
-        .sendTimeout = 2000,
-        .ackTimeout = 10000,
-        .keepaliveTimeoutS = 120,
-        .mqttEventHandle = mqttEventHandle,
-        .userData = NULL};
-
-    // 初始化mqtt客户端
-    result = RyanMqttInit(&client);
-    RyanMqttCheck(RyanMqttSuccessError == result, result, rlog_d);
-
-    // 注册需要的事件回调
-    result = RyanMqttRegisterEventId(client, RyanMqttEventAnyId);
-    RyanMqttCheck(RyanMqttSuccessError == result, result, rlog_d);
-
-    // 设置mqtt客户端config
-    result = RyanMqttSetConfig(client, &mqttConfig);
-    RyanMqttCheck(RyanMqttSuccessError == result, result, rlog_d);
-
-    // 设置遗嘱消息
-    result = RyanMqttSetLwt(client, "pub/test", "this is will", strlen("this is will"), RyanMqttQos0, 0);
-    RyanMqttCheck(RyanMqttSuccessError == result, result, rlog_d);
-
-    // 启动mqtt客户端线程
-    result = RyanMqttStart(client);
-    RyanMqttCheck(RyanMqttSuccessError == result, result, rlog_d);
-    return 0;
 }
 
 /**
@@ -320,13 +238,58 @@ static int MqttState(int argc, char *argv[])
  */
 static int MqttConnect(int argc, char *argv[])
 {
-
     if (RyanMqttConnectState == RyanMqttGetState(client))
     {
         rlog_w("mqtt客户端没有连接");
         return 0;
     }
-    mqttConnectFun();
+
+    RyanMqttError_e result = RyanMqttSuccessError;
+    RyanMqttClientConfig_t mqttConfig = {
+        .clientId = RyanMqttClientId,
+        .userName = RyanMqttUserName,
+        .password = RyanMqttPassword,
+        .host = RyanMqttHost,
+        .port = RyanMqttPort,
+        .taskName = "mqttThread",
+        .taskPrio = 16,
+        .taskStack = 2048,
+        .recvBufferSize = sizeof(mqttRecvBuffer),
+        .sendBufferSize = sizeof(mqttSendBuffer),
+        .recvBuffer = mqttRecvBuffer,
+        .sendBuffer = mqttSendBuffer,
+        .mqttVersion = 4,
+        .ackHandlerRepeatCountWarning = 6,
+        .ackHandlerCountWarning = 20,
+        .autoReconnectFlag = RyanMqttTrue,
+        .cleanSessionFlag = RyanMqttFalse,
+        .reconnectTimeout = 3000,
+        .recvTimeout = 5000,
+        .sendTimeout = 2000,
+        .ackTimeout = 10000,
+        .keepaliveTimeoutS = 120,
+        .mqttEventHandle = mqttEventHandle,
+        .userData = NULL};
+
+    // 初始化mqtt客户端
+    result = RyanMqttInit(&client);
+    RyanMqttCheck(RyanMqttSuccessError == result, result, rlog_d);
+
+    // 注册需要的事件回调
+    result = RyanMqttRegisterEventId(client, RyanMqttEventAnyId);
+    RyanMqttCheck(RyanMqttSuccessError == result, result, rlog_d);
+
+    // 设置mqtt客户端config
+    result = RyanMqttSetConfig(client, &mqttConfig);
+    RyanMqttCheck(RyanMqttSuccessError == result, result, rlog_d);
+
+    // 设置遗嘱消息
+    result = RyanMqttSetLwt(client, "pub/test", "this is will", strlen("this is will"), RyanMqttQos0, 0);
+    RyanMqttCheck(RyanMqttSuccessError == result, result, rlog_d);
+
+    // 启动mqtt客户端线程
+    result = RyanMqttStart(client);
+    RyanMqttCheck(RyanMqttSuccessError == result, result, rlog_d);
     return 0;
 }
 
@@ -385,7 +348,7 @@ static int Mqttpublish(int argc, char *argv[])
 {
     if (argc < 7)
     {
-        rlog_i("请输入 topic、 qos、 payload内容、 发送条数、 间隔时间(可以为0) ");
+        rlog_w("参数不完整! 请输入 topic、 qos、 payload内容、 发送条数、 间隔时间(可以为0) ");
         return 0;
     }
 
@@ -412,7 +375,7 @@ static int Mqttpublish(int argc, char *argv[])
     }
 
     delay(3000);
-    LOG_E("pubCount: %d", pubCount);
+    rlog_w("pubCount: %d", pubCount);
     return 0;
 }
 
@@ -427,7 +390,7 @@ static int Mqttsubscribe(int argc, char *argv[])
 {
     if (argc < 4)
     {
-        rlog_i("请输入 topic、 qos ");
+        rlog_w("参数不完整! 请输入 topic、 qos ");
         return 0;
     }
 
@@ -452,7 +415,7 @@ static int MqttUnSubscribe(int argc, char *argv[])
 {
     if (argc < 3)
     {
-        rlog_i("请输入 取消订阅主题");
+        rlog_w("参数不完整! 请输入 取消订阅主题");
         return 0;
     }
 
@@ -481,18 +444,19 @@ static int MqttListSubscribe(int argc, char *argv[])
         return 0;
     }
 
-    RyanMqttMsgHandler_t msgHandles[10] = {0};
+    RyanMqttMsgHandler_t msgHandles[100] = {0};
     int32_t subscribeNum = 0;
     int32_t result = RyanMqttSuccessError;
 
     result = RyanMqttGetSubscribe(client, msgHandles, sizeof(msgHandles) / sizeof(msgHandles[0]), &subscribeNum);
 
     if (result == RyanMqttNoRescourceError)
-        rlog_w("订阅主题数超过10个，已截断");
+        rlog_w("订阅主题数超过缓冲区%d个，已截断，请修改msgHandles缓冲区", sizeof(msgHandles) / sizeof(msgHandles[0]));
+
     rlog_i("mqtt客户端已订阅的主题数: %d", subscribeNum);
 
     for (int32_t i = 0; i < subscribeNum; i++)
-        rlog_i("订阅主题: %d, topic: %s, QOS: %d", i, msgHandles[i].topic, msgHandles[i].qos);
+        rlog_i("已经订阅主题: %d, topic: %s, QOS: %d", i, msgHandles[i].topic, msgHandles[i].qos);
 
     return 0;
 }
@@ -512,7 +476,7 @@ static int MqttListAck(int argc, char *argv[])
 
     if (RyanListIsEmpty(&client->ackHandlerList))
     {
-        rlog_i("ack链表为空");
+        rlog_w("ack链表为空，没有等待ack的消息");
         return 0;
     }
 
@@ -523,9 +487,9 @@ static int MqttListAck(int argc, char *argv[])
         ackHandler = RyanListEntry(curr, RyanMqttAckHandler_t, list);
 
         // 发送qos1 / qos2消息服务器ack响应超时。需要重新发送它们。
-        rlog_w(" type: %d, packetId is %d ", ackHandler->packetType, ackHandler->packetId);
+        rlog_i(" type: %d, packetId is %d ", ackHandler->packetType, ackHandler->packetId);
         if (NULL != ackHandler->msgHandler)
-            rlog_w("topic: %s, qos: %d", ackHandler->msgHandler->topic, ackHandler->msgHandler->qos);
+            rlog_i("topic: %s, qos: %d", ackHandler->msgHandler->topic, ackHandler->msgHandler->qos);
     }
     return 0;
 }
@@ -545,14 +509,14 @@ static int MqttListMsg(int argc, char *argv[])
 
     if (RyanListIsEmpty(&client->msgHandlerList))
     {
-        rlog_i("msg链表为空");
+        rlog_w("msg链表为空，没有等待的msg消息");
         return 0;
     }
 
     RyanListForEachSafe(curr, next, &client->msgHandlerList)
     {
         msgHandler = RyanListEntry(curr, RyanMqttMsgHandler_t, list);
-        rlog_w("topic: %s, qos: %d", msgHandler->topic, msgHandler->qos);
+        rlog_i("topic: %s, qos: %d", msgHandler->topic, msgHandler->qos);
     }
     return 0;
 }
@@ -573,10 +537,10 @@ static int Mqttdata(int argc, char *argv[])
         if (num < sizeof(mqttTest) / sizeof(mqttTest[0]) - 1)
             mqttTest[num] = 0;
         else
-            LOG_E("数组越界");
+            rlog_e("数组越界");
     }
 
-    rlog_i("dataEventCount: %d, publishCount:%u",
+    rlog_i("接收到数据次数统计: %d, qos1和qos2发布成功的次数统计: %d",
            mqttTest[dataEventCount], mqttTest[PublishedEventCount]);
 
     return 0;
@@ -584,26 +548,40 @@ static int Mqttdata(int argc, char *argv[])
 
 static const struct RyanMqttCmdDes cmdTab[] =
     {
+        // {"help",        "打印帮助信息               params: null", MqttHelp},
+        // {"state",       "打印mqtt客户端状态         params: null", MqttState},
+        // {"connect",     "mqtt客户端连接服务器       params: null", MqttConnect},
+        // {"disc",        "mqtt客户端断开连接         params: null", MqttDisconnect},
+        // {"reconnect",   "mqtt断开连接时重新连接     params: null", MqttReconnect},
+        // {"destory",     "mqtt销毁客户端             params: null", MqttDestroy},
+        // {"pub",         "mqtt发布消息               params: topic、 qos、 payload内容、 发送条数、 间隔时间(可以为0)", Mqttpublish},
+        // {"sub",         "mqtt订阅主题               params: topic、 qos", Mqttsubscribe},
+        // {"unsub",       "mqtt取消订阅主题           params: 取消订阅主题", MqttUnSubscribe},
+        // {"listsub",     "mqtt获取已订阅主题         params: null", MqttListSubscribe},
+        // {"listack",     "打印ack链表                params: null", MqttListAck},
+        // {"listmsg",     "打印msg链表                params: null", MqttListMsg},
+        // {"data",        "打印测试信息用户自定义的    params: null", Mqttdata},
+
         {"help", "打印帮助信息", MqttHelp},
-        {"state", "打印mqtt客户端状态   params: null", MqttState},
-        {"connect", "mqtt客户端连接服务器   params: null", MqttConnect},
-        {"disc", "mqtt客户端断开连接    params: null", MqttDisconnect},
-        {"reconnect", "mqtt断开连接时,重新连接mqtt服务器    params: null", MqttReconnect},
-        {"destory", "mqtt销毁客户端    params: null", MqttDestroy},
-        {"pub", "mqtt发布消息   params: topic、 qos、 payload内容、 发送条数、 间隔时间(可以为0)", Mqttpublish},
-        {"sub", "mqtt订阅主题   params: topic、 qos", Mqttsubscribe},
-        {"unsub", "mqtt取消订阅主题    params: 取消订阅主题", MqttUnSubscribe},
-        {"listsub", "mqtt获取已订阅主题    params: null", MqttListSubscribe},
-        {"listack", "打印ack链表    params: null", MqttListAck},
-        {"listmsg", "打印msg链表    params: null", MqttListMsg},
-        {"data", "打印测试信息，用户自定义的    params: null", Mqttdata},
+        {"state", "打印mqtt客户端状态         params: null", MqttState},
+        {"connect", "mqtt客户端连接服务器       params: null", MqttConnect},
+        {"disc", "mqtt客户端断开连接         params: null", MqttDisconnect},
+        {"reconnect", "mqtt断开连接时重新连接     params: null", MqttReconnect},
+        {"destory", "mqtt销毁客户端             params: null", MqttDestroy},
+        {"pub", "mqtt发布消息               params: topic、 qos、 payload内容、 发送条数、 间隔时间(可以为0)", Mqttpublish},
+        {"sub", "mqtt订阅主题               params: topic、 qos", Mqttsubscribe},
+        {"unsub", "mqtt取消订阅主题           params: 取消订阅主题", MqttUnSubscribe},
+        {"listsub", "mqtt获取已订阅主题         params: null", MqttListSubscribe},
+        {"listack", "打印ack链表                params: null", MqttListAck},
+        {"listmsg", "打印msg链表                params: null", MqttListMsg},
+        {"data", "打印测试信息用户自定义的   params: null", Mqttdata},
 };
 
 static int MqttHelp(int argc, char *argv[])
 {
 
     for (uint8_t i = 0; i < sizeof(cmdTab) / sizeof(cmdTab[0]); i++)
-        rt_kprintf("mqtt %-16s %s\r\n", cmdTab[i].cmd, cmdTab[i].explain);
+        rlog_raw("mqtt %-16s %s\r\n", cmdTab[i].cmd, cmdTab[i].explain);
 
     return 0;
 }

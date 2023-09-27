@@ -1,7 +1,7 @@
-#define rlogEnable 1             // 是否使能日志
-#define rlogColorEnable 1        // 是否使能日志颜色
+#define rlogEnable 1               // 是否使能日志
+#define rlogColorEnable 1          // 是否使能日志颜色
 #define rlogLevel (rlogLvlWarning) // 日志打印等级
-#define rlogTag "RyanMqttNet"    // 日志tag
+#define rlogTag "RyanMqttNet"      // 日志tag
 
 #include "platformNetwork.h"
 #include "RyanMqttLog.h"
@@ -159,7 +159,7 @@ RyanMqttError_e platformNetworkSendAsync(void *userData, platformNetwork_t *plat
 
         sendResult = send(platformNetwork->socket, sendBuf + offset, sendLen - offset, 0);
 
-        if (sendResult < 0) // 小于零，表示错误，个别错误不代表socket错误
+        if (sendResult <= 0) // 小于零，表示错误，个别错误不代表socket错误
         {
             // 下列3种表示没问题,但需要推出发送
             if ((errno == EAGAIN ||      // 套接字已标记为非阻塞，而接收操作被阻塞或者接收超时
