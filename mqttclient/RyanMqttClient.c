@@ -98,6 +98,7 @@ RyanMqttError_e RyanMqttInit(RyanMqttClient_t **pClient)
  *  由于直接删除mqtt线程是很危险的行为。这里设置标志位，由mqtt线程自己删除自己所有资源。
  *  mqtt删除自己的延时最大不会超过config里面 recvTimeout + 1秒
  *  mqtt删除自己前会调用 RyanMqttEventDestoryBefore 事件回调
+ *  * 调用此函数后就不应该在对该客户端进行任何操作
  * @param client
  * @return RyanMqttError_e
  */
@@ -233,12 +234,17 @@ RyanMqttError_e RyanMqttSubscribe(RyanMqttClient_t *client, char *topic, RyanMqt
     // 确定节点是否已存在,存在就删除
     result = RyanMqttAckListNodeFind(client, SUBACK, packetId, &ackHandler);
     if (RyanMqttSuccessError == result)
+    {
+        RyanMqttAckListRemove(client, ackHandler);
         RyanMqttAckHandlerDestroy(client, ackHandler);
+    }
 
     result = RyanMqttAckListAdd(client, ackHandler);
 
     result = RyanMqttSendPacket(client, ackHandler->packet, ackHandler->packetLen);
-    RyanMqttCheckCode(RyanMqttSuccessError == result, result, rlog_d, { RyanMqttAckHandlerDestroy(client, ackHandler); });
+    RyanMqttCheckCode(RyanMqttSuccessError == result, result, rlog_d,
+                      { RyanMqttAckListRemove(client, ackHandler);
+                        RyanMqttAckHandlerDestroy(client, ackHandler); });
     return result;
 }
 
@@ -282,12 +288,17 @@ RyanMqttError_e RyanMqttUnSubscribe(RyanMqttClient_t *client, char *topic)
     // 确定节点是否已存在,存在就删除
     result = RyanMqttAckListNodeFind(client, UNSUBACK, packetId, &ackHandler);
     if (RyanMqttSuccessError == result)
+    {
+        RyanMqttAckListRemove(client, ackHandler);
         RyanMqttAckHandlerDestroy(client, ackHandler);
+    }
 
     result = RyanMqttAckListAdd(client, ackHandler);
 
     result = RyanMqttSendPacket(client, ackHandler->packet, ackHandler->packetLen);
-    RyanMqttCheckCode(RyanMqttSuccessError == result, result, rlog_d, { RyanMqttAckHandlerDestroy(client, ackHandler); });
+    RyanMqttCheckCode(RyanMqttSuccessError == result, result, rlog_d,
+                      { RyanMqttAckListRemove(client, ackHandler);
+                        RyanMqttAckHandlerDestroy(client, ackHandler); });
 
     return result;
 }
@@ -359,12 +370,17 @@ RyanMqttError_e RyanMqttPublish(RyanMqttClient_t *client, char *topic, char *pay
     // 确定节点是否已存在,存在就删除,理论上不会存在
     result = RyanMqttAckListNodeFind(client, (RyanMqttQos1 == qos) ? PUBACK : PUBREC, packetId, &ackHandler);
     if (RyanMqttSuccessError == result)
+    {
+        RyanMqttAckListRemove(client, ackHandler);
         RyanMqttAckHandlerDestroy(client, ackHandler);
+    }
 
     result = RyanMqttAckListAdd(client, ackHandler);
 
     result = RyanMqttSendPacket(client, ackHandler->packet, ackHandler->packetLen);
-    RyanMqttCheckCode(RyanMqttSuccessError == result, result, rlog_d, { RyanMqttAckHandlerDestroy(client, ackHandler); });
+    RyanMqttCheckCode(RyanMqttSuccessError == result, result, rlog_d,
+                      { RyanMqttAckListRemove(client, ackHandler);
+                        RyanMqttAckHandlerDestroy(client, ackHandler); });
 
     // 提前设置重发标志位
     RyanMqttSetPublishDup(&ackHandler->packet[0], 1);
@@ -614,6 +630,7 @@ RyanMqttError_e RyanMqttDiscardAckHandler(RyanMqttClient_t *client, enum msgType
 
     RyanMqttEventMachine(client, RyanMqttEventAckHandlerdiscard, (void *)ackHandler); // 回调函数
 
+    RyanMqttAckListRemove(client, ackHandler);
     RyanMqttAckHandlerDestroy(client, ackHandler);
     return RyanMqttSuccessError;
 }

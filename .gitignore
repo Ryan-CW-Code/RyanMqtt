@@ -6,3 +6,4 @@ platform/linux/*
 platform/FreeRTOS/*
 
 null
+.vscode

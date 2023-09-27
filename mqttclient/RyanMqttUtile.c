@@ -343,8 +343,6 @@ void RyanMqttMsgHandlerDestory(RyanMqttMsgHandler_t *msgHandler)
     RyanMqttAssert(NULL != msgHandler);
     RyanMqttAssert(NULL != msgHandler->topic);
 
-    RyanListDel(&msgHandler->list);
-
     platformMemoryFree(msgHandler->topic);
     msgHandler->topic = NULL;
 
@@ -423,6 +421,25 @@ RyanMqttError_e RyanMqttMsgHandlerAdd(RyanMqttClient_t *client, RyanMqttMsgHandl
 }
 
 /**
+ * @brief 将msg句柄client msg链表移除
+ *
+ * @param client
+ * @param msgHandler
+ * @return int32_t
+ */
+RyanMqttError_e RyanMqttMsgHandlerRemove(RyanMqttMsgHandler_t *msgHandler)
+{
+    RyanMqttAssert(NULL != msgHandler);
+    RyanMqttAssert(NULL != msgHandler->topic);
+
+    platformCriticalEnter();
+    RyanListDel(&msgHandler->list);
+    platformCriticalExit();
+
+    return RyanMqttSuccessError;
+}
+
+/**
  * @brief 创建ack句柄
  *
  * @param client
@@ -475,17 +492,9 @@ void RyanMqttAckHandlerDestroy(RyanMqttClient_t *client, RyanMqttAckHandler_t *a
     RyanMqttAssert(NULL != ackHandler->msgHandler);
     RyanMqttAssert(NULL != ackHandler->msgHandler->topic);
 
-    if (NULL == &ackHandler->list)
-        return;
-
-    RyanListDel(&ackHandler->list);
-
+    RyanMqttMsgHandlerRemove(ackHandler->msgHandler);
     RyanMqttMsgHandlerDestory(ackHandler->msgHandler); // 释放msgHandler
-
     platformMemoryFree(ackHandler);
-
-    if (client->ackHandlerCount > 0)
-        client->ackHandlerCount--;
 }
 
 /**
@@ -550,6 +559,30 @@ RyanMqttError_e RyanMqttAckListAdd(RyanMqttClient_t *client, RyanMqttAckHandler_
 }
 
 /**
+ * @brief 从链表移除ack
+ *
+ * @param client
+ * @param ackHandler
+ * @return RyanMqttError_e
+ */
+RyanMqttError_e RyanMqttAckListRemove(RyanMqttClient_t *client, RyanMqttAckHandler_t *ackHandler)
+{
+    RyanMqttAssert(NULL != client);
+    RyanMqttAssert(NULL != ackHandler);
+    RyanMqttAssert(NULL != ackHandler->msgHandler);
+    RyanMqttAssert(NULL != ackHandler->msgHandler->topic);
+
+    // 将ack节点添加到链表尾部
+    platformCriticalEnter();
+    RyanListDel(&ackHandler->list);
+    if (client->ackHandlerCount > 0)
+        client->ackHandlerCount--;
+    platformCriticalExit();
+
+    return RyanMqttSuccessError;
+}
+
+/**
  * @brief 清理session
  *
  * @param client
@@ -568,6 +601,7 @@ void RyanMqttCleanSession(RyanMqttClient_t *client)
         RyanListForEachSafe(curr, next, &client->ackHandlerList)
         {
             ackHandler = RyanListEntry(curr, RyanMqttAckHandler_t, list);
+            RyanMqttAckListRemove(client, ackHandler);
             RyanMqttAckHandlerDestroy(client, ackHandler);
         }
         RyanListDelInit(&client->ackHandlerList);
@@ -579,6 +613,7 @@ void RyanMqttCleanSession(RyanMqttClient_t *client)
         RyanListForEachSafe(curr, next, &client->msgHandlerList)
         {
             msgHandler = RyanListEntry(curr, RyanMqttMsgHandler_t, list);
+            RyanMqttMsgHandlerRemove(msgHandler);
             RyanMqttMsgHandlerDestory(msgHandler);
         }
         RyanListDelInit(&client->msgHandlerList);
