@@ -36,7 +36,7 @@ static uint32_t mqttTest[10] = {0};
 #define dataEventCount (0)      // 接收到数据次数统计
 #define PublishedEventCount (1) // qos1和qos2发布成功的次数统计
 
-void printfArrStr(char *buf, uint32_t len, char *userData)
+static void printfArrStr(char *buf, uint32_t len, char *userData)
 {
     rlog_raw("%s", userData);
     for (uint32_t i = 0; i < len; i++)
@@ -51,9 +51,9 @@ void printfArrStr(char *buf, uint32_t len, char *userData)
  *
  * @param pclient
  * @param event
- * @param eventData
+ * @param eventData 查看时间枚举，后面有说明eventData是什么类型
  */
-void mqttEventHandle(void *pclient, RyanMqttEventId_e event, const void const *eventData)
+static void mqttEventHandle(void *pclient, RyanMqttEventId_e event, const void const *eventData)
 {
     RyanMqttClient_t *client = (RyanMqttClient_t *)pclient;
 
@@ -109,10 +109,10 @@ void mqttEventHandle(void *pclient, RyanMqttEventId_e event, const void const *e
     case RyanMqttEventData:
     {
         RyanMqttMsgData_t *msgData = (RyanMqttMsgData_t *)eventData;
-        rlog_i(" RyanMqtt topic recv callback! topic: %s, packetId: %d, payload len: %d",
+        rlog_i("接收到mqtt消息事件回调 topic: %s, packetId: %d, payload len: %d",
                msgData->topic, msgData->packetId, msgData->payloadLen);
 
-        rt_kprintf("%.*s\r\n", msgData->payloadLen, msgData->payload);
+        rlog_i("%.*s", msgData->payloadLen, msgData->payload);
 
         mqttTest[dataEventCount]++;
         break;
@@ -121,7 +121,7 @@ void mqttEventHandle(void *pclient, RyanMqttEventId_e event, const void const *e
     case RyanMqttEventRepeatPublishPacket: // qos2 / qos1重发事件回调
     {
         RyanMqttAckHandler_t *ackHandler = (RyanMqttAckHandler_t *)eventData;
-        rlog_w("packetType: %d, packetId: %d, topic: %s, qos: %d",
+        rlog_w("发布消息进行重发了，packetType: %d, packetId: %d, topic: %s, qos: %d",
                ackHandler->packetType, ackHandler->packetId, ackHandler->msgHandler->topic, ackHandler->msgHandler->qos);
 
         printfArrStr(ackHandler->packet, ackHandler->packetLen, "重发数据: ");
