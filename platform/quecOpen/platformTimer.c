@@ -4,7 +4,14 @@
 
 uint32_t platformUptimeMs(void)
 {
-    return (uint32_t)osKernelGetTickCount();
+    if (1000 == osKernelGetTickFreq())
+        return (uint32_t)osKernelGetTickCount();
+    else
+    {
+        uint32_t tick = 0;
+        tick = osKernelGetTickCount() * 1000;
+        return (uint32_t)((tick + osKernelGetTickCount() - 1) / osKernelGetTickCount());
+    }
 }
 
 /**

@@ -2,6 +2,14 @@
 
 **使用遇到问题可以提 issue / RT-Thread 社区提问，谢谢。**
 
+[RyanMqtt使用介绍和示例代码（一）]([RT-Thread-RyanMqtt使用介绍和示例代码（一）RT-Thread问答社区 - RT-Thread](https://club.rt-thread.org/ask/article/51a25ba90fc5e1b5.html))
+
+[RyanMqtt QOS质量测试（二）]([RT-Thread-RyanMqtt QOS质量测试（二）RT-Thread问答社区 - RT-Thread](https://club.rt-thread.org/ask/article/e95c5b9390c53cf3.html))
+
+[RyanMqtt 移植指南（三）]([RT-Thread-RyanMqtt 移植指南（三）RT-Thread问答社区 - RT-Thread](https://club.rt-thread.org/ask/article/611b7a947f7221cf.html))
+
+
+
 ### 1、介绍
 
 RyanMqtt 实现了 MQTT3.1.1 协议的客户端。此库针对资源受限的嵌入式设备进行了优化。

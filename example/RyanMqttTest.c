@@ -51,7 +51,7 @@ static void printfArrStr(char *buf, uint32_t len, char *userData)
  *
  * @param pclient
  * @param event
- * @param eventData 查看时间枚举，后面有说明eventData是什么类型
+ * @param eventData 查看事件枚举，后面有说明eventData是什么类型
  */
 static void mqttEventHandle(void *pclient, RyanMqttEventId_e event, const void const *eventData)
 {
