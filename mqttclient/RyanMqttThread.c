@@ -675,12 +675,13 @@ void RyanMqttEventMachine(RyanMqttClient_t *client, RyanMqttEventId_e eventId, v
         RyanMqttSetClientState(client, RyanMqttConnectState);
         break;
 
-    case RyanMqttEventDisconnected: // 断开连接事件
+    case RyanMqttEventDisconnected:                              // 断开连接事件
+        RyanMqttSetClientState(client, RyanMqttDisconnectState); // 先将客户端状态设置为断开连接,避免close网络资源时用户依然在使用
         platformNetworkClose(client->config->userData, client->network);
 
         if (RyanMqttTrue == client->config->cleanSessionFlag)
             RyanMqttCleanSession(client);
-        RyanMqttSetClientState(client, RyanMqttDisconnectState); // 将客户端状态设置为断开连接
+
         break;
 
     case RyanMqttEventReconnectBefore: // 重连前回调

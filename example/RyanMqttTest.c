@@ -375,7 +375,6 @@ static int Mqttpublish(int argc, char *argv[])
         delay(delayTime);
     }
 
-    delay(3000);
     rlog_w("pubCount: %d", pubCount);
     return 0;
 }
