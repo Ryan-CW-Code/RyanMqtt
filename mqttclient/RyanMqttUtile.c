@@ -118,9 +118,9 @@ RyanMqttError_e RyanMqttSendPacket(RyanMqttClient_t *client, char *sendBuf, int3
     switch (result)
     {
     case RyanMqttSuccessError:
+    case RyanMqttSendPacketTimeOutError:
         return result;
 
-    case RyanMqttSendPacketTimeOutError:
     case RyanSocketFailedError:
     default:
         connectState = RyanSocketFailedError;

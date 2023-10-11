@@ -19,26 +19,32 @@
 RyanMqttError_e platformNetworkConnect(void *userData, platformNetwork_t *platformNetwork, const char *host, const char *port)
 {
     RyanMqttError_e result = RyanMqttSuccessError;
-    struct addrinfo *addrList = NULL;
-    struct addrinfo hints = {
-        .ai_family = AF_UNSPEC,
-        .ai_socktype = SOCK_STREAM,
-        .ai_protocol = IPPROTO_TCP};
 
-    if (getaddrinfo(host, port, &hints, &addrList) != 0)
+    char buf[256];
+    int ret;
+    struct hostent hostinfo, *phost;
+
+    if (0 != gethostbyname_r(host, &hostinfo, buf, sizeof(buf), &phost, &ret))
     {
         result = RyanSocketFailedError;
         goto exit;
     }
 
-    platformNetwork->socket = socket(addrList->ai_family, addrList->ai_socktype, addrList->ai_protocol);
+    platformNetwork->socket = socket(AF_INET, SOCK_STREAM, IPPROTO_IP);
     if (platformNetwork->socket < 0)
     {
         result = RyanSocketFailedError;
         goto exit;
     }
 
-    if (connect(platformNetwork->socket, addrList->ai_addr, addrList->ai_addrlen) != 0)
+    struct sockaddr_in server_addr;
+    memset(&server_addr, 0, sizeof(server_addr));
+    server_addr.sin_family = AF_INET;
+    server_addr.sin_port = htons(atoi(port)); // 指定端口号，这里使用HTTP默认端口80
+    server_addr.sin_addr = *((struct in_addr *)hostinfo.h_addr_list[0]);
+
+    // 绑定套接字到主机地址和端口号
+    if (connect(platformNetwork->socket, (struct sockaddr *)&server_addr, sizeof(server_addr)) != 0)
     {
         platformNetworkClose(userData, platformNetwork);
         result = RyanMqttSocketConnectFailError;
@@ -46,9 +52,6 @@ RyanMqttError_e platformNetworkConnect(void *userData, platformNetwork_t *platfo
     }
 
 exit:
-
-    if (NULL != addrList)
-        freeaddrinfo(addrList);
     return result;
 }
 
@@ -114,6 +117,78 @@ RyanMqttError_e platformNetworkRecvAsync(void *userData, platformNetwork_t *plat
         return RyanMqttRecvPacketTimeOutError;
 
     return RyanMqttSuccessError;
+
+    // int32_t recvResult = 0;
+    // int32_t offset = 0;
+    // int32_t timeOut2 = timeout;
+    // struct timeval tv = {0};
+    // platformTimer_t timer = {0};
+
+    // if (-1 == platformNetwork->socket)
+    //     return RyanSocketFailedError;
+
+    // platformTimerCutdown(&timer, timeout);
+
+    // while ((offset < recvLen) && (0 != timeOut2))
+    // {
+
+    //     tv.tv_sec = timeOut2 / 1000;
+    //     tv.tv_usec = timeOut2 % 1000 * 1000;
+
+    //     if (tv.tv_sec <= 0 && tv.tv_usec <= 100)
+    //     {
+    //         tv.tv_sec = 0;
+    //         tv.tv_usec = 100;
+    //     }
+
+    //     fd_set readset;
+    //     int i, maxfdp1;
+
+    //     /* 清空可读事件描述符列表 */
+    //     FD_ZERO(&readset);
+
+    //     /* 将需要监听可读事件的描述符加入列表 */
+    //     FD_SET(platformNetwork->socket, &readset);
+
+    //     /* 等待设定的网络描述符有事件发生 */
+    //     i = select(platformNetwork->socket + 1, &readset, RT_NULL, RT_NULL, &tv);
+    //     if (i < 0)
+    //     {
+    //         // 下列3种表示没问题,但需要退出接收
+    //         if ((errno == EAGAIN ||      // 套接字已标记为非阻塞，而接收操作被阻塞或者接收超时
+    //              errno == EWOULDBLOCK || // 发送时套接字发送缓冲区已满，或接收时套接字接收缓冲区为空
+    //              errno == EINTR))        // 操作被信号中断
+    //             break;
+
+    //         return RyanSocketFailedError;
+    //     }
+
+    //     /* 查看 sock 描述符上有没有发生可读事件 */
+    //     if (i > 0 && FD_ISSET(platformNetwork->socket, &readset))
+    //     {
+    //         recvResult = recv(platformNetwork->socket, recvBuf + offset, recvLen - offset, 0);
+
+    //         if (recvResult <= 0) // 小于零，表示错误，个别错误不代表socket错误
+    //         {
+    //             // 下列3种表示没问题,但需要退出接收
+    //             if ((errno == EAGAIN ||      // 套接字已标记为非阻塞，而接收操作被阻塞或者接收超时
+    //                  errno == EWOULDBLOCK || // 发送时套接字发送缓冲区已满，或接收时套接字接收缓冲区为空
+    //                  errno == EINTR))        // 操作被信号中断
+    //                 break;
+
+    //             return RyanSocketFailedError;
+    //         }
+
+    //         offset += recvResult;
+    //     }
+
+    //     timeOut2 = platformTimerRemain(&timer);
+    // }
+
+    // if (offset != recvLen)
+    //     return RyanMqttRecvPacketTimeOutError;
+
+    // return RyanMqttSuccessError;
 }
 
 /**

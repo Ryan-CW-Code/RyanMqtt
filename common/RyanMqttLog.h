@@ -39,32 +39,31 @@
 static void rlog_output(char *lvl, uint8_t color_n, char *const fmt, ...)
 {
     // RyanLogPrintf("\033[字背景颜色;字体颜色m  用户字符串 \033[0m" );
-    char dbgBuffer[256];
-    uint16_t len;
+    char dbgBuffer[256] = {0};
+    uint16_t len = 0;
 
 // 打印颜色
 #if rlogColorEnable > 0
-    len = snprintf(dbgBuffer, sizeof(dbgBuffer), "\033[%dm", color_n);
-    platformPrint(dbgBuffer, len);
+    len += snprintf(dbgBuffer + len, sizeof(dbgBuffer) - len, "\033[%dm", color_n);
 #endif
 
     // 打印提示符
-    len = snprintf(dbgBuffer, sizeof(dbgBuffer), "[%s/%s]", lvl, rlogTag);
-    platformPrint(dbgBuffer, len);
+    len += snprintf(dbgBuffer + len, sizeof(dbgBuffer) - len, "[%s/%s]", lvl, rlogTag);
 
     // 打印用户输入
     va_list args;
     va_start(args, fmt);
-    len = vsnprintf(dbgBuffer, sizeof(dbgBuffer), fmt, args);
+    len += vsnprintf(dbgBuffer + len, sizeof(dbgBuffer) - len, fmt, args);
     va_end(args);
-    platformPrint(dbgBuffer, len);
 
 // 打印颜色
 #if rlogColorEnable > 0
-    platformPrint("\033[0m", sizeof("\033[0m"));
+    len += snprintf(dbgBuffer + len, sizeof(dbgBuffer) - len, "\033[0m");
 #endif
 
-    platformPrint("\r\n", sizeof("\r\n"));
+    len += snprintf(dbgBuffer + len, sizeof(dbgBuffer) - len, "\r\n");
+
+    platformPrint(dbgBuffer, len);
 }
 
 static void rlog_output_raw(char *const fmt, ...)
