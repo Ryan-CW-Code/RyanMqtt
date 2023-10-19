@@ -51,9 +51,10 @@ uint32_t platformTimerRemain(platformTimer_t *platformTimer)
     // uint32_t 没有溢出
     if (overTime >= platformTimer->time)
     {
-        // tnow溢出,不存在时间超时可能性
+        // tnow溢出,时间必然已经超时
         if (tnow < platformTimer->time)
-            return (UINT32_MAX - overTime + tnow + 1);
+            // return (UINT32_MAX - overTime + tnow + 1);
+            return 0;
 
         // tnow没有溢出
         return tnow >= overTime ? 0 : (overTime - tnow);
