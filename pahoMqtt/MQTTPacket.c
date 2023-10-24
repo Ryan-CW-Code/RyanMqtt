@@ -83,8 +83,6 @@ exit:
 
 int MQTTPacket_len(int rem_len)
 {
-	rem_len += 1; /* header byte */
-
 	/* now remaining_length field */
 	if (rem_len < 128)
 		rem_len += 1;
@@ -94,6 +92,9 @@ int MQTTPacket_len(int rem_len)
 		rem_len += 3;
 	else
 		rem_len += 4;
+
+    /* @F涛T rt-thread社区成员 长度计算问题修复 */
+    rem_len += 1; /* header byte */
 	return rem_len;
 }
 
@@ -262,7 +263,7 @@ int MQTTPacket_equals(MQTTString* a, char* bptr)
 	int alen = 0,
 		blen = 0;
 	char *aptr;
-	
+
 	if (a->cstring)
 	{
 		aptr = a->cstring;
@@ -274,7 +275,7 @@ int MQTTPacket_equals(MQTTString* a, char* bptr)
 		alen = a->lenstring.len;
 	}
 	blen = strlen(bptr);
-	
+
 	return (alen == blen) && (strncmp(aptr, bptr, alen) == 0);
 }
 
