@@ -2,8 +2,14 @@
 # SConscript
 
 # 平台移植层
-platform/linux/*
+# platform/linux/*
 platform/FreeRTOS/*
 
 null
 .vscode
+
+# 忽略编译生成的文件
+*.o
+*.out
+*.exe
+

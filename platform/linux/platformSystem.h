@@ -10,25 +10,28 @@ extern "C"
 #include <stdio.h>
 #include <stdint.h>
 #include <assert.h>
-#include "cmsis_os2.h"
-#include "ql_uart.h"
+#include <pthread.h>
+#include <unistd.h>
 #include "RyanMqttPublic.h"
+#include "valloc.h"
 
 #define RyanMqttAssert(EX) assert(EX)
 
     typedef struct
     {
-        osThreadId_t thread;
+        pthread_t thread;
+        pthread_mutex_t mutex;
+        pthread_cond_t cond;
     } platformThread_t;
 
     typedef struct
     {
-        osMutexId_t mutex;
+        pthread_mutex_t mutex;
     } platformMutex_t;
 
     typedef struct
     {
-
+        pthread_spinlock_t spin;
     } platformCritical_t;
 
     extern void *platformMemoryMalloc(size_t size);

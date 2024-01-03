@@ -15,6 +15,7 @@ extern "C"
 
     extern void RyanMqttThread(void *argument);
     extern void RyanMqttEventMachine(RyanMqttClient_t *client, RyanMqttEventId_e eventId, void *eventData);
+    extern void RyanMqttRefreshKeepaliveTime(RyanMqttClient_t *client);
 
 #ifdef __cplusplus
 }

@@ -29,6 +29,10 @@ extern "C"
         rt_mutex_t mutex;
     } platformMutex_t;
 
+    typedef struct
+    {
+    } platformCritical_t;
+
     extern void *platformMemoryMalloc(size_t size);
     extern void platformMemoryFree(void *ptr);
 
@@ -51,8 +55,10 @@ extern "C"
     extern RyanMqttError_e platformMutexLock(void *userData, platformMutex_t *platformMutex);
     extern RyanMqttError_e platformMutexUnLock(void *userData, platformMutex_t *platformMutex);
 
-    extern void platformCriticalEnter(void);
-    extern void platformCriticalExit(void);
+    extern RyanMqttError_e platformCriticalInit(void *userData, platformCritical_t *platformCritical);
+    extern RyanMqttError_e platformCriticalDestroy(void *userData, platformCritical_t *platformCritical);
+    extern RyanMqttError_e platformCriticalEnter(void *userData, platformCritical_t *platformCritical);
+    extern RyanMqttError_e platformCriticalExit(void *userData, platformCritical_t *platformCritical);
 
 #ifdef __cplusplus
 }

@@ -7,7 +7,7 @@
  * @param size
  * @return void*
  */
-void *platformMemoryMalloc(size_t size)
+inline void *platformMemoryMalloc(size_t size)
 {
     return malloc(size);
 }
@@ -17,7 +17,7 @@ void *platformMemoryMalloc(size_t size)
  *
  * @param ptr
  */
-void platformMemoryFree(void *ptr)
+inline void platformMemoryFree(void *ptr)
 {
     free(ptr);
 }
@@ -27,9 +27,9 @@ void platformMemoryFree(void *ptr)
  *
  * @param ms
  */
-void platformDelay(uint32_t ms)
+inline void platformDelay(uint32_t ms)
 {
-    osDelay(ms);
+    usleep(ms * 1000);
 }
 
 /**
@@ -38,9 +38,9 @@ void platformDelay(uint32_t ms)
  * @param str
  * @param strLen
  */
-void platformPrint(char *str, uint16_t strLen)
+inline void platformPrint(char *str, uint16_t strLen)
 {
-    Ql_UART_Write((Enum_SerialPort)(UART_PORT0), (u8 *)(str), strLen);
+    printf("%.*s", strLen, str);
 }
 
 /**
@@ -64,16 +64,16 @@ RyanMqttError_e platformThreadInit(void *userData,
                                    uint32_t priority)
 {
 
-    const osThreadAttr_t myTask02_attributes = {
-        .name = name,
-        .stack_size = stackSize,
-        .priority = (osPriority_t)priority,
-    };
+    pthread_attr_t attr = {0};
+    pthread_attr_init(&attr);
+    pthread_attr_setstacksize(&attr, stackSize);
+    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED); // 设置为分离状态
 
-    platformThread->thread = osThreadNew(entry, param, &myTask02_attributes);
-
-    if (NULL == platformThread->thread)
+    int ret = pthread_create(&platformThread->thread, &attr, entry, param);
+    if (0 != ret)
         return RyanMqttNoRescourceError;
+
+    pthread_mutex_init(&platformThread->mutex, NULL);
 
     return RyanMqttSuccessError;
 }
@@ -87,7 +87,7 @@ RyanMqttError_e platformThreadInit(void *userData,
  */
 RyanMqttError_e platformThreadDestroy(void *userData, platformThread_t *platformThread)
 {
-    osThreadExit();
+    pthread_exit(NULL);
     return RyanMqttSuccessError;
 }
 
@@ -100,7 +100,9 @@ RyanMqttError_e platformThreadDestroy(void *userData, platformThread_t *platform
  */
 RyanMqttError_e platformThreadStart(void *userData, platformThread_t *platformThread)
 {
-    osThreadResume(platformThread->thread);
+    pthread_mutex_lock(&platformThread->mutex);
+    pthread_cond_signal(&platformThread->cond);
+    pthread_mutex_unlock(&platformThread->mutex);
     return RyanMqttSuccessError;
 }
 
@@ -113,7 +115,9 @@ RyanMqttError_e platformThreadStart(void *userData, platformThread_t *platformTh
  */
 RyanMqttError_e platformThreadStop(void *userData, platformThread_t *platformThread)
 {
-    osThreadSuspend(platformThread->thread);
+    pthread_mutex_lock(&platformThread->mutex);
+    pthread_cond_wait(&platformThread->cond, &platformThread->mutex);
+    pthread_mutex_unlock(&platformThread->mutex);
     return RyanMqttSuccessError;
 }
 
@@ -126,11 +130,7 @@ RyanMqttError_e platformThreadStop(void *userData, platformThread_t *platformThr
  */
 RyanMqttError_e platformMutexInit(void *userData, platformMutex_t *platformMutex)
 {
-
-    const osMutexAttr_t myMutex01_attributes = {
-        .name = "mqttMutex"};
-
-    platformMutex->mutex = osMutexNew(&myMutex01_attributes);
+    pthread_mutex_init(&platformMutex->mutex, NULL);
     return RyanMqttSuccessError;
 }
 
@@ -143,7 +143,7 @@ RyanMqttError_e platformMutexInit(void *userData, platformMutex_t *platformMutex
  */
 RyanMqttError_e platformMutexDestroy(void *userData, platformMutex_t *platformMutex)
 {
-    osMutexDelete(platformMutex->mutex);
+    pthread_mutex_destroy(&platformMutex->mutex);
     return RyanMqttSuccessError;
 }
 
@@ -156,7 +156,7 @@ RyanMqttError_e platformMutexDestroy(void *userData, platformMutex_t *platformMu
  */
 RyanMqttError_e platformMutexLock(void *userData, platformMutex_t *platformMutex)
 {
-    osMutexAcquire(platformMutex->mutex, osWaitForever);
+    pthread_mutex_lock(&platformMutex->mutex); // 互斥锁上锁
     return RyanMqttSuccessError;
 }
 
@@ -169,7 +169,7 @@ RyanMqttError_e platformMutexLock(void *userData, platformMutex_t *platformMutex
  */
 RyanMqttError_e platformMutexUnLock(void *userData, platformMutex_t *platformMutex)
 {
-    osMutexRelease(platformMutex->mutex);
+    pthread_mutex_unlock(&platformMutex->mutex); // 互斥锁解锁
     return RyanMqttSuccessError;
 }
 
@@ -182,6 +182,7 @@ RyanMqttError_e platformMutexUnLock(void *userData, platformMutex_t *platformMut
  */
 RyanMqttError_e platformCriticalInit(void *userData, platformCritical_t *platformCritical)
 {
+    pthread_spin_init(&platformCritical->spin, PTHREAD_PROCESS_PRIVATE);
     return RyanMqttSuccessError;
 }
 
@@ -194,6 +195,7 @@ RyanMqttError_e platformCriticalInit(void *userData, platformCritical_t *platfor
  */
 RyanMqttError_e platformCriticalDestroy(void *userData, platformCritical_t *platformCritical)
 {
+    pthread_spin_destroy(&platformCritical->spin);
     return RyanMqttSuccessError;
 }
 
@@ -206,7 +208,7 @@ RyanMqttError_e platformCriticalDestroy(void *userData, platformCritical_t *plat
  */
 inline RyanMqttError_e platformCriticalEnter(void *userData, platformCritical_t *platformCritical)
 {
-    osKernelLock();
+    pthread_spin_lock(&platformCritical->spin);
     return RyanMqttSuccessError;
 }
 
@@ -219,6 +221,6 @@ inline RyanMqttError_e platformCriticalEnter(void *userData, platformCritical_t 
  */
 inline RyanMqttError_e platformCriticalExit(void *userData, platformCritical_t *platformCritical)
 {
-    osKernelUnlock();
+    pthread_spin_unlock(&platformCritical->spin);
     return RyanMqttSuccessError;
 }

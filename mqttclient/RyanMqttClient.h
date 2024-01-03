@@ -105,6 +105,7 @@ extern "C"
         RyanMqttClientConfig_t *config;    // mqtt config
         platformThread_t *mqttThread;      // mqtt线程
         platformMutex_t *sendBufLock;      // 写缓冲区锁
+        platformCritical_t *criticalLock;  // 临界区锁
         lwtOptions_t *lwtOptions;          // 遗嘱相关配置
     } RyanMqttClient_t;
 

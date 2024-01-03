@@ -172,19 +172,51 @@ RyanMqttError_e platformMutexUnLock(void *userData, platformMutex_t *platformMut
 }
 
 /**
- * @brief 进入临界区 / 关中断
+ * @brief 临界区初始化
  *
+ * @param userData
+ * @param platformCritical
+ * @return RyanMqttError_e
  */
-void platformCriticalEnter(void)
+RyanMqttError_e platformCriticalInit(void *userData, platformCritical_t *platformCritical)
 {
-    rt_enter_critical();
+    return RyanMqttSuccessError;
 }
 
 /**
- * @brief 退出临界区 / 开中断
+ * @brief 销毁临界区
  *
+ * @param userData
+ * @param platformCritical
+ * @return RyanMqttError_e
  */
-void platformCriticalExit(void)
+RyanMqttError_e platformCriticalDestroy(void *userData, platformCritical_t *platformCritical)
+{
+    return RyanMqttSuccessError;
+}
+
+/**
+ * @brief 进入临界区
+ *
+ * @param userData
+ * @param platformCritical
+ * @return RyanMqttError_e
+ */
+inline RyanMqttError_e platformCriticalEnter(void *userData, platformCritical_t *platformCritical)
+{
+    rt_enter_critical();
+    return RyanMqttSuccessError;
+}
+
+/**
+ * @brief 退出临界区
+ *
+ * @param userData
+ * @param platformCritical
+ * @return RyanMqttError_e
+ */
+inline RyanMqttError_e platformCriticalExit(void *userData, platformCritical_t *platformCritical)
 {
     rt_exit_critical();
+    return RyanMqttSuccessError;
 }

@@ -11,7 +11,7 @@
 
 /**
  * @brief 获取报文标识符，报文标识符不可为0
- *
+ * 都在sendbuf锁内调用
  * @param client
  * @return uint16_t
  */
@@ -24,7 +24,6 @@ static uint16_t RyanMqttGetNextPacketId(RyanMqttClient_t *client)
 
 static RyanMqttError_e setConfigValue(char **dest, char const *const rest)
 {
-
     if (NULL == dest || NULL == rest)
         return RyanMqttNoRescourceError;
 
@@ -72,16 +71,20 @@ RyanMqttError_e RyanMqttInit(RyanMqttClient_t **pClient)
     client->sendBufLock = platformMemoryMalloc(sizeof(platformMutex_t));
     RyanMqttCheckCode(NULL != client->sendBufLock, RyanMqttNotEnoughMemError, rlog_d, { RyanMqttDestroy(client); });
     memset(client->sendBufLock, 0, sizeof(platformMutex_t));
+    platformMutexInit(client->config->userData, client->sendBufLock); // 初始化发送缓冲区互斥锁
+
+    client->criticalLock = platformMemoryMalloc(sizeof(platformCritical_t));
+    RyanMqttCheckCode(NULL != client->criticalLock, RyanMqttNotEnoughMemError, rlog_d, { RyanMqttDestroy(client); });
+    memset(client->criticalLock, 0, sizeof(platformMutex_t));
+    platformCriticalInit(client->config->userData, client->criticalLock); // 初始化临界区
 
     client->packetId = 1; // 控制报文必须包含一个非零的 16 位报文标识符
-    client->clientState = 0;
+    client->clientState = RyanMqttInitState;
     client->eventFlag = 0;
     client->keepaliveTimeoutCount = 0;
     client->ackHandlerCount = 0;
     client->lwtFlag = RyanMqttFalse;
     client->lwtOptions = NULL;
-
-    platformMutexInit(client->config->userData, client->sendBufLock); // 初始化发送缓冲区互斥锁
 
     RyanListInit(&client->msgHandlerList);
     RyanListInit(&client->ackHandlerList);
@@ -95,10 +98,10 @@ RyanMqttError_e RyanMqttInit(RyanMqttClient_t **pClient)
 
 /**
  * @brief 销毁mqtt客户端
- *  由于直接删除mqtt线程是很危险的行为。这里设置标志位，由mqtt线程自己删除自己所有资源。
- *  mqtt删除自己的延时最大不会超过config里面 recvTimeout + 1秒
- *  mqtt删除自己前会调用 RyanMqttEventDestoryBefore 事件回调
- *  * 调用此函数后就不应该在对该客户端进行任何操作
+ *  !用户线程直接删除mqtt线程是很危险的行为。所以这里设置标志位，稍后由mqtt线程自己释放所占有的资源。
+ *  !mqtt删除自己的延时最大不会超过config里面 recvTimeout + 1秒
+ *  !mqtt删除自己前会调用 RyanMqttEventDestoryBefore 事件回调
+ *  !调用此函数后就不应该再对该客户端进行任何操作
  * @param client
  * @return RyanMqttError_e
  */
@@ -107,9 +110,9 @@ RyanMqttError_e RyanMqttDestroy(RyanMqttClient_t *client)
 
     RyanMqttCheck(NULL != client, RyanMqttParamInvalidError, rlog_d);
 
-    platformCriticalEnter();
+    platformCriticalEnter(client->config->userData, client->criticalLock);
     client->destoryFlag = RyanMqttTrue;
-    platformCriticalExit();
+    platformCriticalExit(client->config->userData, client->criticalLock);
 
     return RyanMqttSuccessError;
 }
@@ -135,7 +138,6 @@ RyanMqttError_e RyanMqttStart(RyanMqttClient_t *client)
                                 client,
                                 client->config->taskStack,
                                 client->config->taskPrio);
-
     RyanMqttCheckCode(RyanMqttSuccessError == result, RyanMqttNotEnoughMemError, rlog_d, { RyanMqttSetClientState(client, RyanMqttInitState); });
 
     return RyanMqttSuccessError;
@@ -221,7 +223,7 @@ RyanMqttError_e RyanMqttSubscribe(RyanMqttClient_t *client, char *topic, RyanMqt
     packetLen = MQTTSerialize_subscribe((uint8_t *)client->config->sendBuffer, client->config->sendBufferSize, 0, packetId, 1, &topicName, (int *)&qos);
     RyanMqttCheckCode(packetLen > 0, RyanMqttSerializePacketError, rlog_d, { platformMutexUnLock(client->config->userData, client->sendBufLock); });
 
-    result = RyanMqttMsgHandlerCreate(topic, strlen(topic), qos, &msgHandler);
+    result = RyanMqttMsgHandlerCreate(client, topic, strlen(topic), qos, &msgHandler);
     RyanMqttCheckCode(RyanMqttSuccessError == result, result, rlog_d, { platformMutexUnLock(client->config->userData, client->sendBufLock); });
 
     result = RyanMqttAckHandlerCreate(client, SUBACK, packetId, packetLen, msgHandler, &ackHandler);
@@ -229,22 +231,14 @@ RyanMqttError_e RyanMqttSubscribe(RyanMqttClient_t *client, char *topic, RyanMqt
         platformMemoryFree(msgHandler);
         platformMutexUnLock(client->config->userData, client->sendBufLock);
     });
-    platformMutexUnLock(client->config->userData, client->sendBufLock); // 释放互斥锁
 
-    // 确定节点是否已存在,存在就删除
-    result = RyanMqttAckListNodeFind(client, SUBACK, packetId, &ackHandler);
-    if (RyanMqttSuccessError == result)
-    {
-        RyanMqttAckListRemove(client, ackHandler);
-        RyanMqttAckHandlerDestroy(client, ackHandler);
-    }
-
+    // 添加等待 ack
     result = RyanMqttAckListAdd(client, ackHandler);
-
     result = RyanMqttSendPacket(client, ackHandler->packet, ackHandler->packetLen);
+    platformMutexUnLock(client->config->userData, client->sendBufLock); // 释放互斥锁
     RyanMqttCheckCode(RyanMqttSuccessError == result, result, rlog_d,
-                      { RyanMqttAckListRemove(client, ackHandler);
-                        RyanMqttAckHandlerDestroy(client, ackHandler); });
+                      { RyanMqttAckListRemove(client, ackHandler);RyanMqttAckHandlerDestroy(client, ackHandler); });
+
     return result;
 }
 
@@ -283,19 +277,10 @@ RyanMqttError_e RyanMqttUnSubscribe(RyanMqttClient_t *client, char *topic)
     result = RyanMqttAckHandlerCreate(client, UNSUBACK, packetId, packetLen, msgHandler, &ackHandler);
     RyanMqttCheckCode(RyanMqttSuccessError == result, result, rlog_d,
                       { platformMutexUnLock(client->config->userData, client->sendBufLock); });
-    platformMutexUnLock(client->config->userData, client->sendBufLock); // 释放互斥锁
-
-    // 确定节点是否已存在,存在就删除
-    result = RyanMqttAckListNodeFind(client, UNSUBACK, packetId, &ackHandler);
-    if (RyanMqttSuccessError == result)
-    {
-        RyanMqttAckListRemove(client, ackHandler);
-        RyanMqttAckHandlerDestroy(client, ackHandler);
-    }
 
     result = RyanMqttAckListAdd(client, ackHandler);
-
     result = RyanMqttSendPacket(client, ackHandler->packet, ackHandler->packetLen);
+    platformMutexUnLock(client->config->userData, client->sendBufLock); // 释放互斥锁
     RyanMqttCheckCode(RyanMqttSuccessError == result, result, rlog_d,
                       { RyanMqttAckListRemove(client, ackHandler);
                         RyanMqttAckHandlerDestroy(client, ackHandler); });
@@ -353,35 +338,24 @@ RyanMqttError_e RyanMqttPublish(RyanMqttClient_t *client, char *topic, char *pay
 
     packetLen = MQTTSerialize_publish((uint8_t *)client->config->sendBuffer, client->config->sendBufferSize, 0, qos, retain, packetId,
                                       topicName, (uint8_t *)payload, payloadLen);
-    RyanMqttCheckCode(packetLen > 0, RyanMqttSerializePacketError, rlog_d,
-                      { platformMutexUnLock(client->config->userData, client->sendBufLock); });
+    RyanMqttCheckCode(packetLen > 0, RyanMqttSerializePacketError, rlog_d, { platformMutexUnLock(client->config->userData, client->sendBufLock); });
 
-    result = RyanMqttMsgHandlerCreate(topic, strlen(topic), qos, &msgHandler);
-    RyanMqttCheckCode(RyanMqttSuccessError == result, result, rlog_d,
-                      { platformMutexUnLock(client->config->userData, client->sendBufLock); });
+    result = RyanMqttMsgHandlerCreate(client, topic, strlen(topic), qos, &msgHandler);
+    RyanMqttCheckCode(RyanMqttSuccessError == result, result, rlog_d, { platformMutexUnLock(client->config->userData, client->sendBufLock); });
 
     result = RyanMqttAckHandlerCreate(client, (RyanMqttQos1 == qos) ? PUBACK : PUBREC, packetId, packetLen, msgHandler, &ackHandler);
     RyanMqttCheckCode(RyanMqttSuccessError == result, result, rlog_d, {
         platformMemoryFree(msgHandler);
         platformMutexUnLock(client->config->userData, client->sendBufLock);
     });
-    platformMutexUnLock(client->config->userData, client->sendBufLock); // 释放互斥锁
-
-    // 确定节点是否已存在,存在就删除,理论上不会存在
-    result = RyanMqttAckListNodeFind(client, (RyanMqttQos1 == qos) ? PUBACK : PUBREC, packetId, &ackHandler);
-    if (RyanMqttSuccessError == result)
-    {
-        RyanMqttAckListRemove(client, ackHandler);
-        RyanMqttAckHandlerDestroy(client, ackHandler);
-    }
 
     result = RyanMqttAckListAdd(client, ackHandler);
-
     result = RyanMqttSendPacket(client, ackHandler->packet, ackHandler->packetLen);
+    platformMutexUnLock(client->config->userData, client->sendBufLock); // 释放互斥锁
+
     RyanMqttCheckCode(RyanMqttSuccessError == result, result, rlog_d,
                       { RyanMqttAckListRemove(client, ackHandler);
                         RyanMqttAckHandlerDestroy(client, ackHandler); });
-
     // 提前设置重发标志位
     RyanMqttSetPublishDup(&ackHandler->packet[0], 1);
 
@@ -396,7 +370,6 @@ RyanMqttError_e RyanMqttPublish(RyanMqttClient_t *client, char *topic, char *pay
  */
 RyanMqttState_e RyanMqttGetState(RyanMqttClient_t *client)
 {
-
     if (NULL == client)
         return RyanMqttInvalidState;
 
@@ -493,12 +466,13 @@ RyanMqttError_e RyanMqttGetSubscribe(RyanMqttClient_t *client, RyanMqttMsgHandle
 
 /**
  * @brief 设置mqtt config 这是很危险的操作，需要考虑mqtt thread线程和用户线程的资源互斥
- * todo 此函数没有实现完整------
- * 推荐在 RyanMqttStart函数前 / 非用户手动触发的事件回调函数中 / mqtt thread处于挂起状态时调用
- * mqtt thread处于阻塞状态时调用此函数也是很危险的行为，因为无法确定此函数的执行时间，调用此函数的任务运行时间片有多少
- * 总之就是要保证mqtt线程和用户线程的资源互斥
- * 项目中用户也不应该频繁调用此函数
  *
+ * 推荐在 RyanMqttStart函数前 / 非用户手动触发的事件回调函数中 / mqtt thread处于挂起状态时调用
+ * mqtt thread处于阻塞状态时调用此函数也是很危险的行为
+ * 要保证mqtt线程和用户线程的资源互斥
+ * 如果修改参数需要重新连接才生效的，这里set不会生效。比如 keepAlive
+ *
+ * !项目中用户不应频繁调用此函数
  * ! 此函数如果返回RyanMqttFailedError,需要立即停止mqtt客户端相关操作.因为操作失败此函数会调用RyanMqttDestroy()销毁客户端
  *
  * @param client
