@@ -49,22 +49,24 @@ _RyanMqtt 库希望应用程序为以下接口提供实现：_
 
 _RyanMqtt 需要 RTOS 支持，必须实现如下接口才可以保证 mqtt 客户端的正常运行_
 
-| 函数名称              | 函数简介            |
-| --------------------- | ------------------- |
-| platformMemoryMalloc  | 申请内存            |
-| platformMemoryFree    | 释放已申请内存      |
-| platformPrint         | 打印字符串          |
-| platformDelay         | 毫秒延时            |
-| platformThreadInit    | 初始化线程          |
-| platformThreadStart   | 开启线程            |
-| platformThreadStop    | 挂起线程            |
-| platformThreadDestroy | 销毁线程            |
-| platformMutexInit     | 初始化互斥锁        |
-| platformMutexLock     | 获取互斥锁          |
-| platformMutexUnLock   | 释放互斥锁          |
-| platformMutexDestroy  | 销毁互斥锁          |
-| platformCriticalEnter | 进入临界区 / 关中断 |
-| platformCriticalExit  | 退出临界区 / 开中断 |
+| 函数名称                | 函数简介       |
+| ----------------------- | -------------- |
+| platformMemoryMalloc    | 申请内存       |
+| platformMemoryFree      | 释放已申请内存 |
+| platformPrint           | 打印字符串     |
+| platformDelay           | 毫秒延时       |
+| platformThreadInit      | 初始化线程     |
+| platformThreadStart     | 开启线程       |
+| platformThreadStop      | 挂起线程       |
+| platformThreadDestroy   | 销毁线程       |
+| platformMutexInit       | 初始化互斥锁   |
+| platformMutexLock       | 获取互斥锁     |
+| platformMutexUnLock     | 释放互斥锁     |
+| platformMutexDestroy    | 销毁互斥锁     |
+| platformCriticalInit    | 初始化临界区   |
+| platformCriticalEnter   | 进入临界区     |
+| platformCriticalExit    | 退出临界区     |
+| platformCriticalDestroy | 销毁临界区     |
 
 #### network 接口
 
@@ -89,7 +91,7 @@ _RyanMqtt 依靠函数生成毫秒时间戳，用于计算持续时间和超时�
 
 ### 4、示例
 
-RT-Thread 平台
+#### RT-Thread 平台
 
 - 接口示例请参考 platform/rtthread 文件夹
 
@@ -103,10 +105,13 @@ RT-Thread 平台
 
   ![image-20230927112803101](docs/assert/README.assert/image-20230927112803101.png)
 
-移远QuecOpen平台
+#### 移远QuecOpen平台
 
-- 接口示例请参考 platform/quecopen文件夹，请根据不同平台进行更改
-- RyanMqtt 使用示例请参考 example 文件夹
+- 接口示例请参考 platform/quecopen 文件夹，请根据平台差异进行修改
+
+#### Linux平台
+
+- 接口示例请参考 platform/linux 文件夹，请根据平台差异进行修改
 
 ### 5、依赖
 
