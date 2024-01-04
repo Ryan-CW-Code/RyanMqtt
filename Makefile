@@ -13,7 +13,7 @@ src += $(wildcard ./pahoMqtt/*.c)
 src += $(wildcard ./mqttclient/*.c)
 
 obj = $(patsubst %.c, %.o, $(src))
-target = app
+target = app.o
 CC = gcc
 
 $(target): $(obj)
