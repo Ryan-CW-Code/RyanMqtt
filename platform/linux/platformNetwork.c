@@ -21,41 +21,11 @@ RyanMqttError_e platformNetworkConnect(void *userData, platformNetwork_t *platfo
     RyanMqttError_e result = RyanMqttSuccessError;
 
     // ?线程安全版本，有些设备没有实现，默认不启用。如果涉及多个客户端解析域名请使用线程安全版本
-    // char buf[256];
-    // int ret;
-    // struct hostent hostinfo, *phost;
+    char buf[256];
+    int ret;
+    struct hostent hostinfo, *phost;
 
-    // if (0 != gethostbyname_r(host, &hostinfo, buf, sizeof(buf), &phost, &ret))
-    // {
-    //     result = RyanSocketFailedError;
-    //     goto exit;
-    // }
-
-    // platformNetwork->socket = socket(AF_INET, SOCK_STREAM, IPPROTO_IP);
-    // if (platformNetwork->socket < 0)
-    // {
-    //     result = RyanSocketFailedError;
-    //     goto exit;
-    // }
-
-    // struct sockaddr_in server_addr;
-    // memset(&server_addr, 0, sizeof(server_addr));
-    // server_addr.sin_family = AF_INET;
-    // server_addr.sin_port = htons(atoi(port)); // 指定端口号，这里使用HTTP默认端口80
-    // server_addr.sin_addr = *((struct in_addr *)hostinfo.h_addr_list[0]);
-
-    // // 绑定套接字到主机地址和端口号
-    // if (connect(platformNetwork->socket, (struct sockaddr *)&server_addr, sizeof(server_addr)) != 0)
-    // {
-    //     platformNetworkClose(userData, platformNetwork);
-    //     result = RyanMqttSocketConnectFailError;
-    //     goto exit;
-    // }
-
-    // 非线程安全版本,请根据实际情况选择使用
-    struct hostent *hostinfo;
-    hostinfo = gethostbyname(host);
-    if (NULL == hostinfo)
+    if (0 != gethostbyname_r(host, &hostinfo, buf, sizeof(buf), &phost, &ret))
     {
         result = RyanSocketFailedError;
         goto exit;
@@ -72,7 +42,7 @@ RyanMqttError_e platformNetworkConnect(void *userData, platformNetwork_t *platfo
     memset(&server_addr, 0, sizeof(server_addr));
     server_addr.sin_family = AF_INET;
     server_addr.sin_port = htons(atoi(port)); // 指定端口号，这里使用HTTP默认端口80
-    server_addr.sin_addr = *((struct in_addr *)hostinfo->h_addr_list[0]);
+    server_addr.sin_addr = *((struct in_addr *)hostinfo.h_addr_list[0]);
 
     // 绑定套接字到主机地址和端口号
     if (connect(platformNetwork->socket, (struct sockaddr *)&server_addr, sizeof(server_addr)) != 0)
@@ -81,6 +51,36 @@ RyanMqttError_e platformNetworkConnect(void *userData, platformNetwork_t *platfo
         result = RyanMqttSocketConnectFailError;
         goto exit;
     }
+
+    // 非线程安全版本,请根据实际情况选择使用
+    // struct hostent *hostinfo;
+    // hostinfo = gethostbyname(host);
+    // if (NULL == hostinfo)
+    // {
+    //     result = RyanSocketFailedError;
+    //     goto exit;
+    // }
+
+    // platformNetwork->socket = socket(AF_INET, SOCK_STREAM, IPPROTO_IP);
+    // if (platformNetwork->socket < 0)
+    // {
+    //     result = RyanSocketFailedError;
+    //     goto exit;
+    // }
+
+    // struct sockaddr_in server_addr;
+    // memset(&server_addr, 0, sizeof(server_addr));
+    // server_addr.sin_family = AF_INET;
+    // server_addr.sin_port = htons(atoi(port)); // 指定端口号，这里使用HTTP默认端口80
+    // server_addr.sin_addr = *((struct in_addr *)hostinfo->h_addr_list[0]);
+
+    // // 绑定套接字到主机地址和端口号
+    // if (connect(platformNetwork->socket, (struct sockaddr *)&server_addr, sizeof(server_addr)) != 0)
+    // {
+    //     platformNetworkClose(userData, platformNetwork);
+    //     result = RyanMqttSocketConnectFailError;
+    //     goto exit;
+    // }
 
 exit:
     return result;

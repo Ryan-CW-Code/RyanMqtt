@@ -7,7 +7,7 @@
  * @param size
  * @return void*
  */
-void *platformMemoryMalloc(size_t size)
+inline void *platformMemoryMalloc(size_t size)
 {
     return malloc(size);
 }
@@ -17,7 +17,7 @@ void *platformMemoryMalloc(size_t size)
  *
  * @param ptr
  */
-void platformMemoryFree(void *ptr)
+inline void platformMemoryFree(void *ptr)
 {
     free(ptr);
 }
@@ -27,7 +27,7 @@ void platformMemoryFree(void *ptr)
  *
  * @param ms
  */
-void platformDelay(uint32_t ms)
+inline void platformDelay(uint32_t ms)
 {
     osDelay(ms);
 }
@@ -38,7 +38,7 @@ void platformDelay(uint32_t ms)
  * @param str
  * @param strLen
  */
-void platformPrint(char *str, uint16_t strLen)
+inline void platformPrint(char *str, uint16_t strLen)
 {
     Ql_UART_Write((Enum_SerialPort)(UART_PORT0), (u8 *)(str), strLen);
 }
