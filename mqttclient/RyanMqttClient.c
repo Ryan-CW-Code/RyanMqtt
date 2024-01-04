@@ -57,6 +57,9 @@ RyanMqttError_e RyanMqttInit(RyanMqttClient_t **pClient)
     // 网络接口初始化
     client->network.socket = -1;
 
+    platformMutexInit(client->config.userData, &client->sendBufLock);     // 初始化发送缓冲区互斥锁
+    platformCriticalInit(client->config.userData, &client->criticalLock); // 初始化临界区
+
     client->packetId = 1; // 控制报文必须包含一个非零的 16 位报文标识符
     client->clientState = RyanMqttInitState;
     client->eventFlag = 0;
@@ -108,9 +111,6 @@ RyanMqttError_e RyanMqttStart(RyanMqttClient_t *client)
     RyanMqttError_e result = RyanMqttSuccessError;
     RyanMqttCheck(NULL != client, RyanMqttParamInvalidError, rlog_d);
     RyanMqttCheck(RyanMqttInitState == client->clientState, RyanMqttFailedError, rlog_d);
-
-    platformMutexInit(client->config.userData, &client->sendBufLock);     // 初始化发送缓冲区互斥锁
-    platformCriticalInit(client->config.userData, &client->criticalLock); // 初始化临界区
 
     RyanMqttSetClientState(client, RyanMqttStartState);
     // 连接成功，需要初始化 MQTT 线程
