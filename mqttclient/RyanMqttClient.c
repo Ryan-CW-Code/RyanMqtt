@@ -64,18 +64,18 @@ RyanMqttError_e RyanMqttInit(RyanMqttClient_t **pClient)
     RyanMqttCheckCode(NULL != client->config, RyanMqttNotEnoughMemError, rlog_d, { RyanMqttDestroy(client); });
     memset(client->config, 0, sizeof(RyanMqttClientConfig_t));
 
-    client->mqttThread = platformMemoryMalloc(sizeof(platformThread_t));
+    client->mqttThread = (platformThread_t *)platformMemoryMalloc(sizeof(platformThread_t));
     RyanMqttCheckCode(NULL != client->mqttThread, RyanMqttNotEnoughMemError, rlog_d, { RyanMqttDestroy(client); });
     memset(client->mqttThread, 0, sizeof(platformThread_t));
 
-    client->sendBufLock = platformMemoryMalloc(sizeof(platformMutex_t));
+    client->sendBufLock = (platformMutex_t *)platformMemoryMalloc(sizeof(platformMutex_t));
     RyanMqttCheckCode(NULL != client->sendBufLock, RyanMqttNotEnoughMemError, rlog_d, { RyanMqttDestroy(client); });
     memset(client->sendBufLock, 0, sizeof(platformMutex_t));
     platformMutexInit(client->config->userData, client->sendBufLock); // 初始化发送缓冲区互斥锁
 
-    client->criticalLock = platformMemoryMalloc(sizeof(platformCritical_t));
+    client->criticalLock = (platformCritical_t *)platformMemoryMalloc(sizeof(platformCritical_t));
     RyanMqttCheckCode(NULL != client->criticalLock, RyanMqttNotEnoughMemError, rlog_d, { RyanMqttDestroy(client); });
-    memset(client->criticalLock, 0, sizeof(platformMutex_t));
+    memset(client->criticalLock, 0, sizeof(platformCritical_t));
     platformCriticalInit(client->config->userData, client->criticalLock); // 初始化临界区
 
     client->packetId = 1; // 控制报文必须包含一个非零的 16 位报文标识符
