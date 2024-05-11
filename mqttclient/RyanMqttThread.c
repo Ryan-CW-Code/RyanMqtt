@@ -523,7 +523,7 @@ static void RyanMqttAckListScan(RyanMqttClient_t *client, RyanMqttBool_e WaitFla
                 continue;
 
             // 重发次数超过警告值回调
-            if (ackHandler->repeatCount >= client->config->ackHandlerRepeatCountWarning)
+            if (ackHandler->repeatCount >= client->config.ackHandlerRepeatCountWarning)
             {
                 RyanMqttEventMachine(client, RyanMqttEventAckRepeatCountWarning, (void *)ackHandler);
                 continue;
