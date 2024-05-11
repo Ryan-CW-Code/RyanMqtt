@@ -22,7 +22,7 @@ RyanMqttError_e RyanMqttStringCopy(char **dest, char *rest, uint32_t strLen)
     char *str2 = NULL;
     RyanMqttAssert(NULL != dest);
     RyanMqttAssert(NULL != rest);
-    // RyanMqttCheck(0 != strLen, RyanMqttFailedError);
+    RyanMqttCheck(0 != strLen, RyanMqttFailedError, rlog_d);
 
     str2 = (char *)platformMemoryMalloc(strLen + 1);
     if (NULL == str2)
@@ -72,13 +72,11 @@ RyanMqttError_e RyanMqttRecvPacket(RyanMqttClient_t *client, char *recvBuf, int3
     int32_t connectState = RyanMqttConnectAccepted;
     RyanMqttError_e result = RyanMqttSuccessError;
     RyanMqttAssert(NULL != client);
-    RyanMqttAssert(NULL != client->network);
-    RyanMqttAssert(NULL != client->config);
     RyanMqttAssert(NULL != recvBuf);
 
     RyanMqttCheck(0 != recvLen, RyanMqttSuccessError, rlog_d);
 
-    result = platformNetworkRecvAsync(client->config->userData, client->network, recvBuf, recvLen, client->config->recvTimeout);
+    result = platformNetworkRecvAsync(client->config.userData, &client->network, recvBuf, recvLen, client->config.recvTimeout);
 
     switch (result)
     {
@@ -108,13 +106,11 @@ RyanMqttError_e RyanMqttSendPacket(RyanMqttClient_t *client, char *sendBuf, int3
     int32_t connectState = RyanMqttConnectAccepted;
     RyanMqttError_e result = RyanMqttSuccessError;
     RyanMqttAssert(NULL != client);
-    RyanMqttAssert(NULL != client->network);
-    RyanMqttAssert(NULL != client->config);
     RyanMqttAssert(NULL != sendBuf);
 
     RyanMqttCheck(0 != sendLen, RyanMqttSuccessError, rlog_d);
 
-    result = platformNetworkSendAsync(client->config->userData, client->network, sendBuf, sendLen, client->config->sendTimeout);
+    result = platformNetworkSendAsync(client->config.userData, &client->network, sendBuf, sendLen, client->config.sendTimeout);
     switch (result)
     {
     case RyanMqttSuccessError:
@@ -140,9 +136,9 @@ void RyanMqttSetClientState(RyanMqttClient_t *client, RyanMqttState_e state)
 {
     RyanMqttAssert(NULL != client);
 
-    platformCriticalEnter(client->config->userData, client->criticalLock);
+    platformCriticalEnter(client->config.userData, &client->criticalLock);
     client->clientState = state;
-    platformCriticalExit(client->config->userData, client->criticalLock);
+    platformCriticalExit(client->config.userData, &client->criticalLock);
 }
 
 /**
@@ -414,9 +410,9 @@ RyanMqttError_e RyanMqttMsgHandlerAdd(RyanMqttClient_t *client, RyanMqttMsgHandl
     RyanMqttAssert(NULL != msgHandler);
     RyanMqttAssert(NULL != msgHandler->topic);
 
-    platformCriticalEnter(client->config->userData, client->criticalLock);
+    platformCriticalEnter(client->config.userData, &client->criticalLock);
     RyanListAddTail(&msgHandler->list, &client->msgHandlerList); // 将msgHandler节点添加到链表尾部
-    platformCriticalExit(client->config->userData, client->criticalLock);
+    platformCriticalExit(client->config.userData, &client->criticalLock);
 
     return RyanMqttSuccessError;
 }
@@ -433,9 +429,9 @@ RyanMqttError_e RyanMqttMsgHandlerRemove(RyanMqttClient_t *client, RyanMqttMsgHa
     RyanMqttAssert(NULL != msgHandler);
     RyanMqttAssert(NULL != msgHandler->topic);
 
-    platformCriticalEnter(client->config->userData, client->criticalLock);
+    platformCriticalEnter(client->config.userData, &client->criticalLock);
     RyanListDel(&msgHandler->list);
-    platformCriticalExit(client->config->userData, client->criticalLock);
+    platformCriticalExit(client->config.userData, &client->criticalLock);
 
     return RyanMqttSuccessError;
 }
@@ -465,7 +461,7 @@ RyanMqttError_e RyanMqttAckHandlerCreate(RyanMqttClient_t *client, enum msgTypes
     memset(ackHandler, 0, sizeof(RyanMqttAckHandler_t) + packetLen);
 
     RyanListInit(&ackHandler->list);
-    platformTimerCutdown(&ackHandler->timer, client->config->ackTimeout); // 超时内没有响应将被销毁或重新发送
+    platformTimerCutdown(&ackHandler->timer, client->config.ackTimeout); // 超时内没有响应将被销毁或重新发送
 
     ackHandler->repeatCount = 0;
     ackHandler->packetId = packetId;
@@ -473,7 +469,7 @@ RyanMqttError_e RyanMqttAckHandlerCreate(RyanMqttClient_t *client, enum msgTypes
     ackHandler->packetType = packetType;
     ackHandler->msgHandler = msgHandler;
     ackHandler->packet = (char *)ackHandler + sizeof(RyanMqttAckHandler_t);
-    memcpy(ackHandler->packet, client->config->sendBuffer, packetLen); // 将packet数据保存到ack中
+    memcpy(ackHandler->packet, client->config.sendBuffer, packetLen); // 将packet数据保存到ack中
 
     *pAckHandler = ackHandler;
 
@@ -548,12 +544,12 @@ RyanMqttError_e RyanMqttAckListAdd(RyanMqttClient_t *client, RyanMqttAckHandler_
     RyanMqttAssert(NULL != ackHandler->msgHandler->topic);
 
     // 将ack节点添加到链表尾部
-    platformCriticalEnter(client->config->userData, client->criticalLock);
+    platformCriticalEnter(client->config.userData, &client->criticalLock);
     RyanListAddTail(&ackHandler->list, &client->ackHandlerList);
     client->ackHandlerCount++;
-    platformCriticalExit(client->config->userData, client->criticalLock);
+    platformCriticalExit(client->config.userData, &client->criticalLock);
 
-    if (client->ackHandlerCount >= client->config->ackHandlerCountWarning)
+    if (client->ackHandlerCount >= client->config.ackHandlerCountWarning)
         RyanMqttEventMachine(client, RyanMqttEventAckCountWarning, (void *)&client->ackHandlerCount);
 
     return RyanMqttSuccessError;
@@ -574,11 +570,11 @@ RyanMqttError_e RyanMqttAckListRemove(RyanMqttClient_t *client, RyanMqttAckHandl
     RyanMqttAssert(NULL != ackHandler->msgHandler->topic);
 
     // 将ack节点添加到链表尾部
-    platformCriticalEnter(client->config->userData, client->criticalLock);
+    platformCriticalEnter(client->config.userData, &client->criticalLock);
     RyanListDel(&ackHandler->list);
     if (client->ackHandlerCount > 0)
         client->ackHandlerCount--;
-    platformCriticalExit(client->config->userData, client->criticalLock);
+    platformCriticalExit(client->config.userData, &client->criticalLock);
 
     return RyanMqttSuccessError;
 }

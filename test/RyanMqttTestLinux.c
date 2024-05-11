@@ -168,10 +168,10 @@ static void mqttEventHandle(void *pclient, RyanMqttEventId_e event, const void c
 
     case RyanMqttEventDestoryBefore:
         rlog_i("销毁mqtt客户端前回调");
-        free(client->config->sendBuffer);
-        free(client->config->recvBuffer);
-        if (client->config->userData)
-            sem_post((sem_t *)client->config->userData);
+        free(client->config.sendBuffer);
+        free(client->config.recvBuffer);
+        if (client->config.userData)
+            sem_post((sem_t *)client->config.userData);
         break;
 
     default:
@@ -251,7 +251,7 @@ static void RyanMqttInitSync(RyanMqttClient_t **client, RyanMqttBool_e syncFlag)
 
 static void RyanMqttDestorySync(RyanMqttClient_t *client)
 {
-    sem_t *sem = (sem_t *)client->config->userData;
+    sem_t *sem = (sem_t *)client->config.userData;
     // 启动mqtt客户端线程
     RyanMqttDestroy(client);
 

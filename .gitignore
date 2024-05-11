@@ -13,3 +13,6 @@ null
 *.out
 *.exe
 
+# 忽略
+core
+

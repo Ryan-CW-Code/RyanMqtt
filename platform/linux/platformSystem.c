@@ -74,6 +74,7 @@ RyanMqttError_e platformThreadInit(void *userData,
         return RyanMqttNoRescourceError;
 
     pthread_mutex_init(&platformThread->mutex, NULL);
+    pthread_cond_init(&platformThread->cond, NULL);
 
     return RyanMqttSuccessError;
 }
