@@ -208,16 +208,16 @@ RyanMqttError_e RyanMqttSubscribe(RyanMqttClient_t *client, char *topic, RyanMqt
     result = RyanMqttMsgHandlerCreate(client, topic, strlen(topic), qos, &msgHandler);
     RyanMqttCheckCode(RyanMqttSuccessError == result, result, rlog_d, { platformMutexUnLock(client->config.userData, &client->sendBufLock); });
 
-    result = RyanMqttAckHandlerCreate(client, SUBACK, packetId, packetLen, msgHandler, &ackHandler);
+    result = RyanMqttAckHandlerCreate(client, SUBACK, packetId, packetLen, client->config.sendBuffer, msgHandler, &ackHandler);
     RyanMqttCheckCode(RyanMqttSuccessError == result, result, rlog_d, {
         platformMemoryFree(msgHandler);
         platformMutexUnLock(client->config.userData, &client->sendBufLock);
     });
+    platformMutexUnLock(client->config.userData, &client->sendBufLock); // 释放互斥锁
 
     // 添加等待 ack
     result = RyanMqttAckListAdd(client, ackHandler);
     result = RyanMqttSendPacket(client, ackHandler->packet, ackHandler->packetLen);
-    platformMutexUnLock(client->config.userData, &client->sendBufLock); // 释放互斥锁
     RyanMqttCheckCode(RyanMqttSuccessError == result, result, rlog_d,
                       { RyanMqttAckListRemove(client, ackHandler);RyanMqttAckHandlerDestroy(client, ackHandler); });
 
@@ -256,13 +256,13 @@ RyanMqttError_e RyanMqttUnSubscribe(RyanMqttClient_t *client, char *topic)
     RyanMqttCheckCode(packetLen > 0, RyanMqttSerializePacketError, rlog_d,
                       { platformMutexUnLock(client->config.userData, &client->sendBufLock); });
 
-    result = RyanMqttAckHandlerCreate(client, UNSUBACK, packetId, packetLen, msgHandler, &ackHandler);
+    result = RyanMqttAckHandlerCreate(client, UNSUBACK, packetId, packetLen, client->config.sendBuffer, msgHandler, &ackHandler);
     RyanMqttCheckCode(RyanMqttSuccessError == result, result, rlog_d,
                       { platformMutexUnLock(client->config.userData, &client->sendBufLock); });
+    platformMutexUnLock(client->config.userData, &client->sendBufLock); // 释放互斥锁
 
     result = RyanMqttAckListAdd(client, ackHandler);
     result = RyanMqttSendPacket(client, ackHandler->packet, ackHandler->packetLen);
-    platformMutexUnLock(client->config.userData, &client->sendBufLock); // 释放互斥锁
     RyanMqttCheckCode(RyanMqttSuccessError == result, result, rlog_d,
                       { RyanMqttAckListRemove(client, ackHandler);
                         RyanMqttAckHandlerDestroy(client, ackHandler); });
@@ -325,16 +325,15 @@ RyanMqttError_e RyanMqttPublish(RyanMqttClient_t *client, char *topic, char *pay
     result = RyanMqttMsgHandlerCreate(client, topic, strlen(topic), qos, &msgHandler);
     RyanMqttCheckCode(RyanMqttSuccessError == result, result, rlog_d, { platformMutexUnLock(client->config.userData, &client->sendBufLock); });
 
-    result = RyanMqttAckHandlerCreate(client, (RyanMqttQos1 == qos) ? PUBACK : PUBREC, packetId, packetLen, msgHandler, &ackHandler);
+    result = RyanMqttAckHandlerCreate(client, (RyanMqttQos1 == qos) ? PUBACK : PUBREC, packetId, packetLen, client->config.sendBuffer, msgHandler, &ackHandler);
     RyanMqttCheckCode(RyanMqttSuccessError == result, result, rlog_d, {
         platformMemoryFree(msgHandler);
         platformMutexUnLock(client->config.userData, &client->sendBufLock);
     });
+    platformMutexUnLock(client->config.userData, &client->sendBufLock); // 释放互斥锁
 
     result = RyanMqttAckListAdd(client, ackHandler);
     result = RyanMqttSendPacket(client, ackHandler->packet, ackHandler->packetLen);
-    platformMutexUnLock(client->config.userData, &client->sendBufLock); // 释放互斥锁
-
     RyanMqttCheckCode(RyanMqttSuccessError == result, result, rlog_d,
                       { RyanMqttAckListRemove(client, ackHandler);
                         RyanMqttAckHandlerDestroy(client, ackHandler); });

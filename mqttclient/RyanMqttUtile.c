@@ -447,7 +447,7 @@ RyanMqttError_e RyanMqttMsgHandlerRemove(RyanMqttClient_t *client, RyanMqttMsgHa
  * @param pAckHandler
  * @return RyanMqttError_e
  */
-RyanMqttError_e RyanMqttAckHandlerCreate(RyanMqttClient_t *client, enum msgTypes packetType, uint16_t packetId, uint16_t packetLen, RyanMqttMsgHandler_t *msgHandler, RyanMqttAckHandler_t **pAckHandler)
+RyanMqttError_e RyanMqttAckHandlerCreate(RyanMqttClient_t *client, enum msgTypes packetType, uint16_t packetId, uint16_t packetLen, char *packet, RyanMqttMsgHandler_t *msgHandler, RyanMqttAckHandler_t **pAckHandler)
 {
     RyanMqttAckHandler_t *ackHandler = NULL;
     RyanMqttAssert(NULL != client);
@@ -469,7 +469,7 @@ RyanMqttError_e RyanMqttAckHandlerCreate(RyanMqttClient_t *client, enum msgTypes
     ackHandler->packetType = packetType;
     ackHandler->msgHandler = msgHandler;
     ackHandler->packet = (char *)ackHandler + sizeof(RyanMqttAckHandler_t);
-    memcpy(ackHandler->packet, client->config.sendBuffer, packetLen); // 将packet数据保存到ack中
+    memcpy(ackHandler->packet, packet, packetLen); // 将packet数据保存到ack中
 
     *pAckHandler = ackHandler;
 
