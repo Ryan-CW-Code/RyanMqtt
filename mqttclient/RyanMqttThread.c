@@ -522,6 +522,13 @@ static void RyanMqttAckListScan(RyanMqttClient_t *client, RyanMqttBool_e WaitFla
             if (RyanMqttConnectState != RyanMqttGetClientState(client))
                 continue;
 
+            // 重发次数超过警告值回调
+            if (ackHandler->repeatCount >= client->config->ackHandlerRepeatCountWarning)
+            {
+                RyanMqttEventMachine(client, RyanMqttEventAckRepeatCountWarning, (void *)ackHandler);
+                continue;
+            }
+
             // 重发数据事件回调
             RyanMqttEventMachine(client, RyanMqttEventRepeatPublishPacket, (void *)ackHandler);
 
@@ -530,10 +537,6 @@ static void RyanMqttAckListScan(RyanMqttClient_t *client, RyanMqttBool_e WaitFla
             // 重置ack超时时间
             platformTimerCutdown(&ackHandler->timer, client->config->ackTimeout);
             ackHandler->repeatCount++;
-
-            // 重发次数超过警告值回调
-            if (ackHandler->repeatCount >= client->config->ackHandlerRepeatCountWarning)
-                RyanMqttEventMachine(client, RyanMqttEventAckRepeatCountWarning, (void *)ackHandler);
 
             break;
         }
