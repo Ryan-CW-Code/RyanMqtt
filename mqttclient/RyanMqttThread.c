@@ -759,7 +759,7 @@ void RyanMqttThread(void *argument)
             if (RyanMqttTrue != client->config.autoReconnectFlag) // 没有使能自动连接就休眠线程
                 platformThreadStop(client->config.userData, &client->mqttThread);
 
-            rlog_d("触发自动连接，%dms后开始连接\r\n", client->config->reconnectTimeout);
+            rlog_d("触发自动连接，%dms后开始连接\r\n", client->config.reconnectTimeout);
             platformDelay(client->config.reconnectTimeout);
             RyanMqttEventMachine(client, RyanMqttEventReconnectBefore, NULL); // 给上层触发重新连接前事件
 
