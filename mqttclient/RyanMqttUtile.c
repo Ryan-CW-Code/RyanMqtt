@@ -22,7 +22,7 @@ RyanMqttError_e RyanMqttStringCopy(char **dest, char *rest, uint32_t strLen)
     char *str2 = NULL;
     RyanMqttAssert(NULL != dest);
     RyanMqttAssert(NULL != rest);
-    RyanMqttCheck(0 != strLen, RyanMqttFailedError, rlog_d);
+    // RyanMqttCheck(0 != strLen, RyanMqttFailedError, rlog_d);
 
     str2 = (char *)platformMemoryMalloc(strLen + 1);
     if (NULL == str2)
