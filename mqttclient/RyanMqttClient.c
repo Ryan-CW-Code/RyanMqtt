@@ -219,7 +219,7 @@ RyanMqttError_e RyanMqttSubscribe(RyanMqttClient_t *client, char *topic, RyanMqt
     result = RyanMqttAckListAdd(client, ackHandler);
     result = RyanMqttSendPacket(client, ackHandler->packet, ackHandler->packetLen);
     RyanMqttCheckCode(RyanMqttSuccessError == result, result, rlog_d,
-                      { RyanMqttAckListRemove(client, ackHandler);RyanMqttAckHandlerDestroy(client, ackHandler); });
+                      { RyanMqttAckListRemove(client, ackHandler); RyanMqttAckHandlerDestroy(client, ackHandler); });
 
     return result;
 }
@@ -331,16 +331,16 @@ RyanMqttError_e RyanMqttPublish(RyanMqttClient_t *client, char *topic, char *pay
         platformMutexUnLock(client->config.userData, &client->sendBufLock);
     });
 
-    platformMutexUnLock(client->config.userData, &client->sendBufLock); // 释放互斥锁
-
+    // 提前设置重发标志位
+    RyanMqttSetPublishDup(&ackHandler->packet[0], 1);
     result = RyanMqttAckListAdd(client, ackHandler);
-    result = RyanMqttSendPacket(client, ackHandler->packet, ackHandler->packetLen);
+
+    result = RyanMqttSendPacket(client, client->config.sendBuffer, packetLen);
     RyanMqttCheckCode(RyanMqttSuccessError == result, result, rlog_d,
                       { RyanMqttAckListRemove(client, ackHandler);
                         RyanMqttAckHandlerDestroy(client, ackHandler); });
 
-    // 提前设置重发标志位
-    RyanMqttSetPublishDup(&ackHandler->packet[0], 1);
+    platformMutexUnLock(client->config.userData, &client->sendBufLock); // 释放互斥锁
 
     return RyanMqttSuccessError;
 }
