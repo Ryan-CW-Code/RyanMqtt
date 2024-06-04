@@ -333,12 +333,14 @@ RyanMqttError_e RyanMqttPublish(RyanMqttClient_t *client, char *topic, char *pay
 
     // 提前设置重发标志位
     RyanMqttSetPublishDup(&ackHandler->packet[0], 1);
-    result = RyanMqttAckListAdd(client, ackHandler);
-
+    RyanMqttAckListAdd(client, ackHandler);
     result = RyanMqttSendPacket(client, client->config.sendBuffer, packetLen);
     RyanMqttCheckCode(RyanMqttSuccessError == result, result, rlog_d,
-                      { RyanMqttAckListRemove(client, ackHandler);
-                        RyanMqttAckHandlerDestroy(client, ackHandler); });
+                      {
+                          RyanMqttAckListRemove(client, ackHandler);
+                          RyanMqttAckHandlerDestroy(client, ackHandler);
+                          platformMutexUnLock(client->config.userData, &client->sendBufLock); // 释放互斥锁
+                      });
 
     platformMutexUnLock(client->config.userData, &client->sendBufLock); // 释放互斥锁
 
