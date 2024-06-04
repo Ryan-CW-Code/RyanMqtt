@@ -28,7 +28,7 @@ static RyanMqttError_e RyanMqttKeepalive(RyanMqttClient_t *client)
 {
     RyanMqttAssert(NULL != client);
 
-    // 在心跳的一半发送keepalive
+    // 心跳周期到了发送keepalive
     if (platformTimerRemain(&client->keepaliveTimer) != 0)
     {
         client->keepaliveTimeoutCount = 0;
@@ -182,7 +182,10 @@ static RyanMqttError_e RyanMqttPubrecPacketHandler(RyanMqttClient_t *client)
     platformMutexLock(client->config.userData, &client->sendBufLock); // 获取互斥锁
     // 序列化发布释放报文
     packetLen = MQTTSerialize_ack((uint8_t *)client->config.sendBuffer, client->config.sendBufferSize, PUBREL, 0, packetId);
-    RyanMqttCheckCode(packetLen > 0, RyanMqttSerializePacketError, rlog_d, { platformMutexUnLock(client->config.userData, &client->sendBufLock); });
+    RyanMqttCheckCode(packetLen > 0, RyanMqttSerializePacketError, rlog_d, {
+        result = RyanMqttSerializePacketError;
+        goto __next;
+    });
 
     // 每次收到PUBREC都返回ack
     result = RyanMqttSendPacket(client, client->config.sendBuffer, packetLen);
@@ -198,11 +201,11 @@ static RyanMqttError_e RyanMqttPubrecPacketHandler(RyanMqttClient_t *client)
             result = RyanMqttMsgHandlerCreate(client, ackHandlerPubrec->msgHandler->topic,
                                               strlen(ackHandlerPubrec->msgHandler->topic),
                                               ackHandlerPubrec->msgHandler->qos, &msgHandler);
-            RyanMqttCheck(RyanMqttSuccessError == result, result, rlog_d);
+            RyanMqttCheckCode(RyanMqttSuccessError == result, result, rlog_d, { goto __next; });
 
             // 创建一个 ACK 处理程序节点
             result = RyanMqttAckHandlerCreate(client, PUBCOMP, packetId, packetLen, client->config.sendBuffer, msgHandler, &ackHandler);
-            RyanMqttCheckCode(RyanMqttSuccessError == result, result, rlog_d, { platformMemoryFree(msgHandler); });
+            RyanMqttCheckCode(RyanMqttSuccessError == result, result, rlog_d, { platformMemoryFree(msgHandler); goto __next; });
 
             result = RyanMqttAckListAdd(client, ackHandler);
             RyanMqttAckListRemove(client, ackHandlerPubrec);
@@ -215,9 +218,10 @@ static RyanMqttError_e RyanMqttPubrecPacketHandler(RyanMqttClient_t *client)
             RyanMqttAckHandlerDestroy(client, ackHandlerPubrec);
         }
     }
+
+__next:
     platformMutexUnLock(client->config.userData, &client->sendBufLock); // 释放互斥锁
     RyanMqttCheck(RyanMqttSuccessError == result, result, rlog_d);
-
     return result;
 }
 
@@ -265,12 +269,12 @@ static RyanMqttError_e RyanMqttPublishPacketHandler(RyanMqttClient_t *client)
         deliverMsgFlag = RyanMqttTrue;
         break;
 
-    case RyanMqttQos2: // qos2采用方法B
-
+    case RyanMqttQos2:                                                    // qos2采用方法B
         platformMutexLock(client->config.userData, &client->sendBufLock); // 获取互斥锁
         packetLen = MQTTSerialize_ack((uint8_t *)client->config.sendBuffer, client->config.sendBufferSize, PUBREC, 0, msgData.packetId);
-        RyanMqttCheckCode(packetLen > 0, RyanMqttSerializePacketError, rlog_d,
-                          { platformMutexUnLock(client->config.userData, &client->sendBufLock); });
+        RyanMqttCheckCode(packetLen > 0, RyanMqttSerializePacketError, rlog_d, {
+            result = RyanMqttSerializePacketError;
+            goto __next; });
 
         result = RyanMqttSendPacket(client, client->config.sendBuffer, packetLen);
 
@@ -279,15 +283,16 @@ static RyanMqttError_e RyanMqttPublishPacketHandler(RyanMqttClient_t *client)
         if (RyanMqttSuccessError != result)
         {
             result = RyanMqttMsgHandlerCreate(client, topicName.lenstring.data, topicName.lenstring.len, msgData.qos, &msgHandler);
-            RyanMqttCheckCode(RyanMqttSuccessError == result, result, rlog_d, {});
+            RyanMqttCheckCode(RyanMqttSuccessError == result, result, rlog_d, { goto __next; });
 
             result = RyanMqttAckHandlerCreate(client, PUBREL, msgData.packetId, packetLen, client->config.sendBuffer, msgHandler, &ackHandler);
-            RyanMqttCheckCode(RyanMqttSuccessError == result, result, rlog_d, { platformMemoryFree(msgHandler); });
+            RyanMqttCheckCode(RyanMqttSuccessError == result, result, rlog_d, { platformMemoryFree(msgHandler); goto __next; });
 
             result = RyanMqttAckListAdd(client, ackHandler);
             deliverMsgFlag = RyanMqttTrue;
         }
 
+    __next:
         platformMutexUnLock(client->config.userData, &client->sendBufLock); // 释放互斥锁
         RyanMqttCheck(RyanMqttSuccessError == result, result, rlog_d);
         break;
