@@ -1,9 +1,10 @@
 
-#define RyanMqttClientId ("RyanMqttTest1") // 填写mqtt客户端id，要求唯一
-#define RyanMqttHost ("39.164.131.143")    // 填写你的mqtt服务器ip
-#define RyanMqttPort ("1883")              // mqtt服务器端口
-#define RyanMqttUserName ("test")          // 为空时填写""
-#define RyanMqttPassword ("test")          // 为空时填写""
+#define RyanMqttClientId ("RyanMqttTest888") // 填写mqtt客户端id，要求唯一
+// #define RyanMqttHost ("broker.emqx.io")    // 填写你的mqtt服务器ip
+#define RyanMqttHost ("127.0.0.1") // 填写你的mqtt服务器ip
+#define RyanMqttPort ("1883")      // mqtt服务器端口
+#define RyanMqttUserName ("")      // 为空时填写""
+#define RyanMqttPassword ("")      // 为空时填写""
 
 #include <stdio.h>
 #include <stdint.h>
@@ -410,7 +411,7 @@ static RyanMqttError_e RyanMqttUnSubscribeTest(RyanMqttQos_e qos)
     return RyanMqttSuccessError;
 }
 
-static void RyanMqttPublishTest(RyanMqttQos_e qos, uint32_t count, uint32_t delayms)
+static int RyanMqttPublishTest(RyanMqttQos_e qos, uint32_t count, uint32_t delayms)
 {
     RyanMqttClient_t *client;
     RyanMqttInitSync(&client, RyanMqttTrue);
@@ -420,7 +421,13 @@ static void RyanMqttPublishTest(RyanMqttQos_e qos, uint32_t count, uint32_t dela
     mqttTest[dataEventCount] = 0;
     for (uint32_t i = 0; i < count; i++)
     {
-        RyanMqttPublish(client, "testlinux/pub", "helloworld", strlen("helloworld"), qos, RyanMqttFalse);
+        RyanMqttError_e result = RyanMqttPublish(client, "testlinux/pub", "helloworld", strlen("helloworld"), qos, RyanMqttFalse);
+        if (RyanMqttSuccessError != result)
+        {
+            rlog_e("QOS发布错误 Qos: %d, result: %d", qos, result);
+            return -1;
+        }
+
         if (delayms)
             delay(delayms);
     }
@@ -441,6 +448,7 @@ static void RyanMqttPublishTest(RyanMqttQos_e qos, uint32_t count, uint32_t dela
         if (!result)
         {
             rlog_e("QOS测试失败 Qos: %d, PublishedEventCount: %d, dataEventCount: %d", qos, mqttTest[PublishedEventCount], mqttTest[dataEventCount]);
+            return -1;
         }
         else
         {
@@ -452,6 +460,7 @@ static void RyanMqttPublishTest(RyanMqttQos_e qos, uint32_t count, uint32_t dela
     RyanMqttUnSubscribe(client, "testlinux/pub");
 
     RyanMqttDestorySync(client);
+    return 0;
 }
 
 static void RyanMqttConnectDestory(uint32_t count, uint32_t delayms)
@@ -570,6 +579,7 @@ static RyanMqttError_e RyanMqttKeepAliveTest()
 int main()
 {
     vallocInit();
+    int result = 0;
 
     RyanMqttCheckCode(RyanMqttSuccessError == RyanMqttSubscribeTest(RyanMqttQos0), RyanMqttFailedError, rlog_d, { goto __exit; });
     RyanMqttCheckCode(RyanMqttSuccessError == RyanMqttSubscribeTest(RyanMqttQos1), RyanMqttFailedError, rlog_d, { goto __exit; });
@@ -580,13 +590,18 @@ int main()
     RyanMqttCheckCode(RyanMqttSuccessError == RyanMqttUnSubscribeTest(RyanMqttQos2), RyanMqttFailedError, rlog_d, { goto __exit; });
 
     // 发布 & 订阅 qos 测试
-    RyanMqttPublishTest(RyanMqttQos0, 100, 0);
+    result = RyanMqttPublishTest(RyanMqttQos0, 1000, 0);
+    if (result != 0)
+        goto __exit;
     checkMemory;
 
-    RyanMqttPublishTest(RyanMqttQos1, 100, 1);
+    result = RyanMqttPublishTest(RyanMqttQos1, 1000, 1);
+    if (result != 0)
+        goto __exit;
     checkMemory;
-
-    RyanMqttPublishTest(RyanMqttQos2, 100, 1);
+    result = RyanMqttPublishTest(RyanMqttQos2, 1000, 1);
+    if (result != 0)
+        goto __exit;
     checkMemory;
 
     RyanMqttConnectDestory(100, 0);
