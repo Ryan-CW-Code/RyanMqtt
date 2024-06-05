@@ -408,7 +408,7 @@ static RyanMqttError_e RyanMqttUnSubackHandler(RyanMqttClient_t *client)
 static RyanMqttError_e RyanMqttReadPacketHandler(RyanMqttClient_t *client, uint8_t *packetType)
 {
     RyanMqttError_e result = RyanMqttSuccessError;
-    int32_t fixedHeaderLen = 1;
+    uint32_t fixedHeaderLen = 1;
     uint32_t payloadLen = 0;
     MQTTHeader header = {0};
     RyanMqttAssert(NULL != client);
@@ -431,8 +431,24 @@ static RyanMqttError_e RyanMqttReadPacketHandler(RyanMqttClient_t *client, uint8
 
     // 将剩余长度编码成mqtt报文，并放入接收缓冲区,如果消息长度超过缓冲区长度则抛弃此次数据
     fixedHeaderLen += MQTTPacket_encode((uint8_t *)client->config.recvBuffer + fixedHeaderLen, payloadLen);
+    // 上面不判断是因为recv空间不可能小到 fixedHeaderLen 都无法写入
+    // 判断recvBufferSize是否可以存的下数据
     RyanMqttCheckCode((fixedHeaderLen + payloadLen) <= client->config.recvBufferSize, RyanMqttRecvBufToShortError, rlog_d,
-                      { RyanMqttRecvPacket(client, client->config.recvBuffer, payloadLen); });
+                      {
+                          while (payloadLen > 0)
+                          {
+                              if (payloadLen <= client->config.recvBufferSize)
+                              {
+                                  RyanMqttRecvPacket(client, client->config.recvBuffer, payloadLen);
+                                  payloadLen = 0;
+                              }
+                              else
+                              {
+                                  RyanMqttRecvPacket(client, client->config.recvBuffer, client->config.recvBufferSize);
+                                  payloadLen -= client->config.recvBufferSize;
+                              }
+                          }
+                      });
 
     // 3.读取mqtt载荷数据并放到读取缓冲区
     if (payloadLen > 0)
@@ -440,6 +456,8 @@ static RyanMqttError_e RyanMqttReadPacketHandler(RyanMqttClient_t *client, uint8
         result = RyanMqttRecvPacket(client, client->config.recvBuffer + fixedHeaderLen, payloadLen);
         RyanMqttCheck(RyanMqttSuccessError == result, result, rlog_d);
     }
+
+    uint16_t packLen = fixedHeaderLen + payloadLen;
 
     // 控制报文类型
     switch (header.bits.type)
