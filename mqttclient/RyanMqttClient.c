@@ -218,8 +218,7 @@ RyanMqttError_e RyanMqttSubscribe(RyanMqttClient_t *client, char *topic, RyanMqt
     // 添加等待 ack
     result = RyanMqttAckListAdd(client, ackHandler);
     result = RyanMqttSendPacket(client, ackHandler->packet, ackHandler->packetLen);
-    RyanMqttCheckCode(RyanMqttSuccessError == result, result, rlog_d,
-                      { RyanMqttAckListRemove(client, ackHandler); RyanMqttAckHandlerDestroy(client, ackHandler); });
+    RyanMqttCheckCode(RyanMqttSuccessError == result, result, rlog_d, { RyanMqttAckHandlerDestroy(client, ackHandler); });
 
     return result;
 }
@@ -263,9 +262,7 @@ RyanMqttError_e RyanMqttUnSubscribe(RyanMqttClient_t *client, char *topic)
 
     result = RyanMqttAckListAdd(client, ackHandler);
     result = RyanMqttSendPacket(client, ackHandler->packet, ackHandler->packetLen);
-    RyanMqttCheckCode(RyanMqttSuccessError == result, result, rlog_d,
-                      { RyanMqttAckListRemove(client, ackHandler);
-                        RyanMqttAckHandlerDestroy(client, ackHandler); });
+    RyanMqttCheckCode(RyanMqttSuccessError == result, result, rlog_d, { RyanMqttAckHandlerDestroy(client, ackHandler); });
 
     return result;
 }
@@ -337,7 +334,6 @@ RyanMqttError_e RyanMqttPublish(RyanMqttClient_t *client, char *topic, char *pay
     result = RyanMqttSendPacket(client, client->config.sendBuffer, packetLen);
     RyanMqttCheckCode(RyanMqttSuccessError == result, result, rlog_d,
                       {
-                          RyanMqttAckListRemove(client, ackHandler);
                           RyanMqttAckHandlerDestroy(client, ackHandler);
                           platformMutexUnLock(client->config.userData, &client->sendBufLock); // 释放互斥锁
                       });
@@ -585,7 +581,6 @@ RyanMqttError_e RyanMqttDiscardAckHandler(RyanMqttClient_t *client, enum msgType
 
     RyanMqttEventMachine(client, RyanMqttEventAckHandlerdiscard, (void *)ackHandler); // 回调函数
 
-    RyanMqttAckListRemove(client, ackHandler);
     RyanMqttAckHandlerDestroy(client, ackHandler);
     return RyanMqttSuccessError;
 }

@@ -489,6 +489,7 @@ void RyanMqttAckHandlerDestroy(RyanMqttClient_t *client, RyanMqttAckHandler_t *a
     RyanMqttAssert(NULL != ackHandler->msgHandler);
     RyanMqttAssert(NULL != ackHandler->msgHandler->topic);
 
+    RyanMqttAckListRemove(client, ackHandler);
     RyanMqttMsgHandlerRemove(client, ackHandler->msgHandler);
     RyanMqttMsgHandlerDestory(client, ackHandler->msgHandler); // 释放msgHandler
     platformMemoryFree(ackHandler);
@@ -598,7 +599,6 @@ void RyanMqttCleanSession(RyanMqttClient_t *client)
         RyanListForEachSafe(curr, next, &client->ackHandlerList)
         {
             ackHandler = RyanListEntry(curr, RyanMqttAckHandler_t, list);
-            RyanMqttAckListRemove(client, ackHandler);
             RyanMqttAckHandlerDestroy(client, ackHandler);
         }
         RyanListDelInit(&client->ackHandlerList);

@@ -112,7 +112,6 @@ static RyanMqttError_e RyanMqttPubackAndPubcompPacketHandler(RyanMqttClient_t *c
 
     RyanMqttEventMachine(client, RyanMqttEventPublished, (void *)ackHandler); // 回调函数
 
-    RyanMqttAckListRemove(client, ackHandler);
     RyanMqttAckHandlerDestroy(client, ackHandler); // 销毁ackHandler
     return result;
 }
@@ -150,7 +149,6 @@ static RyanMqttError_e RyanMqttPubrelPacketHandler(RyanMqttClient_t *client)
     result = RyanMqttAckListNodeFind(client, PUBREL, packetId, &ackHandler);
     if (RyanMqttSuccessError == result)
     {
-        RyanMqttAckListRemove(client, ackHandler);
         RyanMqttAckHandlerDestroy(client, ackHandler);
     }
 
@@ -208,13 +206,11 @@ static RyanMqttError_e RyanMqttPubrecPacketHandler(RyanMqttClient_t *client)
             RyanMqttCheckCode(RyanMqttSuccessError == result, result, rlog_d, { RyanMqttMsgHandlerDestory(client->config.userData, msgHandler); goto __next; });
 
             result = RyanMqttAckListAdd(client, ackHandler);
-            RyanMqttAckListRemove(client, ackHandlerPubrec);
             RyanMqttAckHandlerDestroy(client, ackHandlerPubrec);
         }
         // 出现pubrec和pubcomp同时存在的情况,清除pubrec。理论上不会出现（冗余措施）
         else
         {
-            RyanMqttAckListRemove(client, ackHandlerPubrec);
             RyanMqttAckHandlerDestroy(client, ackHandlerPubrec);
         }
     }
@@ -341,7 +337,6 @@ static RyanMqttError_e RyanMqttSubackHandler(RyanMqttClient_t *client)
     {
         // mqtt事件回调
         RyanMqttEventMachine(client, RyanMqttEventSubscribedFaile, (void *)ackHandler->msgHandler);
-        RyanMqttAckListRemove(client, ackHandler);
         RyanMqttAckHandlerDestroy(client, ackHandler); // 销毁ackHandler
         return RyanMqttSuccessError;
     }
@@ -363,8 +358,7 @@ static RyanMqttError_e RyanMqttSubackHandler(RyanMqttClient_t *client)
 
     RyanMqttMsgHandlerAdd(client, msgHandler);                                 // 将msg信息添加到订阅链表上
     RyanMqttEventMachine(client, RyanMqttEventSubscribed, (void *)msgHandler); // mqtt回调函数
-    RyanMqttAckListRemove(client, ackHandler);
-    RyanMqttAckHandlerDestroy(client, ackHandler); // 销毁ackHandler
+    RyanMqttAckHandlerDestroy(client, ackHandler);                             // 销毁ackHandler
 
     return result;
 }
@@ -392,7 +386,6 @@ static RyanMqttError_e RyanMqttUnSubackHandler(RyanMqttClient_t *client)
     // mqtt事件回调
     RyanMqttEventMachine(client, RyanMqttEventUnSubscribed, (void *)ackHandler->msgHandler);
 
-    RyanMqttAckListRemove(client, ackHandler);
     RyanMqttAckHandlerDestroy(client, ackHandler); // 销毁ackHandler
 
     return result;
@@ -571,7 +564,6 @@ static void RyanMqttAckListScan(RyanMqttClient_t *client, RyanMqttBool_e WaitFla
             RyanMqttEventMachine(client, (SUBACK == ackHandler->packetType) ? RyanMqttEventSubscribedFaile : RyanMqttEventUnSubscribedFaile,
                                  (void *)ackHandler->msgHandler);
             // 清除句柄
-            RyanMqttAckListRemove(client, ackHandler);
             RyanMqttAckHandlerDestroy(client, ackHandler);
             break;
         }
