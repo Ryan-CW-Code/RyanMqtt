@@ -205,7 +205,7 @@ static RyanMqttError_e RyanMqttPubrecPacketHandler(RyanMqttClient_t *client)
 
             // 创建一个 ACK 处理程序节点
             result = RyanMqttAckHandlerCreate(client, PUBCOMP, packetId, packetLen, client->config.sendBuffer, msgHandler, &ackHandler);
-            RyanMqttCheckCode(RyanMqttSuccessError == result, result, rlog_d, { platformMemoryFree(msgHandler); goto __next; });
+            RyanMqttCheckCode(RyanMqttSuccessError == result, result, rlog_d, { RyanMqttMsgHandlerDestory(client->config.userData, msgHandler); goto __next; });
 
             result = RyanMqttAckListAdd(client, ackHandler);
             RyanMqttAckListRemove(client, ackHandlerPubrec);
@@ -286,7 +286,7 @@ static RyanMqttError_e RyanMqttPublishPacketHandler(RyanMqttClient_t *client)
             RyanMqttCheckCode(RyanMqttSuccessError == result, result, rlog_d, { goto __next; });
 
             result = RyanMqttAckHandlerCreate(client, PUBREL, msgData.packetId, packetLen, client->config.sendBuffer, msgHandler, &ackHandler);
-            RyanMqttCheckCode(RyanMqttSuccessError == result, result, rlog_d, { platformMemoryFree(msgHandler); goto __next; });
+            RyanMqttCheckCode(RyanMqttSuccessError == result, result, rlog_d, { RyanMqttMsgHandlerDestory(client->config.userData, msgHandler); goto __next; });
 
             result = RyanMqttAckListAdd(client, ackHandler);
             deliverMsgFlag = RyanMqttTrue;

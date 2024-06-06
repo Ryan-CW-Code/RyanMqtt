@@ -210,7 +210,7 @@ RyanMqttError_e RyanMqttSubscribe(RyanMqttClient_t *client, char *topic, RyanMqt
 
     result = RyanMqttAckHandlerCreate(client, SUBACK, packetId, packetLen, client->config.sendBuffer, msgHandler, &ackHandler);
     RyanMqttCheckCode(RyanMqttSuccessError == result, result, rlog_d, {
-        platformMemoryFree(msgHandler);
+        RyanMqttMsgHandlerDestory(client->config.userData, msgHandler);
         platformMutexUnLock(client->config.userData, &client->sendBufLock);
     });
     platformMutexUnLock(client->config.userData, &client->sendBufLock); // 释放互斥锁
@@ -327,7 +327,7 @@ RyanMqttError_e RyanMqttPublish(RyanMqttClient_t *client, char *topic, char *pay
 
     result = RyanMqttAckHandlerCreate(client, (RyanMqttQos1 == qos) ? PUBACK : PUBREC, packetId, packetLen, client->config.sendBuffer, msgHandler, &ackHandler);
     RyanMqttCheckCode(RyanMqttSuccessError == result, result, rlog_d, {
-        platformMemoryFree(msgHandler);
+        RyanMqttMsgHandlerDestory(client->config.userData, msgHandler);
         platformMutexUnLock(client->config.userData, &client->sendBufLock);
     });
 

@@ -324,7 +324,7 @@ RyanMqttError_e RyanMqttMsgHandlerCreate(RyanMqttClient_t *client, char *topic, 
 
     msgHandler->qos = qos;
     result = RyanMqttStringCopy(&msgHandler->topic, topic, topicLen);
-    RyanMqttCheckCode(RyanMqttSuccessError == result, RyanMqttNotEnoughMemError, rlog_d, {platformMemoryFree(msgHandler); msgHandler = NULL; });
+    RyanMqttCheckCode(RyanMqttSuccessError == result, RyanMqttNotEnoughMemError, rlog_d, { platformMemoryFree(msgHandler); });
 
     *pMsgHandler = msgHandler;
     return RyanMqttSuccessError;
