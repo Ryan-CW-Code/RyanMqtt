@@ -1,7 +1,7 @@
-#define rlogEnable 1               // 是否使能日志
-#define rlogColorEnable 1          // 是否使能日志颜色
-#define rlogLevel (rlogLvlWarning) // 日志打印等级
-#define rlogTag "RyanMqttClient"   // 日志tag
+#define rlogEnable 1             // 是否使能日志
+#define rlogColorEnable 1        // 是否使能日志颜色
+#define rlogLevel (rlogLvlError) // 日志打印等级
+#define rlogTag "RyanMqttClient" // 日志tag
 
 #include "RyanMqttLog.h"
 #include "MQTTPacket.h"
@@ -68,7 +68,13 @@ RyanMqttError_e RyanMqttInit(RyanMqttClient_t **pClient)
     client->lwtFlag = RyanMqttFalse;
 
     RyanListInit(&client->msgHandlerList);
+    platformMutexInit(client->config.userData, &client->msgHandleLock);
+
     RyanListInit(&client->ackHandlerList);
+    platformMutexInit(client->config.userData, &client->ackHandleLock);
+
+    RyanListInit(&client->userAckHandlerList);
+    platformMutexInit(client->config.userData, &client->userAckHandleLock);
 
     RyanMqttSetClientState(client, RyanMqttInitState);
     platformTimerInit(&client->keepaliveTimer);
@@ -135,8 +141,7 @@ RyanMqttError_e RyanMqttStart(RyanMqttClient_t *client)
  */
 RyanMqttError_e RyanMqttDisconnect(RyanMqttClient_t *client, RyanMqttBool_e sendDiscFlag)
 {
-
-    int32_t connectState = RyanMqttConnectAccepted;
+    RyanMqttConnectStatus_e connectState = RyanMqttConnectUserDisconnected;
     int32_t packetLen = 0;
 
     RyanMqttCheck(NULL != client, RyanMqttParamInvalidError, rlog_d);
@@ -167,7 +172,6 @@ RyanMqttError_e RyanMqttDisconnect(RyanMqttClient_t *client, RyanMqttBool_e send
  */
 RyanMqttError_e RyanMqttReconnect(RyanMqttClient_t *client)
 {
-
     RyanMqttCheck(NULL != client, RyanMqttParamInvalidError, rlog_d);
     RyanMqttCheck(RyanMqttDisconnectState != RyanMqttGetClientState(client), RyanMqttConnectError, rlog_d);
 
@@ -190,7 +194,7 @@ RyanMqttError_e RyanMqttSubscribe(RyanMqttClient_t *client, char *topic, RyanMqt
     int32_t packetLen = 0;
     uint16_t packetId = 0;
     RyanMqttMsgHandler_t *msgHandler = NULL;
-    RyanMqttAckHandler_t *ackHandler = NULL;
+    RyanMqttAckHandler_t *userAckHandler = NULL;
     MQTTString topicName = MQTTString_initializer;
     topicName.cstring = (char *)topic;
 
@@ -199,26 +203,32 @@ RyanMqttError_e RyanMqttSubscribe(RyanMqttClient_t *client, char *topic, RyanMqt
     RyanMqttCheck(RyanMqttQos0 <= qos && RyanMqttQos2 >= qos, RyanMqttParamInvalidError, rlog_d);
     RyanMqttCheck(RyanMqttConnectState == RyanMqttGetClientState(client), RyanMqttNotConnectError, rlog_d);
 
+    result = RyanMqttMsgHandlerCreate(client, topic, strlen(topic), qos, &msgHandler);
+    RyanMqttCheck(RyanMqttSuccessError == result, result, rlog_d);
+
     platformMutexLock(client->config.userData, &client->sendBufLock); // 获取互斥锁
     packetId = RyanMqttGetNextPacketId(client);
 
     packetLen = MQTTSerialize_subscribe((uint8_t *)client->config.sendBuffer, client->config.sendBufferSize, 0, packetId, 1, &topicName, (int *)&qos);
-    RyanMqttCheckCode(packetLen > 0, RyanMqttSerializePacketError, rlog_d, { platformMutexUnLock(client->config.userData, &client->sendBufLock); });
+    RyanMqttCheckCode(packetLen > 0, RyanMqttSerializePacketError, rlog_d, {
+        RyanMqttMsgHandlerDestory(client->config.userData, msgHandler);
+        platformMutexUnLock(client->config.userData, &client->sendBufLock);
+    });
 
-    result = RyanMqttMsgHandlerCreate(client, topic, strlen(topic), qos, &msgHandler);
-    RyanMqttCheckCode(RyanMqttSuccessError == result, result, rlog_d, { platformMutexUnLock(client->config.userData, &client->sendBufLock); });
-
-    result = RyanMqttAckHandlerCreate(client, SUBACK, packetId, packetLen, client->config.sendBuffer, msgHandler, &ackHandler);
+    result = RyanMqttAckHandlerCreate(client, SUBACK, packetId, packetLen, client->config.sendBuffer, msgHandler, &userAckHandler);
     RyanMqttCheckCode(RyanMqttSuccessError == result, result, rlog_d, {
         RyanMqttMsgHandlerDestory(client->config.userData, msgHandler);
         platformMutexUnLock(client->config.userData, &client->sendBufLock);
     });
     platformMutexUnLock(client->config.userData, &client->sendBufLock); // 释放互斥锁
 
-    // 添加等待 ack
-    result = RyanMqttAckListAdd(client, ackHandler);
-    result = RyanMqttSendPacket(client, ackHandler->packet, ackHandler->packetLen);
-    RyanMqttCheckCode(RyanMqttSuccessError == result, result, rlog_d, { RyanMqttAckHandlerDestroy(client, ackHandler); });
+    RyanMqttAckListAddToUserAckList(client, userAckHandler);
+
+    result = RyanMqttSendPacket(client, userAckHandler->packet, userAckHandler->packetLen);
+    RyanMqttCheckCode(RyanMqttSuccessError == result, result, rlog_d, {
+        RyanMqttAckListRemoveToUserAckList(client, userAckHandler);
+        RyanMqttAckHandlerDestroy(client, userAckHandler);
+    });
 
     return result;
 }
@@ -235,8 +245,9 @@ RyanMqttError_e RyanMqttUnSubscribe(RyanMqttClient_t *client, char *topic)
     int32_t packetLen = 0;
     RyanMqttError_e result = RyanMqttFailedError;
     uint16_t packetId;
+    RyanMqttMsgHandler_t *subMsgHandler = NULL;
     RyanMqttMsgHandler_t *msgHandler = NULL;
-    RyanMqttAckHandler_t *ackHandler = NULL;
+    RyanMqttAckHandler_t *userAckHandler = NULL;
     MQTTString topicName = MQTTString_initializer;
     topicName.cstring = topic;
 
@@ -245,24 +256,35 @@ RyanMqttError_e RyanMqttUnSubscribe(RyanMqttClient_t *client, char *topic)
     RyanMqttCheck(RyanMqttConnectState == RyanMqttGetClientState(client), RyanMqttNotConnectError, rlog_d);
 
     // 查找当前主题是否已经订阅,没有订阅就取消发送
-    result = RyanMqttMsgHandlerFind(client, topicName.cstring, strlen(topicName.cstring), RyanMqttFalse, &msgHandler);
+    result = RyanMqttMsgHandlerFind(client, topicName.cstring, strlen(topicName.cstring), RyanMqttFalse, &subMsgHandler);
+    RyanMqttCheck(RyanMqttSuccessError == result, result, rlog_d);
+
+    result = RyanMqttMsgHandlerCreate(client, topicName.cstring, strlen(topicName.cstring), RyanMqttQos0, &msgHandler);
     RyanMqttCheck(RyanMqttSuccessError == result, result, rlog_d);
 
     platformMutexLock(client->config.userData, &client->sendBufLock); // 获取互斥锁
     packetId = RyanMqttGetNextPacketId(client);
 
     packetLen = MQTTSerialize_unsubscribe((uint8_t *)client->config.sendBuffer, client->config.sendBufferSize, 0, packetId, 1, &topicName);
-    RyanMqttCheckCode(packetLen > 0, RyanMqttSerializePacketError, rlog_d,
-                      { platformMutexUnLock(client->config.userData, &client->sendBufLock); });
+    RyanMqttCheckCode(packetLen > 0, RyanMqttSerializePacketError, rlog_d, {
+        RyanMqttMsgHandlerDestory(client->config.userData, msgHandler);
+        platformMutexUnLock(client->config.userData, &client->sendBufLock);
+    });
 
-    result = RyanMqttAckHandlerCreate(client, UNSUBACK, packetId, packetLen, client->config.sendBuffer, msgHandler, &ackHandler);
-    RyanMqttCheckCode(RyanMqttSuccessError == result, result, rlog_d,
-                      { platformMutexUnLock(client->config.userData, &client->sendBufLock); });
+    result = RyanMqttAckHandlerCreate(client, UNSUBACK, packetId, packetLen, client->config.sendBuffer, msgHandler, &userAckHandler);
+    RyanMqttCheckCode(RyanMqttSuccessError == result, result, rlog_d, {
+        RyanMqttMsgHandlerDestory(client->config.userData, msgHandler);
+        platformMutexUnLock(client->config.userData, &client->sendBufLock);
+    });
     platformMutexUnLock(client->config.userData, &client->sendBufLock); // 释放互斥锁
 
-    result = RyanMqttAckListAdd(client, ackHandler);
-    result = RyanMqttSendPacket(client, ackHandler->packet, ackHandler->packetLen);
-    RyanMqttCheckCode(RyanMqttSuccessError == result, result, rlog_d, { RyanMqttAckHandlerDestroy(client, ackHandler); });
+    RyanMqttAckListAddToUserAckList(client, userAckHandler);
+
+    result = RyanMqttSendPacket(client, userAckHandler->packet, userAckHandler->packetLen);
+    RyanMqttCheckCode(RyanMqttSuccessError == result, result, rlog_d, {
+        RyanMqttAckListRemoveToUserAckList(client, userAckHandler);
+        RyanMqttAckHandlerDestroy(client, userAckHandler);
+    });
 
     return result;
 }
@@ -285,7 +307,7 @@ RyanMqttError_e RyanMqttPublish(RyanMqttClient_t *client, char *topic, char *pay
     int32_t packetId = 0;
     MQTTString topicName = MQTTString_initializer;
     RyanMqttMsgHandler_t *msgHandler = NULL;
-    RyanMqttAckHandler_t *ackHandler = NULL;
+    RyanMqttAckHandler_t *userAckHandler = NULL;
     topicName.cstring = (char *)topic;
 
     RyanMqttCheck(NULL != client, RyanMqttParamInvalidError, rlog_d);
@@ -320,25 +342,25 @@ RyanMqttError_e RyanMqttPublish(RyanMqttClient_t *client, char *topic, char *pay
 
     packetLen = MQTTSerialize_publish((uint8_t *)client->config.sendBuffer, client->config.sendBufferSize, 0, qos, retain, packetId,
                                       topicName, (uint8_t *)payload, payloadLen);
-    RyanMqttCheckCode(packetLen > 0, RyanMqttSerializePacketError, rlog_d, { platformMutexUnLock(client->config.userData, &client->sendBufLock); });
-
-    result = RyanMqttAckHandlerCreate(client, (RyanMqttQos1 == qos) ? PUBACK : PUBREC, packetId, packetLen, client->config.sendBuffer, msgHandler, &ackHandler);
-    RyanMqttCheckCode(RyanMqttSuccessError == result, result, rlog_d, {
+    RyanMqttCheckCode(packetLen > 0, RyanMqttSerializePacketError, rlog_d, {
         RyanMqttMsgHandlerDestory(client->config.userData, msgHandler);
         platformMutexUnLock(client->config.userData, &client->sendBufLock);
     });
 
-    // 提前设置重发标志位
-    RyanMqttSetPublishDup(&ackHandler->packet[0], 1);
-    RyanMqttAckListAdd(client, ackHandler);
-    result = RyanMqttSendPacket(client, client->config.sendBuffer, packetLen);
-    RyanMqttCheckCode(RyanMqttSuccessError == result, result, rlog_d,
-                      {
-                          RyanMqttAckHandlerDestroy(client, ackHandler);
-                          platformMutexUnLock(client->config.userData, &client->sendBufLock); // 释放互斥锁
-                      });
-
+    result = RyanMqttAckHandlerCreate(client, (RyanMqttQos1 == qos) ? PUBACK : PUBREC, packetId, packetLen, client->config.sendBuffer, msgHandler, &userAckHandler);
+    RyanMqttCheckCode(RyanMqttSuccessError == result, result, rlog_d, {
+        RyanMqttMsgHandlerDestory(client->config.userData, msgHandler);
+        platformMutexUnLock(client->config.userData, &client->sendBufLock);
+    });
     platformMutexUnLock(client->config.userData, &client->sendBufLock); // 释放互斥锁
+
+    RyanMqttAckListAddToUserAckList(client, userAckHandler);
+
+    result = RyanMqttSendPacket(client, userAckHandler->packet, userAckHandler->packetLen);
+    RyanMqttCheckCode(RyanMqttSuccessError == result, result, rlog_d, {
+        RyanMqttAckListRemoveToUserAckList(client, userAckHandler);
+        RyanMqttAckHandlerDestroy(client, userAckHandler);
+    });
 
     return RyanMqttSuccessError;
 }
@@ -368,20 +390,18 @@ RyanMqttState_e RyanMqttGetState(RyanMqttClient_t *client)
  */
 RyanMqttError_e RyanMqttGetSubscribe(RyanMqttClient_t *client, RyanMqttMsgHandler_t *msgHandles, int32_t msgHandleSize, int32_t *subscribeNum)
 {
-
+    RyanMqttError_e result = RyanMqttSuccessError;
     RyanList_t *curr = NULL,
                *next = NULL;
     RyanMqttMsgHandler_t *msgHandler = NULL;
 
     RyanMqttCheck(NULL != client, RyanMqttParamInvalidError, rlog_d);
     RyanMqttCheck(NULL != msgHandles, RyanMqttParamInvalidError, rlog_d);
-    RyanMqttCheck(0 < msgHandleSize, RyanMqttParamInvalidError, rlog_d);
+    RyanMqttCheck(1 <= msgHandleSize, RyanMqttParamInvalidError, rlog_d);
 
     *subscribeNum = 0;
 
-    if (RyanListIsEmpty(&client->msgHandlerList))
-        return RyanMqttSuccessError;
-
+    platformMutexLock(client->config.userData, &client->msgHandleLock);
     RyanListForEachSafe(curr, next, &client->msgHandlerList)
     {
         msgHandler = RyanListEntry(curr, RyanMqttMsgHandler_t, list);
@@ -392,10 +412,15 @@ RyanMqttError_e RyanMqttGetSubscribe(RyanMqttClient_t *client, RyanMqttMsgHandle
         (*subscribeNum)++;
 
         if (*subscribeNum >= msgHandleSize)
-            return RyanMqttNoRescourceError;
+        {
+            result = RyanMqttNoRescourceError;
+            goto __next;
+        }
     }
 
-    return RyanMqttSuccessError;
+__next:
+    platformMutexUnLock(client->config.userData, &client->msgHandleLock);
+    return result;
 }
 
 /**
@@ -544,8 +569,13 @@ RyanMqttError_e RyanMqttSetLwt(RyanMqttClient_t *client, char *topicName, char *
     if (payloadLen > 0 && NULL == payload) // 报文支持有效载荷长度为0
         return RyanMqttParamInvalidError;
 
-    memset(&client->lwtOptions, 0, sizeof(lwtOptions_t));
+    if (NULL != client->lwtOptions.topic)
+        platformMemoryFree(client->lwtOptions.topic);
 
+    if (NULL != client->lwtOptions.payload)
+        platformMemoryFree(client->lwtOptions.payload);
+
+    memset(&client->lwtOptions, 0, sizeof(lwtOptions_t));
     client->lwtFlag = RyanMqttTrue;
     client->lwtOptions.qos = qos;
     client->lwtOptions.retain = retain;
@@ -581,6 +611,7 @@ RyanMqttError_e RyanMqttDiscardAckHandler(RyanMqttClient_t *client, enum msgType
 
     RyanMqttEventMachine(client, RyanMqttEventAckHandlerdiscard, (void *)ackHandler); // 回调函数
 
+    RyanMqttAckListRemoveToAckList(client, ackHandler);
     RyanMqttAckHandlerDestroy(client, ackHandler);
     return RyanMqttSuccessError;
 }
