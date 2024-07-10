@@ -1,4 +1,7 @@
-
+/**
+ * 注意！此接口仅提供思路示例，具体请根据实际进行修改
+ *
+ */
 
 #define rlogEnable 1               // 是否使能日志
 #define rlogColorEnable 1          // 是否使能日志颜色
@@ -12,25 +15,22 @@
 #define tcpSend (RyanMqttBit2)
 #define tcpClose (RyanMqttBit3)
 #define tcpRecv (RyanMqttBit4)
-#define GetIPByHostName (RyanMqttBit5)
 
-static osEventFlagsId_t mqttNetEventHandle;
-static const osEventFlagsAttr_t mqttNetEvent_attributes = {
-    .name = "mqttNetEvent"};
-
-static char resolveIp[64] = {0};
+static char g_resolveIp[64] = {0};
+static osMutexId_t mutex = NULL;
+static osSemaphoreId_t sem = NULL;
 
 static void callback_socket_GetIPByHostName(u8 contexId, s32 errCode, u32 ipAddrCnt, u8 *ipAddr)
 {
     if (errCode == SOC_SUCCESS_OK)
     {
-        memset(resolveIp, 0, sizeof(resolveIp));
+        memset(g_resolveIp, 0, sizeof(g_resolveIp));
         for (int i = 0; i < ipAddrCnt; i++)
         {
-            strcpy((char *)resolveIp, (char *)ipAddr);
-            rlog_i("socket 获取ip成功: num_entry=%d, resolve_ip:[%s]", i, (u8 *)resolveIp);
+            strcpy((char *)g_resolveIp, (char *)ipAddr);
+            rlog_i("socket 获取ip成功: num_entry=%d, resolve_ip:[%s]", i, (u8 *)g_resolveIp);
         }
-        osEventFlagsSet(mqttNetEventHandle, GetIPByHostName);
+        osSemaphoreRelease(sem);
     }
     else
     {
@@ -44,7 +44,7 @@ static void callback_socket_connect(s32 socketId, s32 errCode, void *customParam
     if (errCode == SOC_SUCCESS_OK && platformNetwork->socket == socketId)
     {
         rlog_i("socket 连接成功: %d", socketId);
-        osEventFlagsSet(mqttNetEventHandle, tcpConnect);
+        osEventFlagsSet(platformNetwork.mqttNetEventHandle, tcpConnect);
     }
 }
 
@@ -66,7 +66,7 @@ static void callback_socket_read(s32 socketId, s32 errCode, void *customParam)
     if (SOC_SUCCESS_OK == errCode && platformNetwork->socket == socketId)
     {
         rlog_w("socket接收到数据: %d", socketId);
-        osEventFlagsSet(mqttNetEventHandle, tcpRecv);
+        osEventFlagsSet(platformNetwork.mqttNetEventHandle, tcpRecv);
     }
 }
 
@@ -97,15 +97,25 @@ RyanMqttError_e platformNetworkConnect(void *userData, platformNetwork_t *platfo
     RyanMqttError_e result = RyanMqttSuccessError;
     u8 nw_state = 0;
     int32_t eventId;
-
-    Ql_SOC_Register(callback_soc_func, platformNetwork); // 注册socket回调函数
+    char resolveIp[64] = {0};
 
     // 如果第一次connect就创建事件标志组，否则情况事件标志组标志位
-    // todo 这里还是推荐在close的时候把时间标志组删除，否则没有别的地方可以调用删除函数。
-    if (NULL == mqttNetEventHandle)
-        mqttNetEventHandle = osEventFlagsNew(&mqttNetEvent_attributes);
-    else
-        osEventFlagsClear(mqttNetEventHandle, INTMAX_MAX);
+    if (NULL == mutex)
+    {
+        const osMutexAttr_t myMutex01_attributes = {
+            .attr_bits = osMutexRecursive | osMutexPrioInherit | osMutexRobust};
+        mutex = osMutexNew(&myMutex01_attributes);
+    }
+    if (NULL == sem)
+    {
+        sem = osSemaphoreNew(1, 0, NULL);
+    }
+
+    // 如果第一次connect就创建事件标志组，否则情况事件标志组标志位
+    if (NULL == platformNetwork.mqttNetEventHandle)
+        platformNetwork.mqttNetEventHandle = osEventFlagsNew(NULL);
+
+    Ql_SOC_Register(callback_soc_func, platformNetwork); // 注册socket回调函数
 
     // 获取网络连接状态
     Ql_GetCeregState(&nw_state);
@@ -115,23 +125,28 @@ RyanMqttError_e platformNetworkConnect(void *userData, platformNetwork_t *platfo
         goto __exit;
     }
 
+    osMutexAcquire(mutex, osWaitForever);
+    // 清除接收标志位
+    osSemaphoreAcquire(sem, 0);
     // 解析域名
     s32 getHostIpResult = Ql_IpHelper_GetIPByHostName(0,
                                                       (u8 *)host,
                                                       callback_socket_GetIPByHostName);
     if (SOC_SUCCESS_OK != getHostIpResult && SOC_NONBLOCK != getHostIpResult)
     {
-        rlog_w("aaaaaaaaaaaaaaa");
         result = RyanMqttSocketConnectFailError;
+        osMutexRelease(mutex);
         goto __exit;
     }
 
-    eventId = osEventFlagsWait(mqttNetEventHandle, GetIPByHostName, osFlagsWaitAny, 10000);
-    if (GetIPByHostName != eventId)
+    if (osOK != osSemaphoreAcquire(sem, 10 * 1000))
     {
         result = RyanMqttSocketConnectFailError;
+        osMutexRelease(mutex);
         goto __exit;
     }
+    memcpy(resolveIp, g_resolveIp, sizeof(resolveIp));
+    osMutexRelease(mutex);
 
     // 创建socket
     platformNetwork->socket = Ql_SOC_Create(0, SOC_TYPE_TCP);
@@ -290,6 +305,13 @@ RyanMqttError_e platformNetworkClose(void *userData, platformNetwork_t *platform
     {
         Ql_SOC_Close(platformNetwork->socket);
         platformNetwork->socket = -1;
+
+        // todo 这里还是推荐在close的时候把时间标志组删除，否则没有别的地方可以调用删除函数。
+        if (platformNetwork.mqttNetEventHandle)
+        {
+            osEventFlagsDelete(platformNetwork.mqttNetEventHandle);
+            platformNetwork.mqttNetEventHandle = NULL;
+        }
     }
 
     return RyanMqttSuccessError;

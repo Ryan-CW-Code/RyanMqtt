@@ -128,7 +128,7 @@ RyanMqttError_e platformMutexInit(void *userData, platformMutex_t *platformMutex
 {
 
     const osMutexAttr_t myMutex01_attributes = {
-        .name = "mqttMutex"};
+        .name = "mqttMutex", .attr_bits = osMutexRecursive | osMutexPrioInherit | osMutexRobust};
 
     platformMutex->mutex = osMutexNew(&myMutex01_attributes);
     return RyanMqttSuccessError;

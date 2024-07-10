@@ -21,10 +21,10 @@ extern "C"
 #include "ql_socket.h"
 #include "ql_urc_register.h"
 
-
     typedef struct
     {
         int socket;
+        osEventFlagsId_t mqttNetEventHandle;
     } platformNetwork_t;
 
     extern RyanMqttError_e platformNetworkConnect(void *userData, platformNetwork_t *platformNetwork, const char *host, const char *port);
