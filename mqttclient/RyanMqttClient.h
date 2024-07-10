@@ -15,7 +15,7 @@ extern "C"
 #include "RyanMqttPublic.h"
 
     // 接收到订阅消息回调函数类型，eventData用户不要进行修改否则mqtt客户端可能崩溃
-    typedef void (*RyanMqttEventHandle)(void *client, RyanMqttEventId_e event, const void const *eventData);
+    typedef void (*RyanMqttEventHandle)(void *client, RyanMqttEventId_e event, const void *eventData);
 
     // 定义枚举类型
 

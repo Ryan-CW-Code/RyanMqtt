@@ -193,6 +193,7 @@ RyanMqttError_e RyanMqttSubscribe(RyanMqttClient_t *client, char *topic, RyanMqt
     RyanMqttError_e result = RyanMqttSuccessError;
     int32_t packetLen = 0;
     uint16_t packetId = 0;
+    int requestedQoS = qos;
     RyanMqttMsgHandler_t *msgHandler = NULL;
     RyanMqttAckHandler_t *userAckHandler = NULL;
     MQTTString topicName = MQTTString_initializer;
@@ -209,7 +210,7 @@ RyanMqttError_e RyanMqttSubscribe(RyanMqttClient_t *client, char *topic, RyanMqt
     platformMutexLock(client->config.userData, &client->sendBufLock); // 获取互斥锁
     packetId = RyanMqttGetNextPacketId(client);
 
-    packetLen = MQTTSerialize_subscribe((uint8_t *)client->config.sendBuffer, client->config.sendBufferSize, 0, packetId, 1, &topicName, (int *)&qos);
+    packetLen = MQTTSerialize_subscribe((uint8_t *)client->config.sendBuffer, client->config.sendBufferSize, 0, packetId, 1, &topicName, &requestedQoS);
     RyanMqttCheckCode(packetLen > 0, RyanMqttSerializePacketError, rlog_d, {
         RyanMqttMsgHandlerDestory(client->config.userData, msgHandler);
         platformMutexUnLock(client->config.userData, &client->sendBufLock);
