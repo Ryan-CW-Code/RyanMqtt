@@ -3,10 +3,6 @@
 #define rlogLevel (rlogLvlError) // 日志打印等级
 #define rlogTag "RyanMqttThread" // 日志tag
 
-#include "RyanMqttLog.h"
-#include "MQTTPacket.h"
-#include "RyanMqttClient.h"
-#include "RyanMqttUtile.h"
 #include "RyanMqttThread.h"
 
 void RyanMqttRefreshKeepaliveTime(RyanMqttClient_t *client)

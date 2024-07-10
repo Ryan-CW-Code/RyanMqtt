@@ -10,7 +10,6 @@ extern "C"
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
-#include <errno.h>
 
 #define RyanMqttMaxPacketId (0xFFFFU - 1U)  // 你允许的mqtt paketid最大值，协议标准为个非零的 16 位数
 #define RyanMqttMaxPayloadLen (268435455UL) // 你允许的mqtt可变报头和有效载荷最长长度。默认值为协议标准

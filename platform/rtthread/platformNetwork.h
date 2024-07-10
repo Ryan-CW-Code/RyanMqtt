@@ -1,7 +1,7 @@
 
 
-#ifndef __platformNetSocket__
-#define __platformNetSocket__
+#ifndef __platformNetwork__
+#define __platformNetwork__
 
 #ifdef __cplusplus
 extern "C"

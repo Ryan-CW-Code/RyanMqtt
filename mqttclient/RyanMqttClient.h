@@ -1,7 +1,5 @@
-
-
-#ifndef __mqttClient__
-#define __mqttClient__
+#ifndef __RyanMqttClient__
+#define __RyanMqttClient__
 
 #ifdef __cplusplus
 extern "C"
@@ -9,11 +7,12 @@ extern "C"
 #endif
 
 #include "MQTTPacket.h"
-#include "RyanList.h"
-#include "RyanMqttPublic.h"
 #include "platformTimer.h"
 #include "platformSystem.h"
 #include "platformNetwork.h"
+
+#include "RyanList.h"
+#include "RyanMqttPublic.h"
 
     // 接收到订阅消息回调函数类型，eventData用户不要进行修改否则mqtt客户端可能崩溃
     typedef void (*RyanMqttEventHandle)(void *client, RyanMqttEventId_e event, const void const *eventData);

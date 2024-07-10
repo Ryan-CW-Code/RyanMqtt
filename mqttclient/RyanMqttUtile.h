@@ -1,12 +1,16 @@
 
-#ifndef __mqttGlobalFun__
-#define __mqttGlobalFun__
+#ifndef __RyanMqttUtile__
+#define __RyanMqttUtile__
 
 #ifdef __cplusplus
 extern "C"
 {
 #endif
+
+#include "RyanMqttLog.h"
 #include "RyanMqttClient.h"
+#include "RyanMqttThread.h"
+
     // 定义枚举类型
 
     // 定义结构体类型

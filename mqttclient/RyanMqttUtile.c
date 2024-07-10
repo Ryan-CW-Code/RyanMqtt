@@ -3,11 +3,7 @@
 #define rlogLevel (rlogLvlError) // 日志打印等级
 #define rlogTag "RyanMqttUtile"  // 日志tag
 
-#include "RyanMqttLog.h"
-#include "MQTTPacket.h"
-#include "RyanMqttClient.h"
 #include "RyanMqttUtile.h"
-#include "RyanMqttThread.h"
 
 /**
  * @brief 字符串拷贝，需要手动释放内存
