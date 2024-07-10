@@ -1,5 +1,3 @@
-
-
 #ifndef __platformTimer__
 #define __platformTimer__
 #ifdef __cplusplus

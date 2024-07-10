@@ -1,4 +1,3 @@
-
 #ifndef __platformSystem__
 #define __platformSystem__
 

@@ -1,5 +1,3 @@
-
-
 #ifndef __platformNetwork__
 #define __platformNetwork__
 
