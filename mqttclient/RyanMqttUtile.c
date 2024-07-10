@@ -83,7 +83,7 @@ RyanMqttError_e RyanMqttRecvPacket(RyanMqttClient_t *client, char *recvBuf, int3
 
     case RyanSocketFailedError:
     default:
-        connectState = RyanSocketFailedError;
+        connectState = RyanMqttConnectNetWorkFail;
         RyanMqttEventMachine(client, RyanMqttEventDisconnected, &connectState);
         return RyanSocketFailedError;
     }
@@ -116,7 +116,7 @@ RyanMqttError_e RyanMqttSendPacket(RyanMqttClient_t *client, char *sendBuf, int3
 
     case RyanSocketFailedError:
     default:
-        connectState = RyanSocketFailedError;
+        connectState = RyanMqttConnectNetWorkFail;
         RyanMqttEventMachine(client, RyanMqttEventDisconnected, &connectState);
         return RyanSocketFailedError;
     }
