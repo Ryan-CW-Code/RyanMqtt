@@ -286,6 +286,7 @@ static RyanMqttError_e RyanMqttSubscribeTest(RyanMqttQos_e qos)
     int32_t subscribeNum = 0;
     int32_t result = RyanMqttSuccessError;
 
+    delay(100);
     for (int32_t i = 0; i < 600; i++)
     {
         result = RyanMqttGetSubscribe(client, msgHandles, getArraySize(msgHandles), &subscribeNum);
@@ -354,6 +355,7 @@ static RyanMqttError_e RyanMqttUnSubscribeTest(RyanMqttQos_e qos)
     int32_t subscribeNum = 0;
     int32_t result = RyanMqttSuccessError;
 
+    delay(100);
     for (int32_t i = 0; i < 600; i++)
     {
         result = RyanMqttGetSubscribe(client, msgHandles, getArraySize(msgHandles), &subscribeNum);
@@ -374,6 +376,7 @@ static RyanMqttError_e RyanMqttUnSubscribeTest(RyanMqttQos_e qos)
     for (uint8_t i = 0; i < getArraySize(subscribeArr) - count - 1; i++)
         RyanMqttUnSubscribe(client, subscribeArr[i]);
 
+    delay(100);
     for (int32_t i = 0; i < 600; i++)
     {
         result = RyanMqttGetSubscribe(client, msgHandles, getArraySize(msgHandles), &subscribeNum);
@@ -561,6 +564,7 @@ static RyanMqttError_e RyanMqttKeepAliveTest()
         delay(100);
     }
 
+    // recvTimeout = 5000,每过 5000 ms检查一次心跳周期，如果超过 3 / 4 时间就会进行心跳保活
     for (uint32_t i = 0; i < 90; i++)
     {
         if (RyanMqttConnectState != RyanMqttGetState(client))
@@ -600,6 +604,7 @@ int main()
     if (result != 0)
         goto __exit;
     checkMemory;
+    
     result = RyanMqttPublishTest(RyanMqttQos2, 1000, 1);
     if (result != 0)
         goto __exit;
