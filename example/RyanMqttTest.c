@@ -3,8 +3,8 @@
 #define RyanMqttClientId ("RyanMqttTessdfwrt") // 填写mqtt客户端id，要求唯一
 #define RyanMqttHost ("broker.emqx.io")        // 填写你的mqtt服务器ip
 #define RyanMqttPort ("1883")                  // mqtt服务器端口
-#define RyanMqttUserName ("")                  // 为空时填写""
-#define RyanMqttPassword ("")                  // 为空时填写""
+#define RyanMqttUserName (NULL)                // 填写你的用户名
+#define RyanMqttPassword (NULL)                // 填写你的密码
 
 #ifdef PKG_USING_RYANMQTT_EXAMPLE
 #include <stdio.h>

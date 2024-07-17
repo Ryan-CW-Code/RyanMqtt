@@ -495,8 +495,8 @@ RyanMqttError_e RyanMqttSetConfig(RyanMqttClient_t *client, RyanMqttClientConfig
     RyanMqttCheck(NULL != clientConfig->clientId, RyanMqttParamInvalidError, rlog_d);
     RyanMqttCheck(NULL != clientConfig->host, RyanMqttParamInvalidError, rlog_d);
     RyanMqttCheck(NULL != clientConfig->port, RyanMqttParamInvalidError, rlog_d);
-    RyanMqttCheck(NULL != clientConfig->userName, RyanMqttParamInvalidError, rlog_d);
-    RyanMqttCheck(NULL != clientConfig->password, RyanMqttParamInvalidError, rlog_d);
+    // RyanMqttCheck(NULL != clientConfig->userName, RyanMqttParamInvalidError, rlog_d);
+    // RyanMqttCheck(NULL != clientConfig->password, RyanMqttParamInvalidError, rlog_d);
     RyanMqttCheck(NULL != clientConfig->taskName, RyanMqttParamInvalidError, rlog_d);
     RyanMqttCheck(13 < clientConfig->recvBufferSize && (RyanMqttMaxPayloadLen + 5) >= clientConfig->recvBufferSize, RyanMqttParamInvalidError, rlog_d);
     RyanMqttCheck(13 < clientConfig->sendBufferSize && (RyanMqttMaxPayloadLen + 5) >= clientConfig->sendBufferSize, RyanMqttParamInvalidError, rlog_d);
@@ -504,11 +504,25 @@ RyanMqttError_e RyanMqttSetConfig(RyanMqttClient_t *client, RyanMqttClientConfig
     result = setConfigValue(&client->config.clientId, clientConfig->clientId);
     RyanMqttCheckCode(RyanMqttSuccessError == result, result, rlog_d, { goto __exit; });
 
-    result = setConfigValue(&client->config.userName, clientConfig->userName);
-    RyanMqttCheckCode(RyanMqttSuccessError == result, result, rlog_d, { goto __exit; });
+    if (NULL == clientConfig->userName)
+    {
+        client->config.userName = NULL;
+    }
+    else
+    {
+        result = setConfigValue(&client->config.userName, clientConfig->userName);
+        RyanMqttCheckCode(RyanMqttSuccessError == result, result, rlog_d, { goto __exit; });
+    }
 
-    result = setConfigValue(&client->config.password, clientConfig->password);
-    RyanMqttCheckCode(RyanMqttSuccessError == result, result, rlog_d, { goto __exit; });
+    if (NULL == clientConfig->password)
+    {
+        client->config.password = NULL;
+    }
+    else
+    {
+        result = setConfigValue(&client->config.password, clientConfig->password);
+        RyanMqttCheckCode(RyanMqttSuccessError == result, result, rlog_d, { goto __exit; });
+    }
 
     result = setConfigValue(&client->config.host, clientConfig->host);
     RyanMqttCheckCode(RyanMqttSuccessError == result, result, rlog_d, { goto __exit; });
