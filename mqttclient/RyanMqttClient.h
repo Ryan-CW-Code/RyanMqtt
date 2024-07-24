@@ -67,13 +67,13 @@ extern "C"
         char *userName;                        // 用户名
         char *password;                        // 密码
         char *host;                            // mqtt服务器地址
-        char *port;                            // mqtt服务器端口
         char *taskName;                        // 线程名字
         char *recvBuffer;                      // mqtt接收缓冲区
         char *sendBuffer;                      // mqtt发送缓冲区
         uint8_t autoReconnectFlag : 1;         // 自动重连标志位
         uint8_t cleanSessionFlag : 1;          // 清除会话标志位
         uint8_t mqttVersion : 4;               // mqtt版本 3.1.1是4, 3.1是3
+        uint16_t port;                         // mqtt服务器端口
         uint16_t ackHandlerRepeatCountWarning; // ack重发超过这个数值后触发事件回调,根据实际硬件选择。典型值为 * ackTimeout ~= 300秒
         uint16_t taskPrio;                     // mqtt线程优先级
         uint16_t taskStack;                    // 线程栈大小

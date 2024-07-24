@@ -494,9 +494,6 @@ RyanMqttError_e RyanMqttSetConfig(RyanMqttClient_t *client, RyanMqttClientConfig
     RyanMqttCheck(NULL != client, RyanMqttParamInvalidError, rlog_d);
     RyanMqttCheck(NULL != clientConfig->clientId, RyanMqttParamInvalidError, rlog_d);
     RyanMqttCheck(NULL != clientConfig->host, RyanMqttParamInvalidError, rlog_d);
-    RyanMqttCheck(NULL != clientConfig->port, RyanMqttParamInvalidError, rlog_d);
-    // RyanMqttCheck(NULL != clientConfig->userName, RyanMqttParamInvalidError, rlog_d);
-    // RyanMqttCheck(NULL != clientConfig->password, RyanMqttParamInvalidError, rlog_d);
     RyanMqttCheck(NULL != clientConfig->taskName, RyanMqttParamInvalidError, rlog_d);
     RyanMqttCheck(13 < clientConfig->recvBufferSize && (RyanMqttMaxPayloadLen + 5) >= clientConfig->recvBufferSize, RyanMqttParamInvalidError, rlog_d);
     RyanMqttCheck(13 < clientConfig->sendBufferSize && (RyanMqttMaxPayloadLen + 5) >= clientConfig->sendBufferSize, RyanMqttParamInvalidError, rlog_d);
@@ -527,12 +524,12 @@ RyanMqttError_e RyanMqttSetConfig(RyanMqttClient_t *client, RyanMqttClientConfig
     result = setConfigValue(&client->config.host, clientConfig->host);
     RyanMqttCheckCode(RyanMqttSuccessError == result, result, rlog_d, { goto __exit; });
 
-    result = setConfigValue(&client->config.port, clientConfig->port);
     RyanMqttCheckCode(RyanMqttSuccessError == result, result, rlog_d, { goto __exit; });
 
     result = setConfigValue(&client->config.taskName, clientConfig->taskName);
     RyanMqttCheckCode(RyanMqttSuccessError == result, result, rlog_d, { goto __exit; });
 
+    client->config.port = clientConfig->port;
     client->config.taskPrio = clientConfig->taskPrio;
     client->config.taskStack = clientConfig->taskStack;
     client->config.mqttVersion = clientConfig->mqttVersion;

@@ -92,7 +92,7 @@ static ST_SOC_Callback callback_soc_func =
  * @return RyanMqttError_e
  * 成功返回RyanMqttSuccessError， 失败返回错误信息
  */
-RyanMqttError_e platformNetworkConnect(void *userData, platformNetwork_t *platformNetwork, const char *host, const char *port)
+RyanMqttError_e platformNetworkConnect(void *userData, platformNetwork_t *platformNetwork, const char *host, uint16_t port)
 {
     RyanMqttError_e result = RyanMqttSuccessError;
     u8 nw_state = 0;
@@ -157,7 +157,7 @@ RyanMqttError_e platformNetworkConnect(void *userData, platformNetwork_t *platfo
     }
 
     // 等待连接成功
-    s32 connectResult = Ql_SOC_Connect(platformNetwork->socket, (u8 *)resolveIp, atoi(port));
+    s32 connectResult = Ql_SOC_Connect(platformNetwork->socket, (u8 *)resolveIp, port);
     if (SOC_SUCCESS_OK != connectResult && SOC_NONBLOCK != connectResult)
     {
         platformNetworkClose(userData, platformNetwork);

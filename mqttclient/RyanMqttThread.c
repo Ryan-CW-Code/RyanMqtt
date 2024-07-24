@@ -748,8 +748,6 @@ void RyanMqttThread(void *argument)
                 platformMemoryFree(client->config.password);
             if (NULL != client->config.host)
                 platformMemoryFree(client->config.host);
-            if (NULL != client->config.port)
-                platformMemoryFree(client->config.port);
             if (NULL != client->config.taskName)
                 platformMemoryFree(client->config.taskName);
 

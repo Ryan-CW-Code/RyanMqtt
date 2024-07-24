@@ -16,7 +16,7 @@
  * @return RyanMqttError_e
  * 成功返回RyanMqttSuccessError， 失败返回错误信息
  */
-RyanMqttError_e platformNetworkConnect(void *userData, platformNetwork_t *platformNetwork, const char *host, const char *port)
+RyanMqttError_e platformNetworkConnect(void *userData, platformNetwork_t *platformNetwork, const char *host, uint16_t port)
 {
     RyanMqttError_e result = RyanMqttSuccessError;
 
@@ -41,7 +41,7 @@ RyanMqttError_e platformNetworkConnect(void *userData, platformNetwork_t *platfo
     struct sockaddr_in server_addr;
     memset(&server_addr, 0, sizeof(server_addr));
     server_addr.sin_family = AF_INET;
-    server_addr.sin_port = htons(atoi(port)); // 指定端口号，这里使用HTTP默认端口80
+    server_addr.sin_port = htons(port); // 指定端口号，这里使用HTTP默认端口80
     server_addr.sin_addr = *((struct in_addr *)hostinfo.h_addr_list[0]);
 
     // 绑定套接字到主机地址和端口号
@@ -71,7 +71,7 @@ RyanMqttError_e platformNetworkConnect(void *userData, platformNetwork_t *platfo
     // struct sockaddr_in server_addr;
     // memset(&server_addr, 0, sizeof(server_addr));
     // server_addr.sin_family = AF_INET;
-    // server_addr.sin_port = htons(atoi(port)); // 指定端口号，这里使用HTTP默认端口80
+    // server_addr.sin_port = htons(port); // 指定端口号，这里使用HTTP默认端口80
     // server_addr.sin_addr = *((struct in_addr *)hostinfo->h_addr_list[0]);
 
     // // 绑定套接字到主机地址和端口号
