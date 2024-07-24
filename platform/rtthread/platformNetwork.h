@@ -8,25 +8,16 @@ extern "C"
 
 #include <stdio.h>
 #include <stdint.h>
-#include <string.h>
 #include "RyanMqttPublic.h"
 #include "platformTimer.h"
 
 #include <rtthread.h>
-#ifdef RT_USING_SAL
 #include <sys/socket.h>
 #include <sys/errno.h>
 #include <sys/time.h>
 #include "sal_netdb.h"
-#include "netdb.h"
-
-#else
-#include "lwip/opt.h"
-#include "lwip/sys.h"
-#include "lwip/api.h"
-#include <lwip/sockets.h>
-#include "lwip/netdb.h"
-#endif
+#include <netdb.h>
+    // #include <sys/select.h> // 使用select时打开
 
     typedef struct
     {
