@@ -109,8 +109,8 @@ static void mqttEventHandle(void *pclient, RyanMqttEventId_e event, const void c
     case RyanMqttEventData:
     {
         RyanMqttMsgData_t *msgData = (RyanMqttMsgData_t *)eventData;
-        rlog_i("接收到mqtt消息事件回调 topic: %s, packetId: %d, payload len: %d",
-               msgData->topic, msgData->packetId, msgData->payloadLen);
+        rlog_i("接收到mqtt消息事件回调 topic: %.*s, packetId: %d, payload len: %d",
+               msgData->topicLen, msgData->topic, msgData->packetId, msgData->payloadLen);
 
         rlog_i("%.*s", msgData->payloadLen, msgData->payload);
 

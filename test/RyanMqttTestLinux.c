@@ -2,7 +2,7 @@
 #define RyanMqttClientId ("RyanMqttTest888") // 填写mqtt客户端id，要求唯一
 // #define RyanMqttHost ("broker.emqx.io")    // 填写你的mqtt服务器ip
 #define RyanMqttHost ("127.0.0.1") // 填写你的mqtt服务器ip
-#define RyanMqttPort (1883)      // mqtt服务器端口
+#define RyanMqttPort (1883)        // mqtt服务器端口
 #define RyanMqttUserName (NULL)    // 填写你的用户名
 #define RyanMqttPassword (NULL)    // 填写你的密码
 
@@ -119,8 +119,8 @@ static void mqttEventHandle(void *pclient, RyanMqttEventId_e event, const void c
     case RyanMqttEventData:
     {
         RyanMqttMsgData_t *msgData = (RyanMqttMsgData_t *)eventData;
-        rlog_i("接收到mqtt消息事件回调 topic: %s, packetId: %d, payload len: %d",
-               msgData->topic, msgData->packetId, msgData->payloadLen);
+        rlog_i("接收到mqtt消息事件回调 topic: %.*s, packetId: %d, payload len: %d",
+               msgData->topicLen, msgData->topic, msgData->packetId, msgData->payloadLen);
 
         rlog_i("%.*s", msgData->payloadLen, msgData->payload);
         mqttTest[dataEventCount]++;
@@ -604,7 +604,7 @@ int main()
     if (result != 0)
         goto __exit;
     checkMemory;
-    
+
     result = RyanMqttPublishTest(RyanMqttQos2, 1000, 1);
     if (result != 0)
         goto __exit;

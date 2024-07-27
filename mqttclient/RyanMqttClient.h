@@ -27,6 +27,7 @@ extern "C"
         uint16_t packetId;   // packetId 系统生成
         RyanMqttQos_e qos;   // QOS等级
         uint32_t payloadLen; // 数据长度
+        uint32_t topicLen;   // topic长度
         char *topic;         // 主题信息
         char *payload;       // 数据内容
     } RyanMqttMsgData_t;

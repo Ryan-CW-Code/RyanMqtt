@@ -240,6 +240,7 @@ static RyanMqttError_e RyanMqttPublishPacketHandler(RyanMqttClient_t *client)
     RyanMqttCheck(1 == result, RyanMqttDeserializePacketError, rlog_d);
 
     msgData.topic = topicName.lenstring.data;
+    msgData.topicLen = topicName.lenstring.len;
 
     // 查看订阅列表是否包含此消息主题,进行通配符匹配。不包含就直接退出在一定程度上可以防止恶意攻击
     result = RyanMqttMsgHandlerFind(client, topicName.lenstring.data, topicName.lenstring.len, RyanMqttTrue, &msgHandler);
