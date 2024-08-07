@@ -3,8 +3,8 @@
 #define RyanMqttClientId ("RyanMqttTessdfwrt") // 填写mqtt客户端id，要求唯一
 #define RyanMqttHost ("broker.emqx.io")        // 填写你的mqtt服务器ip
 #define RyanMqttPort (1883)                    // mqtt服务器端口
-#define RyanMqttUserName (NULL)                // 填写你的用户名
-#define RyanMqttPassword (NULL)                // 填写你的密码
+#define RyanMqttUserName (NULL)                // 填写你的用户名,没有填NULL
+#define RyanMqttPassword (NULL)                // 填写你的密码,没有填NULL
 
 #ifdef PKG_USING_RYANMQTT_EXAMPLE
 #include <stdio.h>
@@ -17,8 +17,8 @@
 #include <rtdevice.h>
 #include <rtdbg.h>
 
-#define rlogEnable 1             // 是否使能日志
-#define rlogColorEnable 1        // 是否使能日志颜色
+#define rlogEnable               // 是否使能日志
+#define rlogColorEnable          // 是否使能日志颜色
 #define rlogLevel (rlogLvlDebug) // 日志打印等级
 #define rlogTag "RyanMqttTest"   // 日志tag
 #include "RyanMqttLog.h"
