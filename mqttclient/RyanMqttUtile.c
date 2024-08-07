@@ -305,7 +305,6 @@ RyanMqttBool_e RyanMqttMatchTopic(const char *topic,
  */
 RyanMqttError_e RyanMqttMsgHandlerCreate(RyanMqttClient_t *client, char *topic, uint16_t topicLen, RyanMqttQos_e qos, RyanMqttMsgHandler_t **pMsgHandler)
 {
-    RyanMqttError_e result = RyanMqttSuccessError;
     RyanMqttMsgHandler_t *msgHandler = NULL;
     RyanMqttAssert(NULL != topic);
     RyanMqttAssert(NULL != pMsgHandler);

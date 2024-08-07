@@ -472,7 +472,7 @@ static RyanMqttError_e RyanMqttReadPacketHandler(RyanMqttClient_t *client, uint8
         RyanMqttCheck(RyanMqttSuccessError == result, result, rlog_d);
     }
 
-    uint16_t packLen = fixedHeaderLen + payloadLen;
+    // uint16_t packLen = fixedHeaderLen + payloadLen;
 
     // 控制报文类型
     // 发送者QoS2动作 发布PUBLISH报文 -> 等待PUBREC报文 -> 发送PUBREL报文 -> 等待PUBCOMP报文
