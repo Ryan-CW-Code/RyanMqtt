@@ -40,7 +40,7 @@ static RyanMqttError_e RyanMqttKeepalive(RyanMqttClient_t *client)
         connectState = RyanMqttKeepaliveTimeout;
         RyanMqttEventMachine(client, RyanMqttEventDisconnected, (void *)&connectState);
         rlog_d("ErrorCode: %d, strError: %s", RyanMqttKeepaliveTimeout, RyanMqttStrError(RyanMqttKeepaliveTimeout));
-        return RyanMqttKeepaliveTimeout;
+        return RyanMqttFailedError;
     }
 
     platformMutexLock(client->config.userData, &client->sendBufLock); // 获取互斥锁
@@ -627,7 +627,7 @@ static RyanMqttError_e RyanMqttConnect(RyanMqttClient_t *client)
     MQTTPacket_connectData connectData = MQTTPacket_connectData_initializer;
     RyanMqttAssert(NULL != client);
 
-    RyanMqttCheck(RyanMqttConnectState != RyanMqttGetClientState(client), RyanMqttConnectAccepted, rlog_d);
+    RyanMqttCheck(RyanMqttConnectState != RyanMqttGetClientState(client), RyanMqttConnectError, rlog_d);
 
     // 连接标志位
     connectData.clientID.cstring = client->config.clientId;
@@ -649,7 +649,7 @@ static RyanMqttError_e RyanMqttConnect(RyanMqttClient_t *client)
 
     // 调用底层的连接函数连接上服务器
     result = platformNetworkConnect(client->config.userData, &client->network, client->config.host, client->config.port);
-    RyanMqttCheck(RyanMqttSuccessError == result, RyanMqttConnectNetWorkFail, rlog_d);
+    RyanMqttCheck(RyanMqttSuccessError == result, RyanSocketFailedError, rlog_d);
 
     platformMutexLock(client->config.userData, &client->sendBufLock); // 获取互斥锁
     // 序列化mqtt的CONNECT报文
@@ -664,7 +664,7 @@ static RyanMqttError_e RyanMqttConnect(RyanMqttClient_t *client)
     // 等待报文
     // mqtt规范 服务端接收到connect报文后，服务端发送给客户端的第一个报文必须是 CONNACK
     result = RyanMqttReadPacketHandler(client, &packetType);
-    RyanMqttCheck(CONNACK == packetType, RyanMqttConnectDisconnected, rlog_d);
+    RyanMqttCheck(CONNACK == packetType, RyanMqttFailedError, rlog_d);
 
     // 解析CONNACK报文
     result = MQTTDeserialize_connack(&sessionPresent, (uint8_t *)&connackRc, (uint8_t *)client->config.recvBuffer, client->config.recvBufferSize);
