@@ -8,9 +8,9 @@
 void RyanMqttRefreshKeepaliveTime(RyanMqttClient_t *client)
 {
     // 服务器在心跳时间的1.5倍内没有收到keeplive消息则会断开连接
-    // 这里在用户设置的心跳剩余 1/4 时手动发送保活指令
+    // 这里算 1.4 b倍时间内没有收到心跳就断开连接
     platformCriticalEnter(client->config.userData, &client->criticalLock);
-    platformTimerCutdown(&client->keepaliveTimer, client->config.keepaliveTimeoutS / 4 * 3 * 1000); // 启动心跳定时器
+    platformTimerCutdown(&client->keepaliveTimer, 1000 * 1.4 * client->config.keepaliveTimeoutS); // 启动心跳定时器
     platformCriticalExit(client->config.userData, &client->criticalLock);
 }
 
@@ -26,16 +26,8 @@ static RyanMqttError_e RyanMqttKeepalive(RyanMqttClient_t *client)
     int32_t packetLen = 0;
     RyanMqttAssert(NULL != client);
 
-    // 心跳周期到了发送keepalive
-    if (0 != platformTimerRemain(&client->keepaliveTimer))
-    {
-        client->keepaliveTimeoutCount = 0;
-        return RyanMqttSuccessError;
-    }
-
-    // 发送5次都没有收到服务器的心跳保活响应,主动认为断连
-    // 其实服务器也会主动断连的
-    if (client->keepaliveTimeoutCount > 5)
+    // 超过设置的 1.4 倍心跳周期
+    if (0 == platformTimerRemain(&client->keepaliveTimer))
     {
         connectState = RyanMqttKeepaliveTimeout;
         RyanMqttEventMachine(client, RyanMqttEventDisconnected, (void *)&connectState);
@@ -43,13 +35,21 @@ static RyanMqttError_e RyanMqttKeepalive(RyanMqttClient_t *client)
         return RyanMqttFailedError;
     }
 
-    platformMutexLock(client->config.userData, &client->sendBufLock); // 获取互斥锁
-    packetLen = MQTTSerialize_pingreq((uint8_t *)client->config.sendBuffer, client->config.sendBufferSize);
-    if (packetLen > 0)
-        RyanMqttSendPacket(client, client->config.sendBuffer, packetLen);
-    platformMutexUnLock(client->config.userData, &client->sendBufLock); // 释放互斥锁
+    // 当到达 0.9 倍时间时发送心跳包
+    else if (1000 * 0.5 * client->config.keepaliveTimeoutS < platformTimerRemain(&client->keepaliveTimer))
+    {
+        return RyanMqttSuccessError;
+    }
 
-    client->keepaliveTimeoutCount++;
+    else
+    {
+        platformMutexLock(client->config.userData, &client->sendBufLock); // 获取互斥锁
+        packetLen = MQTTSerialize_pingreq((uint8_t *)client->config.sendBuffer, client->config.sendBufferSize);
+        if (packetLen > 0)
+            RyanMqttSendPacket(client, client->config.sendBuffer, packetLen);
+        platformMutexUnLock(client->config.userData, &client->sendBufLock); // 释放互斥锁
+    }
+
     return RyanMqttSuccessError;
 }
 
@@ -688,8 +688,7 @@ void RyanMqttEventMachine(RyanMqttClient_t *client, RyanMqttEventId_e eventId, v
 
     switch (eventId)
     {
-    case RyanMqttEventConnected:           // 第一次连接成功
-        client->keepaliveTimeoutCount = 0; // 重置心跳超时计数器
+    case RyanMqttEventConnected: // 第一次连接成功
         RyanMqttRefreshKeepaliveTime(client);
         RyanMqttAckListScan(client, RyanMqttFalse); // 扫描确认列表，销毁已超时的确认处理程序或重新发送它们
         RyanMqttSetClientState(client, RyanMqttConnectState);

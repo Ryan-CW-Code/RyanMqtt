@@ -63,7 +63,6 @@ RyanMqttError_e RyanMqttInit(RyanMqttClient_t **pClient)
     client->packetId = 1; // 控制报文必须包含一个非零的 16 位报文标识符
     client->clientState = RyanMqttInitState;
     client->eventFlag = 0;
-    client->keepaliveTimeoutCount = 0;
     client->ackHandlerCount = 0;
     client->lwtFlag = RyanMqttFalse;
 
