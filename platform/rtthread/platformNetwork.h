@@ -15,7 +15,6 @@ extern "C"
 #include <sys/socket.h>
 #include <sys/errno.h>
 #include <sys/time.h>
-#include "sal_netdb.h"
 #include <netdb.h>
     // #include <sys/select.h> // 使用select时打开
 
