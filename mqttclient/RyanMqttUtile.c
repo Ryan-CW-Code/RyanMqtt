@@ -109,8 +109,8 @@ RyanMqttError_e RyanMqttSendPacket(RyanMqttClient_t *client, char *sendBuf, int3
     switch (result)
     {
     case RyanMqttSuccessError:
-    case RyanMqttSendPacketTimeOutError:
         RyanMqttRefreshKeepaliveTime(client); // 只要发送数据就刷新 keepalive 时间，可以降低一些心智负担
+    case RyanMqttSendPacketTimeOutError:
         return result;
 
     case RyanSocketFailedError:
