@@ -76,7 +76,6 @@ RyanMqttError_e RyanMqttRecvPacket(RyanMqttClient_t *client, char *recvBuf, int3
 
     switch (result)
     {
-
     case RyanMqttRecvPacketTimeOutError:
     case RyanMqttSuccessError:
         return result;
@@ -655,11 +654,11 @@ void RyanMqttCleanSession(RyanMqttClient_t *client)
     platformMutexUnLock(client->config.userData, &client->userAckHandleLock);
 }
 
-const char *RyanMqttStrError(RyanMqttError_e state)
+const char *RyanMqttStrError(int32_t state)
 {
     const char *str = NULL;
 
-    switch ((int)state)
+    switch (state)
     {
     case RyanMqttRecvPacketTimeOutError:
         str = "读取数据超时";

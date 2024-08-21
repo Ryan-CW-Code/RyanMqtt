@@ -145,7 +145,7 @@ extern "C"
 
     /* extern variables-----------------------------------------------------------*/
 
-    extern const char *RyanMqttStrError(RyanMqttError_e state);
+    extern const char *RyanMqttStrError(int32_t state);
 #define RyanMqttCheckCodeNoReturn(EX, ErrorCode, Ryanlevel, code) \
     if (!(EX))                                                    \
     {                                                             \
