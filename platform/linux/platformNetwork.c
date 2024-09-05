@@ -1,5 +1,5 @@
 // #define rlogEnable               // 是否使能日志
-#define rlogColorEnable          // 是否使能日志颜色
+#define rlogColorEnable            // 是否使能日志颜色
 #define rlogLevel (rlogLvlWarning) // 日志打印等级
 #define rlogTag "RyanMqttNet"      // 日志tag
 
@@ -102,53 +102,6 @@ exit:
 RyanMqttError_e platformNetworkRecvAsync(void *userData, platformNetwork_t *platformNetwork, char *recvBuf, int recvLen, int timeout)
 {
 
-    int32_t recvResult = 0;
-    int32_t offset = 0;
-    int32_t timeOut2 = timeout;
-    struct timeval tv = {0};
-    platformTimer_t timer = {0};
-
-    if (-1 == platformNetwork->socket)
-        return RyanSocketFailedError;
-
-    platformTimerCutdown(&timer, timeout);
-
-    while ((offset < recvLen) && (0 != timeOut2))
-    {
-
-        tv.tv_sec = timeOut2 / 1000;
-        tv.tv_usec = timeOut2 % 1000 * 1000;
-
-        if (tv.tv_sec <= 0 && tv.tv_usec <= 100)
-        {
-            tv.tv_sec = 0;
-            tv.tv_usec = 100;
-        }
-
-        setsockopt(platformNetwork->socket, SOL_SOCKET, SO_RCVTIMEO, (char *)&tv, sizeof(struct timeval)); // 设置错做模式为非阻塞
-
-        recvResult = recv(platformNetwork->socket, recvBuf + offset, recvLen - offset, 0);
-
-        if (recvResult <= 0) // 小于零，表示错误，个别错误不代表socket错误
-        {
-            // 下列3种表示没问题,但需要推出发送
-            if ((errno == EAGAIN ||      // 套接字已标记为非阻塞，而接收操作被阻塞或者接收超时
-                 errno == EWOULDBLOCK || // 发送时套接字发送缓冲区已满，或接收时套接字接收缓冲区为空
-                 errno == EINTR))        // 操作被信号中断
-                break;
-
-            return RyanSocketFailedError;
-        }
-
-        offset += recvResult;
-        timeOut2 = platformTimerRemain(&timer);
-    }
-
-    if (offset != recvLen)
-        return RyanMqttRecvPacketTimeOutError;
-
-    return RyanMqttSuccessError;
-
     // int32_t recvResult = 0;
     // int32_t offset = 0;
     // int32_t timeOut2 = timeout;
@@ -172,47 +125,27 @@ RyanMqttError_e platformNetworkRecvAsync(void *userData, platformNetwork_t *plat
     //         tv.tv_usec = 100;
     //     }
 
-    //     fd_set readset;
-    //     int i, maxfdp1;
+    //     setsockopt(platformNetwork->socket, SOL_SOCKET, SO_RCVTIMEO, (char *)&tv, sizeof(struct timeval)); // 设置错做模式为非阻塞
 
-    //     /* 清空可读事件描述符列表 */
-    //     FD_ZERO(&readset);
-
-    //     /* 将需要监听可读事件的描述符加入列表 */
-    //     FD_SET(platformNetwork->socket, &readset);
-
-    //     /* 等待设定的网络描述符有事件发生 */
-    //     i = select(platformNetwork->socket + 1, &readset, RT_NULL, RT_NULL, &tv);
-    //     if (i < 0)
+    //     recvResult = recv(platformNetwork->socket, recvBuf + offset, recvLen - offset, 0);
+    //     if (0 == recvResult)
     //     {
-    //         // 下列3种表示没问题,但需要退出接收
-    //         if ((errno == EAGAIN ||      // 套接字已标记为非阻塞，而接收操作被阻塞或者接收超时
-    //              errno == EWOULDBLOCK || // 发送时套接字发送缓冲区已满，或接收时套接字接收缓冲区为空
-    //              errno == EINTR))        // 操作被信号中断
+    //         rlog_d("对端关闭socket连接");
+    //         return RyanSocketFailedError;
+    //     }
+    //     else if (recvResult < 0) // 小于零，表示错误，个别错误不代表socket错误
+    //     {
+    //         int32_t err = errno;
+    //         // 下列3种表示没问题,但需要推出发送
+    //         if (err == EAGAIN ||      // 套接字已标记为非阻塞，而接收操作被阻塞或者接收超时
+    //             err == EWOULDBLOCK || // 发送时套接字发送缓冲区已满，或接收时套接字接收缓冲区为空
+    //             err == EINTR)         // 操作被信号中断
     //             break;
 
     //         return RyanSocketFailedError;
     //     }
 
-    //     /* 查看 sock 描述符上有没有发生可读事件 */
-    //     if (i > 0 && FD_ISSET(platformNetwork->socket, &readset))
-    //     {
-    //         recvResult = recv(platformNetwork->socket, recvBuf + offset, recvLen - offset, 0);
-
-    //         if (recvResult <= 0) // 小于零，表示错误，个别错误不代表socket错误
-    //         {
-    //             // 下列3种表示没问题,但需要退出接收
-    //             if ((errno == EAGAIN ||      // 套接字已标记为非阻塞，而接收操作被阻塞或者接收超时
-    //                  errno == EWOULDBLOCK || // 发送时套接字发送缓冲区已满，或接收时套接字接收缓冲区为空
-    //                  errno == EINTR))        // 操作被信号中断
-    //                 break;
-
-    //             return RyanSocketFailedError;
-    //         }
-
-    //         offset += recvResult;
-    //     }
-
+    //     offset += recvResult;
     //     timeOut2 = platformTimerRemain(&timer);
     // }
 
@@ -220,6 +153,90 @@ RyanMqttError_e platformNetworkRecvAsync(void *userData, platformNetwork_t *plat
     //     return RyanMqttRecvPacketTimeOutError;
 
     // return RyanMqttSuccessError;
+
+    int32_t recvResult = 0;
+    int32_t offset = 0;
+    int32_t timeOut2 = timeout;
+    struct timeval tv = {0};
+    platformTimer_t timer = {0};
+
+    if (-1 == platformNetwork->socket)
+        return RyanSocketFailedError;
+
+    platformTimerCutdown(&timer, timeout);
+
+    while ((offset < recvLen) && (0 != timeOut2))
+    {
+
+        tv.tv_sec = timeOut2 / 1000;
+        tv.tv_usec = timeOut2 % 1000 * 1000;
+
+        if (tv.tv_sec <= 0 && tv.tv_usec <= 100)
+        {
+            tv.tv_sec = 0;
+            tv.tv_usec = 100;
+        }
+
+        fd_set readset;
+        fd_set exceptset;
+        int i, maxfdp1;
+
+        /* 清空可读事件描述符列表 */
+        FD_ZERO(&readset);
+        FD_ZERO(&exceptset);
+
+        FD_SET(platformNetwork->socket, &readset);   // 监听可读事件
+        FD_SET(platformNetwork->socket, &exceptset); // 监听异常事件
+
+        /* 等待设定的网络描述符有事件发生 */
+        i = select(platformNetwork->socket + 1, &readset, NULL, &exceptset, &tv);
+        if (i < 0)
+        {
+            int32_t err = errno;
+
+            // 下列3种表示没问题,但需要退出接收
+            if (err == EAGAIN ||      // 套接字已标记为非阻塞，而接收操作被阻塞或者接收超时
+                err == EWOULDBLOCK || // 发送时套接字发送缓冲区已满，或接收时套接字接收缓冲区为空
+                err == EINTR)         // 操作被信号中断
+                break;
+
+            return RyanSocketFailedError;
+        }
+        /* 查看 sock 描述符上有没有发生可读事件 */
+        else if (i > 0)
+        {
+            if (FD_ISSET(platformNetwork->socket, &readset))
+            {
+                recvResult = recv(platformNetwork->socket, recvBuf + offset, recvLen - offset, 0);
+
+                if (recvResult <= 0) // 小于零，表示错误，个别错误不代表socket错误
+                {
+                    int32_t err = errno;
+                    // 下列3种表示没问题,但需要退出接收
+                    if (err == EAGAIN ||      // 套接字已标记为非阻塞，而接收操作被阻塞或者接收超时
+                        err == EWOULDBLOCK || // 发送时套接字发送缓冲区已满，或接收时套接字接收缓冲区为空
+                        err == EINTR)         // 操作被信号中断
+                        break;
+
+                    return RyanSocketFailedError;
+                }
+
+                offset += recvResult;
+            }
+
+            if (FD_ISSET(platformNetwork->socket, &exceptset))
+            {
+                return RyanSocketFailedError;
+            }
+        }
+
+        timeOut2 = platformTimerRemain(&timer);
+    }
+
+    if (offset != recvLen)
+        return RyanMqttRecvPacketTimeOutError;
+
+    return RyanMqttSuccessError;
 }
 
 /**
@@ -264,13 +281,18 @@ RyanMqttError_e platformNetworkSendAsync(void *userData, platformNetwork_t *plat
         setsockopt(platformNetwork->socket, SOL_SOCKET, SO_SNDTIMEO, (char *)&tv, sizeof(struct timeval)); // 设置错做模式为非阻塞
 
         sendResult = send(platformNetwork->socket, sendBuf + offset, sendLen - offset, 0);
-
-        if (sendResult <= 0) // 小于零，表示错误，个别错误不代表socket错误
+        if (0 == sendResult)
         {
-            // 下列3种表示没问题,但需要推出发送
-            if ((errno == EAGAIN ||      // 套接字已标记为非阻塞，而接收操作被阻塞或者接收超时
-                 errno == EWOULDBLOCK || // 发送时套接字发送缓冲区已满，或接收时套接字接收缓冲区为空
-                 errno == EINTR))        // 操作被信号中断
+            rlog_d("对端关闭socket连接");
+            return RyanSocketFailedError;
+        }
+        else if (sendResult < 0) // 小于零，表示错误，个别错误不代表socket错误
+        {
+            int32_t err = errno;
+            // 下列3种表示没问题,但需要退出发送
+            if (err == EAGAIN ||      // 套接字已标记为非阻塞，而接收操作被阻塞或者接收超时
+                err == EWOULDBLOCK || // 发送时套接字发送缓冲区已满，或接收时套接字接收缓冲区为空
+                err == EINTR)         // 操作被信号中断
                 break;
 
             return RyanSocketFailedError;
