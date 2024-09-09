@@ -92,25 +92,26 @@ extern "C"
 
     typedef struct
     {
-        uint8_t lwtFlag : 1;               // 遗嘱标志位
-        uint8_t destoryFlag : 1;           // 销毁标志位
-        uint16_t ackHandlerCount;          // 等待ack的记录个数
-        uint16_t packetId;                 // mqtt报文标识符,控制报文必须包含一个非零的 16 位报文标识符
-        uint32_t eventFlag;                // 事件标志位
-        RyanMqttState_e clientState;       // mqtt客户端的状态
-        RyanList_t msgHandlerList;         // 维护消息处理列表，这是mqtt协议必须实现的内容，所有来自服务器的publish报文都会被处理（前提是订阅了对应的消息，或者设置了拦截器）
-        RyanList_t ackHandlerList;         // 维护ack链表
-        RyanList_t userAckHandlerList;     // 用户接口的ack链表,会由mqtt线程移动到ack链表
-        platformTimer_t keepaliveTimer;    // 保活定时器
-        platformNetwork_t network;         // 网络组件
-        RyanMqttClientConfig_t config;     // mqtt config
-        platformThread_t mqttThread;       // mqtt线程
-        platformMutex_t msgHandleLock;     // msg链表锁
-        platformMutex_t ackHandleLock;     // ack链表锁
-        platformMutex_t userAckHandleLock; // 用户接口的ack链表锁
-        platformMutex_t sendBufLock;       // 写缓冲区锁
-        platformCritical_t criticalLock;   // 临界区锁
-        lwtOptions_t lwtOptions;           // 遗嘱相关配置
+        uint8_t lwtFlag : 1;                  // 遗嘱标志位
+        uint8_t destoryFlag : 1;              // 销毁标志位
+        uint16_t ackHandlerCount;             // 等待ack的记录个数
+        uint16_t packetId;                    // mqtt报文标识符,控制报文必须包含一个非零的 16 位报文标识符
+        uint32_t eventFlag;                   // 事件标志位
+        RyanMqttState_e clientState;          // mqtt客户端的状态
+        RyanList_t msgHandlerList;            // 维护消息处理列表，这是mqtt协议必须实现的内容，所有来自服务器的publish报文都会被处理（前提是订阅了对应的消息，或者设置了拦截器）
+        RyanList_t ackHandlerList;            // 维护ack链表
+        RyanList_t userAckHandlerList;        // 用户接口的ack链表,会由mqtt线程移动到ack链表
+        platformTimer_t keepaliveTimer;       // 保活定时器
+        platformTimer_t keepaliveDebounTimer; // 保活定时器消抖
+        platformNetwork_t network;            // 网络组件
+        RyanMqttClientConfig_t config;        // mqtt config
+        platformThread_t mqttThread;          // mqtt线程
+        platformMutex_t msgHandleLock;        // msg链表锁
+        platformMutex_t ackHandleLock;        // ack链表锁
+        platformMutex_t userAckHandleLock;    // 用户接口的ack链表锁
+        platformMutex_t sendBufLock;          // 写缓冲区锁
+        platformCritical_t criticalLock;      // 临界区锁
+        lwtOptions_t lwtOptions;              // 遗嘱相关配置
     } RyanMqttClient_t;
 
     /* extern variables-----------------------------------------------------------*/
