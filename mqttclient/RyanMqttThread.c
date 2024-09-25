@@ -25,13 +25,14 @@ static RyanMqttError_e RyanMqttKeepalive(RyanMqttClient_t *client)
     RyanMqttConnectStatus_e connectState = RyanMqttKeepaliveTimeout;
     RyanMqttError_e result = RyanMqttFailedError;
     int32_t packetLen = 0;
+    uint32_t timeRemain = 0;
     RyanMqttAssert(NULL != client);
 
     // mqtt没有连接就退出
     if (RyanMqttConnectState != RyanMqttGetClientState(client))
         return RyanMqttNotConnectError;
 
-    uint32_t timeRemain = platformTimerRemain(&client->keepaliveTimer);
+    timeRemain = platformTimerRemain(&client->keepaliveTimer);
 
     // 超过设置的 1.4 倍心跳周期
     if (0 == timeRemain)
@@ -46,8 +47,8 @@ static RyanMqttError_e RyanMqttKeepalive(RyanMqttClient_t *client)
     else if (timeRemain < client->config.recvTimeout ||
              timeRemain < 1000 * 0.5 * client->config.keepaliveTimeoutS)
     {
-        // 消抖时间内不发送心跳包
-        if (platformTimerRemain(&client->keepaliveDebounTimer))
+        // 节流时间内不发送心跳报文
+        if (platformTimerRemain(&client->keepaliveThrottleTimer))
             return RyanMqttSuccessError;
 
         platformMutexLock(client->config.userData, &client->sendBufLock); // 获取互斥锁
@@ -62,7 +63,7 @@ static RyanMqttError_e RyanMqttKeepalive(RyanMqttClient_t *client)
         });
         platformMutexUnLock(client->config.userData, &client->sendBufLock); // 释放互斥锁
 
-        platformTimerCutdown(&client->keepaliveDebounTimer, 1500); // 启动心跳消抖定时器
+        platformTimerCutdown(&client->keepaliveThrottleTimer, 1500); // 启动心跳检查节流定时器
     }
 
     return RyanMqttSuccessError;
@@ -557,6 +558,10 @@ static void RyanMqttAckListScan(RyanMqttClient_t *client, RyanMqttBool_e WaitFla
     if (RyanMqttConnectState != RyanMqttGetClientState(client))
         return;
 
+    // 节流时间内不检查ack链表
+    if (platformTimerRemain(&client->ackScanThrottleTimer))
+        return;
+
     platformMutexLock(client->config.userData, &client->ackHandleLock);
     RyanListForEachSafe(curr, next, &client->ackHandlerList)
     {
@@ -623,8 +628,9 @@ static void RyanMqttAckListScan(RyanMqttClient_t *client, RyanMqttBool_e WaitFla
         }
         }
     }
-
     platformMutexUnLock(client->config.userData, &client->ackHandleLock);
+
+    platformTimerCutdown(&client->ackScanThrottleTimer, 1000); // 启动ack scan节流定时器
 }
 
 /**
