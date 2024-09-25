@@ -180,7 +180,7 @@ static void mqttEventHandle(void *pclient, RyanMqttEventId_e event, const void c
     }
 }
 
-static void RyanMqttInitSync(RyanMqttClient_t **client, RyanMqttBool_e syncFlag)
+static int32_t RyanMqttInitSync(RyanMqttClient_t **client, RyanMqttBool_e syncFlag)
 {
 
     char aaa[64];
@@ -270,7 +270,7 @@ static RyanMqttError_e RyanMqttSubscribeTest(RyanMqttQos_e qos)
     RyanMqttClient_t *client;
     RyanMqttInitSync(&client, RyanMqttTrue);
 
-    const char *subscribeArr[] = {
+    char *subscribeArr[] = {
         "testlinux/pub",
         "testlinux/pub2",
         "testlinux/pub3",
@@ -339,7 +339,7 @@ static RyanMqttError_e RyanMqttUnSubscribeTest(RyanMqttQos_e qos)
     RyanMqttClient_t *client;
     RyanMqttInitSync(&client, RyanMqttTrue);
 
-    const char *subscribeArr[] = {
+    char *subscribeArr[] = {
         "testlinux/pub",
         "testlinux/pub2",
         "testlinux/pub3",

@@ -28,8 +28,8 @@
 
 static RyanMqttClient_t *client = NULL;
 
-static char mqttRecvBuffer[1024];
-static char mqttSendBuffer[1024];
+static char mqttRecvBuffer[512];
+static char mqttSendBuffer[512];
 
 // 具体数值计算可以查看事件回调函数
 static uint32_t mqttTest[10] = {0};
@@ -53,7 +53,7 @@ static void printfArrStr(char *buf, uint32_t len, char *userData)
  * @param event
  * @param eventData 查看事件枚举，后面有说明eventData是什么类型
  */
-static void mqttEventHandle(void *pclient, RyanMqttEventId_e event, const void const *eventData)
+static void mqttEventHandle(void *pclient, RyanMqttEventId_e event, const void *eventData)
 {
     RyanMqttClient_t *client = (RyanMqttClient_t *)pclient;
 

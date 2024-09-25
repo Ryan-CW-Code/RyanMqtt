@@ -69,7 +69,7 @@ RyanMqttError_e platformThreadInit(void *userData,
     pthread_attr_setstacksize(&attr, stackSize);
     pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED); // 设置为分离状态
 
-    int ret = pthread_create(&platformThread->thread, &attr, entry, param);
+    int ret = pthread_create(&platformThread->thread, &attr, (void *)entry, param);
     if (0 != ret)
         return RyanMqttNoRescourceError;
 
