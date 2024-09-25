@@ -108,8 +108,6 @@ static void rlog_output_raw(char *const fmt, ...)
 #define rlog_e(...)
 #endif
 
-#define log_d rlog_d
-
 #define rlog_raw(...) rlog_output_raw(__VA_ARGS__)
 
 #endif
