@@ -13,7 +13,7 @@ extern "C"
 
 #define RyanMqttMaxPacketId (0xFFFFU - 1U)  // 你允许的mqtt paketid最大值，协议标准为个非零的 16 位数
 #define RyanMqttMaxPayloadLen (268435455UL) // 你允许的mqtt可变报头和有效载荷最长长度。默认值为协议标准
-#define RyanMqttVersion ("0.0.1")
+#define RyanMqttVersion ("1.2.0")
 
     // 定义枚举类型
     typedef enum
@@ -50,7 +50,6 @@ extern "C"
         RyanMqttBit2 = 0x00000004,
         RyanMqttBit1 = 0x00000002,
         RyanMqttBit0 = 0x00000001,
-
     } RyanMqttBit_e;
 
     typedef enum
@@ -119,7 +118,8 @@ extern "C"
         RyanMqttSendBufToShortError,        // MQTT 缓冲区太短
         RyanMqttNotEnoughMemError,          // MQTT 内存不足
         RyanMqttFailedError,                // 失败
-        RyanMqttSuccessError = 0x0000       // 成功
+        RyanMqttSuccessError = 0x0000,      // 成功
+        RyanMqttErrorForceInt32 = INT32_MAX // 强制编译器使用int32_t类型
     } RyanMqttError_e;
 
     typedef enum
@@ -133,12 +133,13 @@ extern "C"
         RyanMqttConnectRefusedNotAuthorized = 5,   // 连接已拒绝，未授权
 
         // mqtt非标准定义
-        RyanMqttConnectClientInvalid = 200, // 客户端处于无效状态
-        RyanMqttConnectNetWorkFail,         // 网络错误
-        RyanMqttConnectDisconnected,        // mqtt客户端断开连接
-        RyanMqttKeepaliveTimeout,           // 心跳超时断开连接
-        RyanMqttConnectUserDisconnected,    // 用户手动断开连接
-        RyanMqttConnectTimeout              // 超时断开
+        RyanMqttConnectClientInvalid = 200,         // 客户端处于无效状态
+        RyanMqttConnectNetWorkFail,                 // 网络错误
+        RyanMqttConnectDisconnected,                // mqtt客户端断开连接
+        RyanMqttKeepaliveTimeout,                   // 心跳超时断开连接
+        RyanMqttConnectUserDisconnected,            // 用户手动断开连接
+        RyanMqttConnectTimeout,                     // 超时断开
+        RyanMqttConnectStatusForceInt32 = INT32_MAX // 强制编译器使用int32_t类型
     } RyanMqttConnectStatus_e;
 
     // 定义结构体类型
