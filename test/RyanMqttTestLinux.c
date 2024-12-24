@@ -61,7 +61,7 @@ static void printfArrStr(char *buf, uint32_t len, char *userData)
  * @param event
  * @param eventData 查看事件枚举，后面有说明eventData是什么类型
  */
-static void mqttEventHandle(void *pclient, RyanMqttEventId_e event, const void const *eventData)
+static void mqttEventHandle(void *pclient, RyanMqttEventId_e event, const void *eventData)
 {
     RyanMqttClient_t *client = (RyanMqttClient_t *)pclient;
 
@@ -248,6 +248,8 @@ static int32_t RyanMqttInitSync(RyanMqttClient_t **client, RyanMqttBool_e syncFl
     {
         delay(100);
     }
+
+    return 0;
 }
 
 static void RyanMqttDestorySync(RyanMqttClient_t *client)
@@ -577,6 +579,8 @@ static RyanMqttError_e RyanMqttKeepAliveTest()
     }
 
     RyanMqttDestorySync(client);
+
+    return RyanMqttSuccessError;
 }
 
 // !当测试程序出错时，并不会回收内存。交由父进程进行回收
