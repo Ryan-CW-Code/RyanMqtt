@@ -2,12 +2,13 @@
 
 **使用遇到问题可以提 issue / RT-Thread 社区提问，谢谢。**
 
-[RyanMqtt使用介绍和示例代码（一）]([RT-Thread-RyanMqtt使用介绍和示例代码（一）RT-Thread问答社区 - RT-Thread](https://club.rt-thread.org/ask/article/51a25ba90fc5e1b5.html))
+[]([RT-Thread-RyanMqtt使用介绍和示例代码（一）RT-Thread问答社区 - RT-Thread](https://club.rt-thread.org/ask/article/51a25ba90fc5e1b5.html))
 
-[RyanMqtt QOS质量测试（二）]([RT-Thread-RyanMqtt QOS质量测试（二）RT-Thread问答社区 - RT-Thread](https://club.rt-thread.org/ask/article/e95c5b9390c53cf3.html))
+[]([RT-Thread-RyanMqtt QOS质量测试（二）RT-Thread问答社区 - RT-Thread](https://club.rt-thread.org/ask/article/e95c5b9390c53cf3.html))
 
-[RyanMqtt 移植指南（三）]([RT-Thread-RyanMqtt 移植指南（三）RT-Thread问答社区 - RT-Thread](https://club.rt-thread.org/ask/article/611b7a947f7221cf.html))
+[]([RT-Thread-RyanMqtt 移植指南（三）RT-Thread问答社区 - RT-Thread](https://club.rt-thread.org/ask/article/611b7a947f7221cf.html))
 
+[]([keil使用RyanMQTT编译错误（中文编码问题）RT-Thread问答社区 - RT-Thread](https://club.rt-thread.org/ask/question/7269a82662b6cf31.html))
 
 
 ### 1、介绍
@@ -26,6 +27,7 @@ RyanMqtt 实现了 MQTT3.1.1 协议的客户端。此库针对资源受限的嵌
 - 优化过的并发能力，**无等待的连续 20000 条 RyanMqttQos2 消息稳定发送和接收无一丢包**(测试环境为linux，实际情况会收到单片机内存大小和网络硬件的收发能力的影响)
 - 资源占用少，依赖少
 - 跨平台，只需实现少量的平台接口即可
+- 复杂线程环境下稳定运行，已在公司多个项目使用
 - 没有内置 TLS 支持，用户可以在platform层实现 TLS（使用 TLS 的项目也不会只有 mqtt 使用，用户自己实现可以防止 TLS 模块间冲突）
 - 不支持裸机平台，裸机想要稳定的 MQTT3.1.1 实现可以参考[coreMQTT](https://github.com/FreeRTOS/coreMQTT)
 
@@ -97,13 +99,17 @@ _RyanMqtt 依靠函数生成毫秒时间戳，用于计算持续时间和超时�
 
 - RyanMqtt 使用示例请参考 example 文件夹
 
-- 需要使能 SAL 或者 LWIP，示例使用 socket 实现数据收发。
+- 需要使能 SAL，示例使用 socket 接口进行数据收发。
 
 - 需要 MSH 组件，示例默认挂载到 MSH 组件
 
   **详细使用请参考 example，提供了一些测试接口和使用范例**
 
   ![image-20230927112803101](docs/assert/README.assert/image-20230927112803101.png)
+
+#### 合宙openLuat平台
+
+- 接口示例请参考 platform/openLuat 文件夹，请根据平台差异进行修改
 
 #### 移远QuecOpen平台
 
