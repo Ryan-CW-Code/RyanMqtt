@@ -1,8 +1,3 @@
-csdk_root = "../../../" --csdk根目录,可自行修改
-includes(csdk_root.."csdk.lua")
--- description_common()
-
-
 target("RyanMqtt",function()
     set_kind("static")
 
