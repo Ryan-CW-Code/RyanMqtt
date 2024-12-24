@@ -179,7 +179,7 @@ RyanMqttError_e platformNetworkRecvAsync(void *userData, platformNetwork_t *plat
 
         fd_set readset;
         fd_set exceptset;
-        int i, maxfdp1;
+        int i;
 
         /* 清空可读事件描述符列表 */
         FD_ZERO(&readset);
