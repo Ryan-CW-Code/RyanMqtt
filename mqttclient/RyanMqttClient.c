@@ -179,7 +179,7 @@ RyanMqttError_e RyanMqttDisconnect(RyanMqttClient_t *client, RyanMqttBool_e send
 RyanMqttError_e RyanMqttReconnect(RyanMqttClient_t *client)
 {
     RyanMqttCheck(NULL != client, RyanMqttParamInvalidError, rlog_d);
-    RyanMqttCheck(RyanMqttDisconnectState != RyanMqttGetClientState(client), RyanMqttConnectError, rlog_d);
+    RyanMqttCheck(RyanMqttDisconnectState == RyanMqttGetClientState(client), RyanMqttConnectError, rlog_d);
 
     RyanMqttEventMachine(client, RyanMqttEventReconnectBefore, NULL);
     platformThreadStart(client->config.userData, &client->mqttThread);
