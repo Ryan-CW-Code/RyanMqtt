@@ -5,7 +5,7 @@ extern "C"
 {
 #endif
 #include <stdint.h>
-#include "cmsis_os2.h"
+#include "luat_mcu.h"
 
     typedef struct
     {

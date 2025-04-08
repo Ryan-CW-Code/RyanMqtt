@@ -4,14 +4,12 @@
 
 uint32_t platformUptimeMs(void)
 {
-    if (1000 == osKernelGetTickFreq())
-        return (uint32_t)osKernelGetTickCount();
-    else
-    {
-        uint32_t tick = 0;
-        tick = osKernelGetTickCount() * 1000;
-        return (uint32_t)((tick + osKernelGetTickCount() - 1) / osKernelGetTickCount());
-    }
+    if (1000 == luat_mcu_hz())
+        return (uint32_t)luat_mcu_ticks();
+
+    uint32_t tick = 0;
+    tick = luat_mcu_ticks() * 1000;
+    return (uint32_t)((tick + luat_mcu_ticks() - 1) / luat_mcu_ticks());
 }
 
 /**

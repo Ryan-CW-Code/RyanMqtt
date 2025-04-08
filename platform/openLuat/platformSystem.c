@@ -29,7 +29,7 @@ inline void platformMemoryFree(void *ptr)
  */
 inline void platformDelay(uint32_t ms)
 {
-    osDelay(ms);
+    luat_rtos_task_sleep(luat_rtos_ms2tick(ms));
 }
 
 /**
@@ -63,16 +63,16 @@ RyanMqttError_e platformThreadInit(void *userData,
                                    uint32_t stackSize,
                                    uint32_t priority)
 {
+    // 36 减
+    int32_t result = luat_rtos_task_create(&platformThread->thread, // 线程句柄
+                                           stackSize,               // 线程栈大小
+                                           priority,                // 线程优先级
+                                           name,                    // 线程name
+                                           entry,                   // 线程入口函数
+                                           param,                   // 线程入口函数参数
+                                           priority);
 
-    const osThreadAttr_t myTask02_attributes = {
-        .name = name,
-        .stack_size = stackSize,
-        .priority = (osPriority_t)priority,
-    };
-
-    platformThread->thread = osThreadNew(entry, param, &myTask02_attributes);
-
-    if (NULL == platformThread->thread)
+    if (0 != result)
         return RyanMqttNoRescourceError;
 
     return RyanMqttSuccessError;
@@ -87,7 +87,7 @@ RyanMqttError_e platformThreadInit(void *userData,
  */
 RyanMqttError_e platformThreadDestroy(void *userData, platformThread_t *platformThread)
 {
-    osThreadExit();
+    luat_rtos_task_delete(platformThread->thread);
     return RyanMqttSuccessError;
 }
 
@@ -100,7 +100,8 @@ RyanMqttError_e platformThreadDestroy(void *userData, platformThread_t *platform
  */
 RyanMqttError_e platformThreadStart(void *userData, platformThread_t *platformThread)
 {
-    osThreadResume(platformThread->thread);
+
+    luat_rtos_task_resume(platformThread->thread);
     return RyanMqttSuccessError;
 }
 
@@ -113,7 +114,7 @@ RyanMqttError_e platformThreadStart(void *userData, platformThread_t *platformTh
  */
 RyanMqttError_e platformThreadStop(void *userData, platformThread_t *platformThread)
 {
-    osThreadSuspend(platformThread->thread);
+    luat_rtos_task_suspend(platformThread->thread);
     return RyanMqttSuccessError;
 }
 
@@ -126,11 +127,7 @@ RyanMqttError_e platformThreadStop(void *userData, platformThread_t *platformThr
  */
 RyanMqttError_e platformMutexInit(void *userData, platformMutex_t *platformMutex)
 {
-
-    const osMutexAttr_t myMutex01_attributes = {
-        .name = "mqttMutex", .attr_bits = osMutexRecursive | osMutexPrioInherit | osMutexRobust};
-
-    platformMutex->mutex = osMutexNew(&myMutex01_attributes);
+    luat_rtos_mutex_create(&platformMutex->mutex);
     return RyanMqttSuccessError;
 }
 
@@ -143,7 +140,7 @@ RyanMqttError_e platformMutexInit(void *userData, platformMutex_t *platformMutex
  */
 RyanMqttError_e platformMutexDestroy(void *userData, platformMutex_t *platformMutex)
 {
-    osMutexDelete(platformMutex->mutex);
+    luat_rtos_mutex_delete(platformMutex->mutex);
     return RyanMqttSuccessError;
 }
 
@@ -156,7 +153,7 @@ RyanMqttError_e platformMutexDestroy(void *userData, platformMutex_t *platformMu
  */
 RyanMqttError_e platformMutexLock(void *userData, platformMutex_t *platformMutex)
 {
-    osMutexAcquire(platformMutex->mutex, osWaitForever);
+    luat_rtos_mutex_lock(platformMutex->mutex, LUAT_WAIT_FOREVER);
     return RyanMqttSuccessError;
 }
 
@@ -169,7 +166,7 @@ RyanMqttError_e platformMutexLock(void *userData, platformMutex_t *platformMutex
  */
 RyanMqttError_e platformMutexUnLock(void *userData, platformMutex_t *platformMutex)
 {
-    osMutexRelease(platformMutex->mutex);
+    luat_rtos_mutex_unlock(platformMutex->mutex);
     return RyanMqttSuccessError;
 }
 
@@ -206,7 +203,7 @@ RyanMqttError_e platformCriticalDestroy(void *userData, platformCritical_t *plat
  */
 inline RyanMqttError_e platformCriticalEnter(void *userData, platformCritical_t *platformCritical)
 {
-    osKernelLock();
+    platformCritical->level = luat_rtos_entry_critical();
     return RyanMqttSuccessError;
 }
 
@@ -219,6 +216,6 @@ inline RyanMqttError_e platformCriticalEnter(void *userData, platformCritical_t 
  */
 inline RyanMqttError_e platformCriticalExit(void *userData, platformCritical_t *platformCritical)
 {
-    osKernelUnlock();
+    luat_rtos_exit_critical(platformCritical->level);
     return RyanMqttSuccessError;
 }

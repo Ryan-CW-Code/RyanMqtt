@@ -1,7 +1,7 @@
 // #define rlogEnable               // 是否使能日志
-#define rlogColorEnable          // 是否使能日志颜色
+#define rlogColorEnable            // 是否使能日志颜色
 #define rlogLevel (rlogLvlWarning) // 日志打印等级
-#define rlogTag "RyanMqttNet"    // 日志tag
+#define rlogTag "RyanMqttNet"      // 日志tag
 
 #include "platformNetwork.h"
 #include "RyanMqttLog.h"
@@ -133,7 +133,8 @@ RyanMqttError_e platformNetworkRecvAsync(void *userData, platformNetwork_t *plat
             rlog_d("对端关闭socket连接");
             return RyanSocketFailedError;
         }
-        else if (recvResult < 0) // 小于零，表示错误，个别错误不代表socket错误
+
+        if (recvResult < 0) // 小于零，表示错误，个别错误不代表socket错误
         {
             int32_t rt_errno = errno;
             // 下列3种表示没问题,但需要退出接收
@@ -294,7 +295,8 @@ RyanMqttError_e platformNetworkSendAsync(void *userData, platformNetwork_t *plat
             rlog_d("对端关闭socket连接");
             return RyanSocketFailedError;
         }
-        else if (sendResult < 0) // 小于零，表示错误，个别错误不代表socket错误
+
+        if (sendResult < 0) // 小于零，表示错误，个别错误不代表socket错误
         {
             int32_t rt_errno = errno;
             rlog_d("sendResult: %d, errno: %d", sendResult, rt_errno);

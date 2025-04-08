@@ -10,25 +10,25 @@ extern "C"
 #include <stdint.h>
 #include <assert.h>
 #include "RyanMqttPublic.h"
-#include "cmsis_os2.h"
 #include "luat_debug.h"
 #include "luat_malloc.h"
+#include "luat_rtos.h"
 
 #define RyanMqttAssert(EX) assert(EX)
 
     typedef struct
     {
-        osThreadId_t thread;
+        luat_rtos_task_handle thread;
     } platformThread_t;
 
     typedef struct
     {
-        osMutexId_t mutex;
+        luat_rtos_mutex_t mutex;
     } platformMutex_t;
 
     typedef struct
     {
-        uint8_t invalid; // 不使用，避免报错
+        uint32_t level;
     } platformCritical_t;
 
     extern void *platformMemoryMalloc(size_t size);
