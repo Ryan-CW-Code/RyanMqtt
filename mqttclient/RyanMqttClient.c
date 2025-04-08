@@ -141,9 +141,6 @@ RyanMqttError_e RyanMqttStart(RyanMqttClient_t *client)
 RyanMqttError_e RyanMqttDisconnect(RyanMqttClient_t *client, RyanMqttBool_e sendDiscFlag)
 {
     RyanMqttConnectStatus_e connectState = RyanMqttConnectUserDisconnected;
-    RyanMqttError_e result = RyanMqttFailedError;
-    int32_t packetLen = 0;
-
     RyanMqttCheck(NULL != client, RyanMqttParamInvalidError, rlog_d);
     RyanMqttCheck(RyanMqttConnectState == RyanMqttGetClientState(client), RyanMqttNotConnectError, rlog_d);
 
@@ -151,12 +148,12 @@ RyanMqttError_e RyanMqttDisconnect(RyanMqttClient_t *client, RyanMqttBool_e send
     {
         platformMutexLock(client->config.userData, &client->sendBufLock); // 获取互斥锁
         // 序列化断开连接数据包并发送
-        packetLen = MQTTSerialize_disconnect((uint8_t *)client->config.sendBuffer, client->config.sendBufferSize);
+        int32_t packetLen = MQTTSerialize_disconnect((uint8_t *)client->config.sendBuffer, client->config.sendBufferSize);
         RyanMqttCheckCode(packetLen > 0, RyanMqttSerializePacketError, rlog_d, {
             platformMutexUnLock(client->config.userData, &client->sendBufLock);
         });
 
-        result = RyanMqttSendPacket(client, client->config.sendBuffer, packetLen);
+        RyanMqttError_e result = RyanMqttSendPacket(client, client->config.sendBuffer, packetLen);
         RyanMqttCheckCode(RyanMqttSuccessError == result, result, rlog_d, {
             platformMutexUnLock(client->config.userData, &client->sendBufLock);
         });

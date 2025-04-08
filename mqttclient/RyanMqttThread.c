@@ -10,7 +10,7 @@ void RyanMqttRefreshKeepaliveTime(RyanMqttClient_t *client)
     // 服务器在心跳时间的1.5倍内没有收到keeplive消息则会断开连接
     // 这里算 1.4 b倍时间内没有收到心跳就断开连接
     platformCriticalEnter(client->config.userData, &client->criticalLock);
-    platformTimerCutdown(&client->keepaliveTimer, 1000 * 1.4 * client->config.keepaliveTimeoutS); // 启动心跳定时器
+    platformTimerCutdown(&client->keepaliveTimer, (1000 * client->config.keepaliveTimeoutS) * 1.4); // 启动心跳定时器
     platformCriticalExit(client->config.userData, &client->criticalLock);
 }
 
@@ -44,8 +44,8 @@ static RyanMqttError_e RyanMqttKeepalive(RyanMqttClient_t *client)
     }
 
     // 剩余时间小于 recvtimeout 或者 当到达 0.9 倍时间时发送心跳包
-    else if (timeRemain < client->config.recvTimeout ||
-             timeRemain < 1000 * 0.5 * client->config.keepaliveTimeoutS)
+    if (timeRemain < client->config.recvTimeout ||
+        timeRemain < 1000 * 0.5 * client->config.keepaliveTimeoutS)
     {
         // 节流时间内不发送心跳报文
         if (platformTimerRemain(&client->keepaliveThrottleTimer))
@@ -687,7 +687,7 @@ static RyanMqttError_e RyanMqttConnect(RyanMqttClient_t *client)
     // 等待报文
     // mqtt规范 服务端接收到connect报文后，服务端发送给客户端的第一个报文必须是 CONNACK
     result = RyanMqttReadPacketHandler(client, &packetType);
-    RyanMqttCheck(CONNACK == packetType, RyanMqttFailedError, rlog_d);
+    RyanMqttCheck(CONNACK == packetType && RyanMqttSuccessError == result, RyanMqttFailedError, rlog_d);
 
     // 解析CONNACK报文
     result = MQTTDeserialize_connack(&sessionPresent, (uint8_t *)&connackRc, (uint8_t *)client->config.recvBuffer, client->config.recvBufferSize);

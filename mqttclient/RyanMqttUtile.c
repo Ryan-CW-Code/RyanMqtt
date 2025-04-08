@@ -762,6 +762,10 @@ const char *RyanMqttStrError(int32_t state)
     case RyanMqttConnectTimeout:
         str = "mqtt断开连接, connect超时断开";
         break;
+
+    default:
+        str = "未知错误描述";
+        break;
     }
 
     return str;
