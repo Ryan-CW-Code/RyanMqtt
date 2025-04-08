@@ -226,23 +226,23 @@ static int32_t RyanMqttInitSync(RyanMqttClient_t **client, RyanMqttBool_e syncFl
 
     // 初始化mqtt客户端
     result = RyanMqttInit(client);
-    RyanMqttCheck(RyanMqttSuccessError == result, result, rlog_d);
+    RyanMqttCheck(RyanMqttSuccessError == result, result, rlog_e);
 
     // 注册需要的事件回调
     result = RyanMqttRegisterEventId(*client, RyanMqttEventAnyId);
-    RyanMqttCheck(RyanMqttSuccessError == result, result, rlog_d);
+    RyanMqttCheck(RyanMqttSuccessError == result, result, rlog_e);
 
     // 设置mqtt客户端config
     result = RyanMqttSetConfig(*client, &mqttConfig);
-    RyanMqttCheck(RyanMqttSuccessError == result, result, rlog_d);
+    RyanMqttCheck(RyanMqttSuccessError == result, result, rlog_e);
 
     // 设置遗嘱消息
     result = RyanMqttSetLwt(*client, "pub/test", "this is will", strlen("this is will"), RyanMqttQos0, 0);
-    RyanMqttCheck(RyanMqttSuccessError == result, result, rlog_d);
+    RyanMqttCheck(RyanMqttSuccessError == result, result, rlog_e);
 
     // 启动mqtt客户端线程
     result = RyanMqttStart(*client);
-    RyanMqttCheck(RyanMqttSuccessError == result, result, rlog_d);
+    RyanMqttCheck(RyanMqttSuccessError == result, result, rlog_e);
 
     while (RyanMqttConnectState != RyanMqttGetState(*client))
     {
@@ -326,6 +326,21 @@ static RyanMqttError_e RyanMqttSubscribeTest(RyanMqttQos_e qos)
     for (uint8_t i = 0; i < getArraySize(subscribeArr); i++)
         RyanMqttUnSubscribe(client, subscribeArr[i]);
 
+    for (int32_t i = 0; i < 600; i++)
+    {
+        result = RyanMqttGetSubscribe(client, msgHandles, getArraySize(msgHandles), &subscribeNum);
+        if (result == RyanMqttNoRescourceError)
+            rlog_w("订阅主题数超过缓冲区%d个，已截断，请修改msgHandles缓冲区", getArraySize(msgHandles));
+
+        if (0 == subscribeNum)
+            break;
+
+        if (i > 500)
+            return RyanMqttFailedError;
+
+        delay(100);
+    }
+
     RyanMqttDestorySync(client);
 
     return RyanMqttSuccessError;
@@ -374,6 +389,7 @@ static RyanMqttError_e RyanMqttUnSubscribeTest(RyanMqttQos_e qos)
         delay(100);
     }
 
+    // 取消订阅指定的数值
     for (uint8_t i = 0; i < getArraySize(subscribeArr) - count - 1; i++)
         RyanMqttUnSubscribe(client, subscribeArr[i]);
 
@@ -546,19 +562,19 @@ static RyanMqttError_e RyanMqttKeepAliveTest()
 
     // 初始化mqtt客户端
     result = RyanMqttInit(&client);
-    RyanMqttCheck(RyanMqttSuccessError == result, result, rlog_d);
+    RyanMqttCheck(RyanMqttSuccessError == result, result, rlog_e);
 
     // 注册需要的事件回调
     result = RyanMqttRegisterEventId(client, RyanMqttEventAnyId);
-    RyanMqttCheck(RyanMqttSuccessError == result, result, rlog_d);
+    RyanMqttCheck(RyanMqttSuccessError == result, result, rlog_e);
 
     // 设置mqtt客户端config
     result = RyanMqttSetConfig(client, &mqttConfig);
-    RyanMqttCheck(RyanMqttSuccessError == result, result, rlog_d);
+    RyanMqttCheck(RyanMqttSuccessError == result, result, rlog_e);
 
     // 启动mqtt客户端线程
     result = RyanMqttStart(client);
-    RyanMqttCheck(RyanMqttSuccessError == result, result, rlog_d);
+    RyanMqttCheck(RyanMqttSuccessError == result, result, rlog_e);
 
     while (RyanMqttConnectState != RyanMqttGetState(client))
     {
@@ -589,13 +605,13 @@ int main()
     vallocInit();
     int result = 0;
 
-    RyanMqttCheckCode(RyanMqttSuccessError == RyanMqttSubscribeTest(RyanMqttQos0), RyanMqttFailedError, rlog_d, { goto __exit; });
-    RyanMqttCheckCode(RyanMqttSuccessError == RyanMqttSubscribeTest(RyanMqttQos1), RyanMqttFailedError, rlog_d, { goto __exit; });
-    RyanMqttCheckCode(RyanMqttSuccessError == RyanMqttSubscribeTest(RyanMqttQos2), RyanMqttFailedError, rlog_d, { goto __exit; });
+    RyanMqttCheckCode(RyanMqttSuccessError == RyanMqttSubscribeTest(RyanMqttQos0), RyanMqttFailedError, rlog_e, { goto __exit; });
+    RyanMqttCheckCode(RyanMqttSuccessError == RyanMqttSubscribeTest(RyanMqttQos1), RyanMqttFailedError, rlog_e, { goto __exit; });
+    RyanMqttCheckCode(RyanMqttSuccessError == RyanMqttSubscribeTest(RyanMqttQos2), RyanMqttFailedError, rlog_e, { goto __exit; });
 
-    RyanMqttCheckCode(RyanMqttSuccessError == RyanMqttUnSubscribeTest(RyanMqttQos0), RyanMqttFailedError, rlog_d, { goto __exit; });
-    RyanMqttCheckCode(RyanMqttSuccessError == RyanMqttUnSubscribeTest(RyanMqttQos1), RyanMqttFailedError, rlog_d, { goto __exit; });
-    RyanMqttCheckCode(RyanMqttSuccessError == RyanMqttUnSubscribeTest(RyanMqttQos2), RyanMqttFailedError, rlog_d, { goto __exit; });
+    RyanMqttCheckCode(RyanMqttSuccessError == RyanMqttUnSubscribeTest(RyanMqttQos0), RyanMqttFailedError, rlog_e, { goto __exit; });
+    RyanMqttCheckCode(RyanMqttSuccessError == RyanMqttUnSubscribeTest(RyanMqttQos1), RyanMqttFailedError, rlog_e, { goto __exit; });
+    RyanMqttCheckCode(RyanMqttSuccessError == RyanMqttUnSubscribeTest(RyanMqttQos2), RyanMqttFailedError, rlog_e, { goto __exit; });
 
     // 发布 & 订阅 qos 测试
     result = RyanMqttPublishTest(RyanMqttQos0, 1000, 0);
@@ -619,7 +635,7 @@ int main()
     RyanMqttReconnectTest(3, 0);
     checkMemory;
 
-    RyanMqttCheckCode(RyanMqttSuccessError == RyanMqttKeepAliveTest(), RyanMqttFailedError, rlog_d, { goto __exit; });
+    RyanMqttCheckCode(RyanMqttSuccessError == RyanMqttKeepAliveTest(), RyanMqttFailedError, rlog_e, { goto __exit; });
 
 __exit:
     while (1)
