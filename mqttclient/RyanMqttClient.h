@@ -71,8 +71,8 @@ extern "C"
         char *taskName;                        // 线程名字
         char *recvBuffer;                      // mqtt接收缓冲区
         char *sendBuffer;                      // mqtt发送缓冲区
-        uint8_t autoReconnectFlag : 1;         // 自动重连标志位
-        uint8_t cleanSessionFlag : 1;          // 清除会话标志位
+        RyanMqttBool_e autoReconnectFlag : 1;  // 自动重连标志位
+        RyanMqttBool_e cleanSessionFlag : 1;   // 清除会话标志位
         uint8_t mqttVersion : 4;               // mqtt版本 3.1.1是4, 3.1是3
         uint16_t port;                         // mqtt服务器端口
         uint16_t ackHandlerRepeatCountWarning; // ack重发超过这个数值后触发事件回调,根据实际硬件选择。典型值为 * ackTimeout ~= 300秒
@@ -92,8 +92,8 @@ extern "C"
 
     typedef struct
     {
-        uint8_t lwtFlag : 1;                    // 遗嘱标志位
-        uint8_t destoryFlag : 1;                // 销毁标志位
+        RyanMqttBool_e lwtFlag : 1;             // 遗嘱标志位
+        RyanMqttBool_e destoryFlag : 1;         // 销毁标志位
         uint16_t ackHandlerCount;               // 等待ack的记录个数
         uint16_t packetId;                      // mqtt报文标识符,控制报文必须包含一个非零的 16 位报文标识符
         uint32_t eventFlag;                     // 事件标志位
