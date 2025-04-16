@@ -826,12 +826,19 @@ void RyanMqttThread(void *argument)
         case RyanMqttDisconnectState: // 断开连接状态
             rlog_d("断开连接状态");
             if (RyanMqttTrue != client->config.autoReconnectFlag) // 没有使能自动连接就休眠线程
+            {
                 platformThreadStop(client->config.userData, &client->mqttThread);
 
-            rlog_d("触发自动连接，%dms后开始连接\r\n", client->config.reconnectTimeout);
-            platformDelay(client->config.reconnectTimeout);
-            RyanMqttEventMachine(client, RyanMqttEventReconnectBefore, NULL); // 给上层触发重新连接前事件
-
+                // 断连的时候会暂停线程，线程重新启动就是用户手动连接了
+                rlog_d("手动重新连接\r\n");
+                RyanMqttEventMachine(client, RyanMqttEventReconnectBefore, NULL);
+            }
+            else
+            {
+                rlog_d("触发自动连接，%dms后开始连接\r\n", client->config.reconnectTimeout);
+                platformDelay(client->config.reconnectTimeout);
+                RyanMqttEventMachine(client, RyanMqttEventReconnectBefore, NULL); // 给上层触发重新连接前事件
+            }
             break;
 
         case RyanMqttReconnectState:
