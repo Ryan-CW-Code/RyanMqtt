@@ -31,6 +31,8 @@ extern "C"
         int socket;
     } platformNetwork_t;
 
+    extern RyanMqttError_e platformNetworkInit(void *userData, platformNetwork_t *platformNetwork);
+    extern RyanMqttError_e platformNetworkDestroy(void *userData, platformNetwork_t *platformNetwork);
     extern RyanMqttError_e platformNetworkConnect(void *userData, platformNetwork_t *platformNetwork, const char *host, uint16_t port);
     extern RyanMqttError_e platformNetworkRecvAsync(void *userData, platformNetwork_t *platformNetwork, char *recvBuf, int recvLen, int timeout);
     extern RyanMqttError_e platformNetworkSendAsync(void *userData, platformNetwork_t *platformNetwork, char *sendBuf, int sendLen, int timeout);

@@ -7,6 +7,32 @@
 #include "RyanMqttLog.h"
 
 /**
+ * @brief 初始化网络接口层
+ *
+ * @param userData
+ * @param platformNetwork
+ * @return RyanMqttError_e
+ */
+RyanMqttError_e platformNetworkInit(void *userData, platformNetwork_t *platformNetwork)
+{
+    platformNetwork->socket = -1;
+    return RyanMqttSuccessError;
+}
+
+/**
+ * @brief 销毁网络接口层
+ *
+ * @param userData
+ * @param platformNetwork
+ * @return RyanMqttError_e
+ */
+RyanMqttError_e platformNetworkDestroy(void *userData, platformNetwork_t *platformNetwork)
+{
+    platformNetwork->socket = -1;
+    return RyanMqttSuccessError;
+}
+
+/**
  * @brief 连接mqtt服务器
  *
  * @param userData
