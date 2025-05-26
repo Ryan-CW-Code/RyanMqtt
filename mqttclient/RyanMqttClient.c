@@ -55,7 +55,7 @@ RyanMqttError_e RyanMqttInit(RyanMqttClient_t **pClient)
     memset(client, 0, sizeof(RyanMqttClient_t));
 
     // 网络接口初始化
-    client->network.socket = -1;
+    platformNetworkInit(client->config.userData, &client->network);
 
     platformMutexInit(client->config.userData, &client->sendBufLock);     // 初始化发送缓冲区互斥锁
     platformCriticalInit(client->config.userData, &client->criticalLock); // 初始化临界区
@@ -534,8 +534,6 @@ RyanMqttError_e RyanMqttSetConfig(RyanMqttClient_t *client, RyanMqttClientConfig
     }
 
     result = setConfigValue(&client->config.host, clientConfig->host);
-    RyanMqttCheckCode(RyanMqttSuccessError == result, result, rlog_d, { goto __exit; });
-
     RyanMqttCheckCode(RyanMqttSuccessError == result, result, rlog_d, { goto __exit; });
 
     result = setConfigValue(&client->config.taskName, clientConfig->taskName);

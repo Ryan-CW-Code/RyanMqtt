@@ -759,8 +759,11 @@ void RyanMqttThread(void *argument)
         {
             RyanMqttEventMachine(client, RyanMqttEventDestoryBefore, (void *)NULL);
 
-            // 清除网络组件
+            // 关闭网络组件
             platformNetworkClose(client->config.userData, &client->network);
+
+            // 销毁网络组件
+            platformNetworkDestroy(client->config.userData, &client->network);
 
             // 清除config信息
             if (NULL != client->config.clientId)

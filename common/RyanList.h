@@ -7,10 +7,10 @@ extern "C"
 {
 #endif
 
-#define RyanOffsetOf(type, member) ((size_t) & (((type *)0)->member))
+#define RyanOffsetOf(type, member) ((size_t)&(((type *)0)->member))
 
 #define RyanContainerOf(ptr, type, member) \
-    ((type *)((unsigned char *)(ptr)-RyanOffsetOf(type, member)))
+    ((type *)((unsigned char *)(ptr) - RyanOffsetOf(type, member)))
 
 // 通过链表获取节点首地址
 #define RyanListEntry(list, type, member) \

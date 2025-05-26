@@ -40,7 +40,7 @@ inline void platformDelay(uint32_t ms)
  */
 inline void platformPrint(char *str, uint16_t strLen)
 {
-    rt_kprintf("%.*s", strLen, str);
+    rt_kputs(str);
 }
 
 /**
