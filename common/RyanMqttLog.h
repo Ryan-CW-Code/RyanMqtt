@@ -6,8 +6,9 @@
 #include "platformSystem.h"
 
 // 日志等级
-#define rlogLvlError 0
-#define rlogLvlWarning 1
+#define rlogLvlAssert 0
+#define rlogLvlError 1
+#define rlogLvlWarning 2
 #define rlogLvlInfo 2
 #define rlogLvlDebug 3
 
