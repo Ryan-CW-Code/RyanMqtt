@@ -45,14 +45,32 @@ RyanMqttError_e platformNetworkDestroy(void *userData, platformNetwork_t *platfo
 RyanMqttError_e platformNetworkConnect(void *userData, platformNetwork_t *platformNetwork, const char *host, uint16_t port)
 {
     RyanMqttError_e result = RyanMqttSuccessError;
+    char *buf = NULL;
+    struct sockaddr_in server_addr = {
+        .sin_family = AF_INET,
+        .sin_port = htons(port), // 指定端口号
+    };
 
-    struct hostent hostinfo = {0};
-
-    // 解析域名信息
+    // 传递的是ip地址，不用进行dns解析，某些情况下调用dns解析反而会错误
+    if (INADDR_NONE != inet_addr(host))
     {
-        char buf[256];
+        rlog_e("不用解析dns");
+        server_addr.sin_addr.s_addr = inet_addr(host);
+    }
+    // 解析域名信息
+    else
+    {
+        rlog_e("需要解析dns");
         int h_errnop;
         struct hostent *phost;
+        struct hostent hostinfo = {0};
+
+        buf = (char *)platformMemoryMalloc(384);
+        if (NULL == buf)
+        {
+            result = RyanMqttNoRescourceError;
+            goto __exit;
+        }
 
         if (0 != gethostbyname_r(host, &hostinfo, buf, sizeof(buf), &phost, &h_errnop))
         {
@@ -69,6 +87,8 @@ RyanMqttError_e platformNetworkConnect(void *userData, platformNetwork_t *platfo
 
             hostinfo = *phostinfo;
         }
+
+        server_addr.sin_addr = *((struct in_addr *)hostinfo.h_addr_list[0]);
     }
 
     platformNetwork->socket = socket(AF_INET, SOCK_STREAM, IPPROTO_IP);
@@ -77,12 +97,6 @@ RyanMqttError_e platformNetworkConnect(void *userData, platformNetwork_t *platfo
         result = RyanSocketFailedError;
         goto __exit;
     }
-
-    struct sockaddr_in server_addr = {
-        .sin_family = AF_INET,
-        .sin_port = htons(port), // 指定端口号
-        .sin_addr = *((struct in_addr *)hostinfo.h_addr_list[0]),
-    };
 
     // 绑定套接字到主机地址和端口号
     if (connect(platformNetwork->socket, (struct sockaddr *)&server_addr, sizeof(server_addr)) != 0)
@@ -93,6 +107,9 @@ RyanMqttError_e platformNetworkConnect(void *userData, platformNetwork_t *platfo
     }
 
 __exit:
+    if (NULL != buf)
+        platformMemoryFree(buf);
+
     if (RyanMqttSuccessError != result)
         rlog_e("socket连接失败: %d", result);
     return result;
