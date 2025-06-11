@@ -54,13 +54,13 @@ RyanMqttError_e platformNetworkConnect(void *userData, platformNetwork_t *platfo
     // 传递的是ip地址，不用进行dns解析，某些情况下调用dns解析反而会错误
     if (INADDR_NONE != inet_addr(host))
     {
-        rlog_e("不用解析dns");
+        rlog_d("host: %s, 不用dns解析", host);
         server_addr.sin_addr.s_addr = inet_addr(host);
     }
     // 解析域名信息
     else
     {
-        rlog_e("需要解析dns");
+        rlog_d("host: %s, 需要dns解析", host);
         int h_errnop;
         struct hostent *phost;
         struct hostent hostinfo = {0};
