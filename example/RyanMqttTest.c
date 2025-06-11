@@ -17,10 +17,8 @@
 #include <rtdevice.h>
 #include <rtdbg.h>
 
-#define rlogEnable               // 是否使能日志
-#define rlogColorEnable          // 是否使能日志颜色
 #define rlogLevel (rlogLvlDebug) // 日志打印等级
-#define rlogTag "RyanMqttTest"   // 日志tag
+
 #include "RyanMqttLog.h"
 #include "RyanMqttClient.h"
 
@@ -102,7 +100,7 @@ static void mqttEventHandle(void *pclient, RyanMqttEventId_e event, const void *
     {
         RyanMqttMsgHandler_t *msgHandler = ((RyanMqttAckHandler_t *)eventData)->msgHandler;
         rlog_w("qos1 / qos2发送成功事件回调 topic: %s, qos: %d", msgHandler->topic, msgHandler->qos);
-        mqttTest[PublishedEventCount]++;
+        pubTestPublishedEventCount++;
         break;
     }
 
@@ -114,7 +112,7 @@ static void mqttEventHandle(void *pclient, RyanMqttEventId_e event, const void *
 
         rlog_i("%.*s", msgData->payloadLen, msgData->payload);
 
-        mqttTest[dataEventCount]++;
+        pubTestDataEventCount++;
         break;
     }
 
@@ -147,7 +145,7 @@ static void mqttEventHandle(void *pclient, RyanMqttEventId_e event, const void *
         // 这里选择直接丢弃该消息
         RyanMqttAckHandler_t *ackHandler = (RyanMqttAckHandler_t *)eventData;
         rlog_w("ack重发次数超过警戒值回调 packetType: %d, packetId: %d, topic: %s, qos: %d", ackHandler->packetType, ackHandler->packetId, ackHandler->msgHandler->topic, ackHandler->msgHandler->qos);
-        RyanMqttDiscardAckHandler(client, ackHandler->packetType, ackHandler->packetId);
+        RyanMqttDiscardAckHandler(client, ackHandler);
 
         break;
     }
@@ -254,10 +252,6 @@ static int MqttConnect(int argc, char *argv[])
         .taskName = "mqttThread",
         .taskPrio = 16,
         .taskStack = 2048,
-        .recvBufferSize = sizeof(mqttRecvBuffer),
-        .sendBufferSize = sizeof(mqttSendBuffer),
-        .recvBuffer = mqttRecvBuffer,
-        .sendBuffer = mqttSendBuffer,
         .mqttVersion = 4,
         .ackHandlerRepeatCountWarning = 6,
         .ackHandlerCountWarning = 20,
@@ -541,7 +535,7 @@ static int Mqttdata(int argc, char *argv[])
     }
 
     rlog_i("接收到数据次数统计: %d, qos1和qos2发布成功的次数统计: %d",
-           mqttTest[dataEventCount], mqttTest[PublishedEventCount]);
+           pubTestDataEventCount, pubTestPublishedEventCount);
 
     return 0;
 }

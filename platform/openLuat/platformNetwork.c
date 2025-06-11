@@ -1,7 +1,4 @@
-#define rlogEnable               // 是否使能日志
-#define rlogColorEnable          // 是否使能日志颜色
 #define rlogLevel (rlogLvlDebug) // 日志打印等级
-#define rlogTag "RyanMqttNet"    // 日志tag
 
 #include "platformNetwork.h"
 #include "RyanMqttLog.h"
@@ -113,10 +110,8 @@ __exit:
  */
 RyanMqttError_e platformNetworkRecvAsync(void *userData, platformNetwork_t *platformNetwork, char *recvBuf, int recvLen, int timeout)
 {
-
     int32_t recvResult = 0;
     int32_t offset = 0;
-    int32_t timeOut2 = timeout;
     struct timeval tv = {0};
     platformTimer_t timer = {0};
 
@@ -128,10 +123,10 @@ RyanMqttError_e platformNetworkRecvAsync(void *userData, platformNetwork_t *plat
 
     platformTimerCutdown(&timer, timeout);
 
-    while ((offset < recvLen) && (0 != timeOut2))
+    while ((offset < recvLen) && (0 != timeout))
     {
-        tv.tv_sec = timeOut2 / 1000;
-        tv.tv_usec = timeOut2 % 1000 * 1000;
+        tv.tv_sec = timeout / 1000;
+        tv.tv_usec = timeout * 1000 % 1000;
 
         setsockopt(platformNetwork->socket, SOL_SOCKET, SO_RCVTIMEO, (char *)&tv, sizeof(struct timeval)); // 设置错做模式为非阻塞
 
@@ -160,7 +155,7 @@ RyanMqttError_e platformNetworkRecvAsync(void *userData, platformNetwork_t *plat
         }
 
         offset += recvResult;
-        timeOut2 = platformTimerRemain(&timer);
+        timeout = platformTimerRemain(&timer);
     }
 
     if (offset != recvLen)
@@ -184,10 +179,8 @@ RyanMqttError_e platformNetworkRecvAsync(void *userData, platformNetwork_t *plat
  */
 RyanMqttError_e platformNetworkSendAsync(void *userData, platformNetwork_t *platformNetwork, char *sendBuf, int sendLen, int timeout)
 {
-
     int32_t sendResult = 0;
     int32_t offset = 0;
-    int32_t timeOut2 = timeout;
     struct timeval tv = {0};
     platformTimer_t timer = {0};
 
@@ -199,10 +192,10 @@ RyanMqttError_e platformNetworkSendAsync(void *userData, platformNetwork_t *plat
 
     platformTimerCutdown(&timer, timeout);
 
-    while ((offset < sendLen) && (0 != timeOut2))
+    while ((offset < sendLen) && (0 != timeout))
     {
-        tv.tv_sec = timeOut2 / 1000;
-        tv.tv_usec = timeOut2 % 1000 * 1000;
+        tv.tv_sec = timeout / 1000;
+        tv.tv_usec = timeout * 1000 % 1000;
 
         setsockopt(platformNetwork->socket, SOL_SOCKET, SO_SNDTIMEO, (char *)&tv, sizeof(struct timeval)); // 设置错做模式为非阻塞
 
@@ -231,7 +224,7 @@ RyanMqttError_e platformNetworkSendAsync(void *userData, platformNetwork_t *plat
         }
 
         offset += sendResult;
-        timeOut2 = platformTimerRemain(&timer);
+        timeout = platformTimerRemain(&timer);
     }
 
     if (offset != sendLen)

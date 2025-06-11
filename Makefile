@@ -5,6 +5,7 @@ CC = gcc
 CFLAGS += -I common \
           -I pahoMqtt \
           -I mqttclient \
+          -I coreMqtt \
           -I platform/linux \
           -I platform/linux/valloc
 
@@ -18,6 +19,7 @@ SRCS += $(wildcard ./platform/linux/*.c)
 SRCS += $(wildcard ./platform/linux/valloc/*.c)
 SRCS += $(wildcard ./pahoMqtt/*.c)
 SRCS += $(wildcard ./mqttclient/*.c)
+SRCS += $(wildcard ./coreMqtt/*.c)
 
 # 定义目标文件和输出文件
 OBJS = $(patsubst %.c,%.o,$(SRCS))

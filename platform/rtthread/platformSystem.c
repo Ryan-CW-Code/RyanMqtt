@@ -204,7 +204,7 @@ RyanMqttError_e platformCriticalDestroy(void *userData, platformCritical_t *plat
  */
 inline RyanMqttError_e platformCriticalEnter(void *userData, platformCritical_t *platformCritical)
 {
-    rt_enter_critical();
+    platformCritical->level = rt_hw_interrupt_disable();
     return RyanMqttSuccessError;
 }
 
@@ -217,6 +217,6 @@ inline RyanMqttError_e platformCriticalEnter(void *userData, platformCritical_t 
  */
 inline RyanMqttError_e platformCriticalExit(void *userData, platformCritical_t *platformCritical)
 {
-    rt_exit_critical();
+    rt_hw_interrupt_enable(platformCritical->level);
     return RyanMqttSuccessError;
 }

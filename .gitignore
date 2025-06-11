@@ -15,4 +15,6 @@ null
 
 # 忽略
 core
-
+*.lua
+build
+.xmake

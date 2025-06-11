@@ -1,5 +1,48 @@
 {
+    "commentTranslate.hover.enabled": false,
+    "clangd.arguments": [
+        "--compile-commands-dir=.vscode",
+    ],
+    "C_Cpp.codeAnalysis.clangTidy.args": [
+        // "--extra-arg=-ferror-limit=1"
+        // "--extra-arg=-m32",
+    ],
+    "C_Cpp.codeAnalysis.clangTidy.checks.disabled": [
+        "bugprone-easily-swappable-parameters",
+        "bugprone-narrowing-conversions",
+        "llvm-include-order",
+        "llvm-header-guard",
+        "llvm-else-after-return",
+        "bugprone-narrowing-conversions",
+        "bugprone-implicit-widening-of-multiplication-result"
+    ],
+    "C_Cpp.codeAnalysis.clangTidy.enabled": true,
+    // "c-cpp-flylint.enable": true,
+    "c-cpp-flylint.cppcheck.severityLevels": {
+        "error": "Error",
+        "warning": "Warning",
+        "style": "Information",
+        "performance": "Information",
+        "portability": "Information",
+        "information": "Information"
+    },
+    "c-cpp-flylint.cppcheck.extraArgs": [
+        // "--suppress=constParameterPointer",
+        // "--suppress=constParameterCallback",
+        "--check-level=exhaustive",
+        // "--suppress=variableScope",
+        // "--suppress=unreadVariable",
+        // "--suppress=constVariablePointer",
+        // "--suppress=constParameter",
+    ],
     "files.associations": {
-        "string.h": "c"
+        "*.c": "c",
+        "ryanmqttlog.h": "c",
+        "type_traits": "c",
+        "param.h": "c",
+        "tcp.h": "c",
+        "fcntl.h": "c",
+        "in.h": "c",
+        "inet.h": "c"
     }
 }

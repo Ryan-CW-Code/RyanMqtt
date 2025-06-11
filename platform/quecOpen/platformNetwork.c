@@ -3,10 +3,7 @@
  *
  */
 
-// #define rlogEnable               // 是否使能日志
-#define rlogColorEnable          // 是否使能日志颜色
 #define rlogLevel (rlogLvlWarning) // 日志打印等级
-#define rlogTag "RyanMqttNet"      // 日志tag
 
 #include "platformNetwork.h"
 #include "RyanMqttLog.h"

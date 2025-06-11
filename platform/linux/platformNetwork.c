@@ -1,7 +1,4 @@
-// #define rlogEnable               // 是否使能日志
-#define rlogColorEnable            // 是否使能日志颜色
-#define rlogLevel (rlogLvlWarning) // 日志打印等级
-#define rlogTag "RyanMqttNet"      // 日志tag
+#define rlogLevel (rlogLvlDebug) // 日志打印等级
 
 #include "platformNetwork.h"
 #include "RyanMqttLog.h"
@@ -46,69 +43,63 @@ RyanMqttError_e platformNetworkConnect(void *userData, platformNetwork_t *platfo
 {
     RyanMqttError_e result = RyanMqttSuccessError;
 
-    // ?线程安全版本，有些设备没有实现，默认不启用。如果涉及多个客户端解析域名请使用线程安全版本
-    char buf[256];
-    int ret;
-    struct hostent hostinfo, *phost;
-
-    if (0 != gethostbyname_r(host, &hostinfo, buf, sizeof(buf), &phost, &ret))
+    struct hostent hostinfo = {0};
+    char *buf = (char *)platformMemoryMalloc(384);
+    if (NULL == buf)
     {
-        result = RyanSocketFailedError;
-        goto exit;
+        result = RyanMqttNoRescourceError;
+        goto __exit;
+    }
+
+    // 解析域名信息
+    {
+        int h_errnop;
+        struct hostent *phost;
+
+        if (0 != gethostbyname_r(host, &hostinfo, buf, 384, &phost, &h_errnop))
+        {
+            rlog_w("平台可能不支持 gethostbyname_r 函数, 再次尝试使用 gethostbyname 获取域名信息");
+
+            // 非线程安全版本,请根据实际情况选择使用
+            // NOLINTNEXTLINE(concurrency-mt-unsafe)
+            struct hostent *phostinfo = gethostbyname(host);
+            if (NULL == phostinfo)
+            {
+                result = RyanMqttNoRescourceError;
+                goto __exit;
+            }
+
+            hostinfo = *phostinfo;
+        }
     }
 
     platformNetwork->socket = socket(AF_INET, SOCK_STREAM, IPPROTO_IP);
     if (platformNetwork->socket < 0)
     {
         result = RyanSocketFailedError;
-        goto exit;
+        goto __exit;
     }
 
-    struct sockaddr_in server_addr;
-    memset(&server_addr, 0, sizeof(server_addr));
-    server_addr.sin_family = AF_INET;
-    server_addr.sin_port = htons(port); // 指定端口号，这里使用HTTP默认端口80
-    server_addr.sin_addr = *((struct in_addr *)hostinfo.h_addr_list[0]);
+    struct sockaddr_in server_addr = {
+        .sin_family = AF_INET,
+        .sin_port = htons(port), // 指定端口号
+        .sin_addr = *((struct in_addr *)hostinfo.h_addr_list[0]),
+    };
 
     // 绑定套接字到主机地址和端口号
     if (connect(platformNetwork->socket, (struct sockaddr *)&server_addr, sizeof(server_addr)) != 0)
     {
         platformNetworkClose(userData, platformNetwork);
         result = RyanMqttSocketConnectFailError;
-        goto exit;
+        goto __exit;
     }
 
-    // 非线程安全版本,请根据实际情况选择使用
-    // struct hostent *hostinfo;
-    // hostinfo = gethostbyname(host);
-    // if (NULL == hostinfo)
-    // {
-    //     result = RyanSocketFailedError;
-    //     goto exit;
-    // }
+__exit:
+    if (NULL != buf)
+        platformMemoryFree(buf);
 
-    // platformNetwork->socket = socket(AF_INET, SOCK_STREAM, IPPROTO_IP);
-    // if (platformNetwork->socket < 0)
-    // {
-    //     result = RyanSocketFailedError;
-    //     goto exit;
-    // }
-
-    // struct sockaddr_in server_addr;
-    // memset(&server_addr, 0, sizeof(server_addr));
-    // server_addr.sin_family = AF_INET;
-    // server_addr.sin_port = htons(port); // 指定端口号，这里使用HTTP默认端口80
-    // server_addr.sin_addr = *((struct in_addr *)hostinfo->h_addr_list[0]);
-
-    // // 绑定套接字到主机地址和端口号
-    // if (connect(platformNetwork->socket, (struct sockaddr *)&server_addr, sizeof(server_addr)) != 0)
-    // {
-    //     platformNetworkClose(userData, platformNetwork);
-    //     result = RyanMqttSocketConnectFailError;
-    //     goto exit;
-    // }
-
-exit:
+    if (RyanMqttSuccessError != result)
+        rlog_e("socket连接失败: %d", result);
     return result;
 }
 
@@ -125,144 +116,46 @@ exit:
  * 接收超时或者接收数据长度不等于期待数据接受长度 RyanMqttRecvPacketTimeOutError
  * 接收成功 RyanMqttSuccessError
  */
-RyanMqttError_e platformNetworkRecvAsync(void *userData, platformNetwork_t *platformNetwork, char *recvBuf, int recvLen, int timeout)
+int32_t platformNetworkRecvAsync(void *userData, platformNetwork_t *platformNetwork, char *recvBuf, size_t recvLen, int32_t timeout)
 {
-
-    // int32_t recvResult = 0;
-    // int32_t offset = 0;
-    // int32_t timeOut2 = timeout;
-    // struct timeval tv = {0};
-    // platformTimer_t timer = {0};
-
-    // if (-1 == platformNetwork->socket)
-    //     return RyanSocketFailedError;
-
-    // platformTimerCutdown(&timer, timeout);
-
-    // while ((offset < recvLen) && (0 != timeOut2))
-    // {
-
-    //     tv.tv_sec = timeOut2 / 1000;
-    //     tv.tv_usec = timeOut2 % 1000 * 1000;
-
-    //     if (tv.tv_sec <= 0 && tv.tv_usec <= 100)
-    //     {
-    //         tv.tv_sec = 0;
-    //         tv.tv_usec = 100;
-    //     }
-
-    //     setsockopt(platformNetwork->socket, SOL_SOCKET, SO_RCVTIMEO, (char *)&tv, sizeof(struct timeval)); // 设置错做模式为非阻塞
-
-    //     recvResult = recv(platformNetwork->socket, recvBuf + offset, recvLen - offset, 0);
-    //     if (0 == recvResult)
-    //     {
-    //         rlog_d("对端关闭socket连接");
-    //         return RyanSocketFailedError;
-    //     }
-    //     else if (recvResult < 0) // 小于零，表示错误，个别错误不代表socket错误
-    //     {
-    //         int32_t err = errno;
-    //         // 下列3种表示没问题,但需要推出发送
-    //         if (err == EAGAIN ||      // 套接字已标记为非阻塞，而接收操作被阻塞或者接收超时
-    //             err == EWOULDBLOCK || // 发送时套接字发送缓冲区已满，或接收时套接字接收缓冲区为空
-    //             err == EINTR)         // 操作被信号中断
-    //             break;
-
-    //         return RyanSocketFailedError;
-    //     }
-
-    //     offset += recvResult;
-    //     timeOut2 = platformTimerRemain(&timer);
-    // }
-
-    // if (offset != recvLen)
-    //     return RyanMqttRecvPacketTimeOutError;
-
-    // return RyanMqttSuccessError;
-
     int32_t recvResult = 0;
-    int32_t offset = 0;
-    int32_t timeOut2 = timeout;
     struct timeval tv = {0};
-    platformTimer_t timer = {0};
 
     if (-1 == platformNetwork->socket)
-        return RyanSocketFailedError;
-
-    platformTimerCutdown(&timer, timeout);
-
-    while ((offset < recvLen) && (0 != timeOut2))
     {
-
-        tv.tv_sec = timeOut2 / 1000;
-        tv.tv_usec = timeOut2 % 1000 * 1000;
-
-        if (tv.tv_sec <= 0 && tv.tv_usec <= 100)
-        {
-            tv.tv_sec = 0;
-            tv.tv_usec = 100;
-        }
-
-        fd_set readset;
-        fd_set exceptset;
-        int i;
-
-        /* 清空可读事件描述符列表 */
-        FD_ZERO(&readset);
-        FD_ZERO(&exceptset);
-
-        FD_SET(platformNetwork->socket, &readset);   // 监听可读事件
-        FD_SET(platformNetwork->socket, &exceptset); // 监听异常事件
-
-        /* 等待设定的网络描述符有事件发生 */
-        i = select(platformNetwork->socket + 1, &readset, NULL, &exceptset, &tv);
-        if (i < 0)
-        {
-            int32_t err = errno;
-
-            // 下列3种表示没问题,但需要退出接收
-            if (err == EAGAIN ||      // 套接字已标记为非阻塞，而接收操作被阻塞或者接收超时
-                err == EWOULDBLOCK || // 发送时套接字发送缓冲区已满，或接收时套接字接收缓冲区为空
-                err == EINTR)         // 操作被信号中断
-                break;
-
-            return RyanSocketFailedError;
-        }
-        /* 查看 sock 描述符上有没有发生可读事件 */
-        else if (i > 0)
-        {
-            if (FD_ISSET(platformNetwork->socket, &readset))
-            {
-                recvResult = recv(platformNetwork->socket, recvBuf + offset, recvLen - offset, 0);
-
-                if (recvResult <= 0) // 小于零，表示错误，个别错误不代表socket错误
-                {
-                    int32_t err = errno;
-                    // 下列3种表示没问题,但需要退出接收
-                    if (err == EAGAIN ||      // 套接字已标记为非阻塞，而接收操作被阻塞或者接收超时
-                        err == EWOULDBLOCK || // 发送时套接字发送缓冲区已满，或接收时套接字接收缓冲区为空
-                        err == EINTR)         // 操作被信号中断
-                        break;
-
-                    return RyanSocketFailedError;
-                }
-
-                offset += recvResult;
-            }
-
-            if (FD_ISSET(platformNetwork->socket, &exceptset))
-            {
-                return RyanSocketFailedError;
-            }
-        }
-
-        timeOut2 = platformTimerRemain(&timer);
+        rlog_e("对端关闭socket连接");
+        return -1;
     }
 
-    if (offset != recvLen)
-        return RyanMqttRecvPacketTimeOutError;
+    tv.tv_sec = timeout / 1000;
+    tv.tv_usec = timeout % 1000 * 1000;
 
-    return RyanMqttSuccessError;
+    setsockopt(platformNetwork->socket, SOL_SOCKET, SO_RCVTIMEO, (char *)&tv, sizeof(struct timeval)); // 设置错做模式为非阻塞
+
+    recvResult = recv(platformNetwork->socket, recvBuf, recvLen, 0);
+    if (0 == recvResult)
+    {
+        rlog_e("对端关闭socket连接");
+        return -1;
+    }
+    else if (recvResult < 0) // 小于零，表示错误，个别错误不代表socket错误
+    {
+        int32_t rt_errno = errno; // 似乎5.0.0以上版本需要使用 rt_get_errno
+        // 下列表示没问题,但需要退出接收
+        if (EAGAIN == rt_errno ||      // 套接字已标记为非阻塞，而接收操作被阻塞或者接收超时
+            EWOULDBLOCK == rt_errno || // 发送时套接字发送缓冲区已满，或接收时套接字接收缓冲区为空
+            EINTR == rt_errno ||       // 操作被信号中断
+            ETIME == rt_errno)         // 计时器过期
+        {
+            return 0;
+        }
+
+        // NOLINTNEXTLINE(concurrency-mt-unsafe)
+        rlog_e("recvResult: %d, errno: %d  str: %s", recvResult, rt_errno, strerror(rt_errno));
+        return -1;
+    }
+
+    return recvResult;
 }
 
 /**
@@ -278,60 +171,47 @@ RyanMqttError_e platformNetworkRecvAsync(void *userData, platformNetwork_t *plat
  * 接收超时或者接收数据长度不等于期待数据接受长度 RyanMqttRecvPacketTimeOutError
  * 接收成功 RyanMqttSuccessError
  */
-RyanMqttError_e platformNetworkSendAsync(void *userData, platformNetwork_t *platformNetwork, char *sendBuf, int sendLen, int timeout)
+int32_t platformNetworkSendAsync(void *userData, platformNetwork_t *platformNetwork, char *sendBuf, size_t sendLen, int32_t timeout)
 {
 
     int32_t sendResult = 0;
-    int32_t offset = 0;
-    int32_t timeOut2 = timeout;
     struct timeval tv = {0};
-    platformTimer_t timer = {0};
 
     if (-1 == platformNetwork->socket)
-        return RyanSocketFailedError;
-
-    platformTimerCutdown(&timer, timeout);
-
-    while ((offset < sendLen) && (0 != timeOut2))
     {
-
-        tv.tv_sec = timeOut2 / 1000;
-        tv.tv_usec = timeOut2 % 1000 * 1000;
-
-        if (tv.tv_sec <= 0 && tv.tv_usec <= 100)
-        {
-            tv.tv_sec = 0;
-            tv.tv_usec = 100;
-        }
-
-        setsockopt(platformNetwork->socket, SOL_SOCKET, SO_SNDTIMEO, (char *)&tv, sizeof(struct timeval)); // 设置错做模式为非阻塞
-
-        sendResult = send(platformNetwork->socket, sendBuf + offset, sendLen - offset, 0);
-        if (0 == sendResult)
-        {
-            rlog_d("对端关闭socket连接");
-            return RyanSocketFailedError;
-        }
-        else if (sendResult < 0) // 小于零，表示错误，个别错误不代表socket错误
-        {
-            int32_t err = errno;
-            // 下列3种表示没问题,但需要退出发送
-            if (err == EAGAIN ||      // 套接字已标记为非阻塞，而接收操作被阻塞或者接收超时
-                err == EWOULDBLOCK || // 发送时套接字发送缓冲区已满，或接收时套接字接收缓冲区为空
-                err == EINTR)         // 操作被信号中断
-                break;
-
-            return RyanSocketFailedError;
-        }
-
-        offset += sendResult;
-        timeOut2 = platformTimerRemain(&timer);
+        rlog_e("对端关闭socket连接");
+        return -1;
     }
 
-    if (offset != sendLen)
-        return RyanMqttSendPacketTimeOutError;
+    tv.tv_sec = timeout / 1000;
+    tv.tv_usec = timeout % 1000 * 1000;
 
-    return RyanMqttSuccessError;
+    setsockopt(platformNetwork->socket, SOL_SOCKET, SO_SNDTIMEO, (char *)&tv, sizeof(struct timeval)); // 设置错做模式为非阻塞
+
+    sendResult = send(platformNetwork->socket, sendBuf, sendLen, 0);
+    if (0 == sendResult)
+    {
+        rlog_e("对端关闭socket连接");
+        return -1;
+    }
+    else if (sendResult < 0) // 小于零，表示错误，个别错误不代表socket错误
+    {
+        int32_t rt_errno = errno;      // 似乎5.0.0以上版本需要使用 rt_get_errno
+                                       // 下列表示没问题,但需要退出发送
+        if (EAGAIN == rt_errno ||      // 套接字已标记为非阻塞，而接收操作被阻塞或者接收超时
+            EWOULDBLOCK == rt_errno || // 发送时套接字发送缓冲区已满，或接收时套接字接收缓冲区为空
+            EINTR == rt_errno ||       // 操作被信号中断
+            ETIME == rt_errno)         // 计时器过期
+        {
+            return 0;
+        }
+
+        // NOLINTNEXTLINE(concurrency-mt-unsafe)
+        rlog_e("sendResult: %d, errno: %d str: %s", sendResult, rt_errno, strerror(rt_errno));
+        return -1;
+    }
+
+    return sendResult;
 }
 
 /**
@@ -347,6 +227,7 @@ RyanMqttError_e platformNetworkClose(void *userData, platformNetwork_t *platform
     if (platformNetwork->socket >= 0)
     {
         close(platformNetwork->socket);
+        rlog_w("platformNetworkClose socket close %d", platformNetwork->socket);
         platformNetwork->socket = -1;
     }
 

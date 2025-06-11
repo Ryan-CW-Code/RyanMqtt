@@ -1,5 +1,3 @@
-
-
 #ifndef __mqttClientPublic__
 #define __mqttClientPublic__
 
@@ -13,12 +11,11 @@ extern "C"
 
 #define RyanMqttMaxPacketId (0xFFFFU - 1U)  // 你允许的mqtt paketid最大值，协议标准为个非零的 16 位数
 #define RyanMqttMaxPayloadLen (268435455UL) // 你允许的mqtt可变报头和有效载荷最长长度。默认值为协议标准
-#define RyanMqttVersion ("1.2.0")
 
     // 定义枚举类型
     typedef enum
     {
-        RyanMqttBit31 = 0x80000000,
+        // RyanMqttBit31 = 0x80000000,
         RyanMqttBit30 = 0x40000000,
         RyanMqttBit29 = 0x20000000,
         RyanMqttBit28 = 0x10000000,

@@ -30,7 +30,7 @@ extern "C"
 
     typedef struct
     {
-        uint8_t invalid; // 不使用，避免报错
+        rt_base_t level;
     } platformCritical_t;
 
     extern void *platformMemoryMalloc(size_t size);
