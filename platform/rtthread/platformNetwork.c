@@ -72,7 +72,7 @@ RyanMqttError_e platformNetworkConnect(void *userData, platformNetwork_t *platfo
             goto __exit;
         }
 
-        if (0 != gethostbyname_r(host, &hostinfo, buf, sizeof(buf), &phost, &h_errnop))
+        if (0 != gethostbyname_r(host, &hostinfo, buf, 384, &phost, &h_errnop))
         {
             rlog_w("平台可能不支持 gethostbyname_r 函数, 再次尝试使用 gethostbyname 获取域名信息");
 
