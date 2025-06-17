@@ -1,13 +1,14 @@
-
 #include "RyanList.h"
 
 /**
- * @brief 内部函数：在prev和next节点之间插入新节点
+ * @brief Inserts a node between two existing nodes in a doubly linked list.
  *
- * @param node 要插入的新节点指针
- * @param prev 前驱节点指针
- * @param next 后继节点指针
- * @note 这是一个静态内部函数，不对外暴露
+ * This internal static function updates the pointers of the given nodes to insert `node`
+ * between `prev` and `next`. It does not perform any validation on the input pointers.
+ *
+ * @param node The node to insert.
+ * @param prev The node that will precede the inserted node.
+ * @param next The node that will follow the inserted node.
  */
 static void _RyanListAdd(RyanList_t *node, RyanList_t *prev, RyanList_t *next)
 {
@@ -18,11 +19,9 @@ static void _RyanListAdd(RyanList_t *node, RyanList_t *prev, RyanList_t *next)
 }
 
 /**
- * @brief 内部函数：删除prev和next之间的节点
+ * @brief Unlinks all nodes between two given nodes in a doubly linked list.
  *
- * @param prev 要删除区间的前驱节点
- * @param next 要删除区间的后继节点
- * @note 这是一个静态内部函数，不对外暴露
+ * Adjusts the pointers of the specified predecessor and successor nodes so that they point to each other, effectively removing any nodes between them from the list.
  */
 static void _RyanListDel(RyanList_t *prev, RyanList_t *next)
 {
@@ -31,10 +30,11 @@ static void _RyanListDel(RyanList_t *prev, RyanList_t *next)
 }
 
 /**
- * @brief 内部函数：删除指定节点自身
+ * @brief Removes a specific node from the doubly linked list.
  *
- * @param entry 要删除的节点指针
- * @note 通过修改前后节点的指针关系实现自我删除
+ * This internal function unlinks the given node from its neighboring nodes, effectively deleting it from the list.
+ *
+ * @param entry Pointer to the node to be removed.
  */
 static void _RyanListDel_entry(RyanList_t *entry)
 {
@@ -42,10 +42,9 @@ static void _RyanListDel_entry(RyanList_t *entry)
 }
 
 /**
- * @brief 初始化链表头节点
+ * @brief Initializes a list head node to represent an empty doubly linked list.
  *
- * @param list 链表头节点指针
- * @note 将头节点的前后指针都指向自己，形成空链表
+ * Sets the head node's next and previous pointers to point to itself, marking the list as empty.
  */
 void RyanListInit(RyanList_t *list)
 {
@@ -54,11 +53,9 @@ void RyanListInit(RyanList_t *list)
 }
 
 /**
- * @brief 在链表头部插入节点
+ * @brief Inserts a node at the beginning of the list, immediately after the head.
  *
- * @param node 要插入的新节点
- * @param list 链表头节点
- * @note 新节点将插入到头节点之后，成为第一个有效节点
+ * The new node becomes the first valid element in the doubly linked list.
  */
 void RyanListAdd(RyanList_t *node, RyanList_t *list)
 {
@@ -66,11 +63,9 @@ void RyanListAdd(RyanList_t *node, RyanList_t *list)
 }
 
 /**
- * @brief 在链表尾部插入节点
+ * @brief Inserts a node at the end of the doubly linked list.
  *
- * @param node 要插入的新节点
- * @param list 链表头节点
- * @note 新节点将插入到头节点之前，成为最后一个有效节点
+ * The new node is added immediately before the list head, making it the last valid node in the list.
  */
 void RyanListAddTail(RyanList_t *node, RyanList_t *list)
 {
@@ -78,10 +73,9 @@ void RyanListAddTail(RyanList_t *node, RyanList_t *list)
 }
 
 /**
- * @brief 从链表中删除指定节点
+ * @brief Removes a specified node from the doubly linked list.
  *
- * @param entry 要删除的节点
- * @note 只删除节点，不重新初始化该节点
+ * The node is unlinked from its current list but is not reinitialized; its pointers remain unchanged after removal.
  */
 void RyanListDel(RyanList_t *entry)
 {
@@ -89,10 +83,9 @@ void RyanListDel(RyanList_t *entry)
 }
 
 /**
- * @brief 从链表中删除并重新初始化指定节点
+ * @brief Removes a node from the list and reinitializes it as a standalone node.
  *
- * @param entry 要删除的节点
- * @note 删除后会将该节点初始化为独立节点
+ * After removal, the node's `next` and `prev` pointers are set to point to itself, making it an isolated node.
  */
 void RyanListDelInit(RyanList_t *entry)
 {
@@ -101,11 +94,9 @@ void RyanListDelInit(RyanList_t *entry)
 }
 
 /**
- * @brief 将节点移动到链表头部
+ * @brief Moves a node to the front of the list.
  *
- * @param node 要移动的节点
- * @param list 链表头节点
- * @note 先删除节点，再插入到头部
+ * Removes the specified node from its current position and inserts it immediately after the list head, making it the first element in the list.
  */
 void RyanListMove(RyanList_t *node, RyanList_t *list)
 {
@@ -114,11 +105,12 @@ void RyanListMove(RyanList_t *node, RyanList_t *list)
 }
 
 /**
- * @brief 将节点移动到链表尾部
+ * @brief Moves a node to the end of the doubly linked list.
  *
- * @param node 要移动的节点
- * @param list 链表头节点
- * @note 先删除节点，再插入到尾部
+ * Removes the specified node from its current position and inserts it immediately before the list head, making it the last node in the list.
+ *
+ * @param node The node to move.
+ * @param list The list head node.
  */
 void RyanListMoveTail(RyanList_t *node, RyanList_t *list)
 {
@@ -127,11 +119,12 @@ void RyanListMoveTail(RyanList_t *node, RyanList_t *list)
 }
 
 /**
- * @brief 检查链表是否为空
+ * @brief Checks whether the list is empty.
  *
- * @param list 链表头节点
- * @return int 返回1表示空链表，0表示非空
- * @note 通过判断头节点是否指向自己来确定是否为空
+ * Determines if the given list head node represents an empty list by checking if its `next` pointer points to itself.
+ *
+ * @param list Pointer to the list head node.
+ * @return int Returns 1 if the list is empty, 0 otherwise.
  */
 int RyanListIsEmpty(RyanList_t *list)
 {

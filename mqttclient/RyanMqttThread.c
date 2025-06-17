@@ -2,6 +2,11 @@
 
 #include "RyanMqttThread.h"
 
+/**
+ * @brief Resets the MQTT client's keepalive timer to 1.4 times the configured keepalive interval.
+ *
+ * Ensures the keepalive timer is refreshed in a thread-safe manner, allowing the client to detect connection loss if no heartbeat is received within this period.
+ */
 void RyanMqttRefreshKeepaliveTime(RyanMqttClient_t *client)
 {
     // 服务器在心跳时间的1.5倍内没有收到keeplive消息则会断开连接
@@ -12,10 +17,11 @@ void RyanMqttRefreshKeepaliveTime(RyanMqttClient_t *client)
 }
 
 /**
- * @brief mqtt心跳保活
+ * @brief Manages MQTT keepalive by sending heartbeat (PINGREQ) packets and handling keepalive timeouts.
  *
- * @param client
- * @return int32_t
+ * Checks if the client is connected and monitors the keepalive timer. If the timer expires (no heartbeat within 1.4 times the keepalive period), triggers a disconnect event. Sends a PINGREQ packet when appropriate, based on remaining time and throttle conditions.
+ *
+ * @return RyanMqttError_e Returns RyanMqttSuccessError on success, RyanMqttNotConnectError if not connected, or an error code on failure.
  */
 static RyanMqttError_e RyanMqttKeepalive(RyanMqttClient_t *client)
 {
@@ -73,10 +79,14 @@ static RyanMqttError_e RyanMqttKeepalive(RyanMqttClient_t *client)
 }
 
 /**
- * @brief qos1或者qos2接收消息成功
+ * @brief Handles incoming PUBACK and PUBCOMP packets for QoS 1 and QoS 2 acknowledgments.
  *
- * @param client
- * @return RyanMqttError_e
+ * Processes acknowledgment packets by deserializing the packet ID, locating the corresponding acknowledgment handler,
+ * removing it from the acknowledgment list, triggering the published event callback, and destroying the handler.
+ *
+ * @param client Pointer to the MQTT client instance.
+ * @param pIncomingPacket Pointer to the incoming MQTT packet information.
+ * @return RyanMqttError_e Result code indicating success or the type of error encountered.
  */
 static RyanMqttError_e RyanMqttPubackAndPubcompPacketHandler(RyanMqttClient_t *client, MQTTPacketInfo_t *pIncomingPacket)
 {
@@ -102,10 +112,11 @@ static RyanMqttError_e RyanMqttPubackAndPubcompPacketHandler(RyanMqttClient_t *c
 }
 
 /**
- * @brief 发布释放处理函数
+ * @brief Handles incoming PUBREL packets as part of the MQTT QoS 2 message flow.
  *
- * @param client
- * @return RyanMqttError_e
+ * Deserializes the PUBREL packet to extract the packet ID, removes the corresponding acknowledgment handler, and sends a PUBCOMP acknowledgment packet in response.
+ *
+ * @return RyanMqttError_e Result of the operation.
  */
 static RyanMqttError_e RyanMqttPubrelPacketHandler(RyanMqttClient_t *client, MQTTPacketInfo_t *pIncomingPacket)
 {
@@ -145,10 +156,11 @@ static RyanMqttError_e RyanMqttPubrelPacketHandler(RyanMqttClient_t *client, MQT
 }
 
 /**
- * @brief 发布收到处理函数
+ * @brief Handles incoming PUBREC packets as part of MQTT QoS 2 message flow.
  *
- * @param client
- * @return RyanMqttError_e
+ * Deserializes the PUBREC packet to extract the packet ID, serializes and sends a PUBREL acknowledgment in response, and manages acknowledgment handlers. On first receipt of a PUBREC for a given packet ID (i.e., when no PUBCOMP handler exists), creates a message handler and a PUBCOMP acknowledgment handler, adds it to the acknowledgment list, and removes the PUBREC handler. If both PUBREC and PUBCOMP handlers exist, removes the redundant PUBREC handler. Ensures correct progression of the QoS 2 handshake.
+ *
+ * @return RyanMqttError_e Result of the operation.
  */
 static RyanMqttError_e RyanMqttPubrecPacketHandler(RyanMqttClient_t *client, MQTTPacketInfo_t *pIncomingPacket)
 {
@@ -210,10 +222,16 @@ static RyanMqttError_e RyanMqttPubrecPacketHandler(RyanMqttClient_t *client, MQT
 }
 
 /**
- * @brief 收到服务器发布消息处理函数
+ * @brief Handles incoming MQTT PUBLISH packets from the server.
  *
- * @param client
- * @return RyanMqttError_e
+ * Deserializes the PUBLISH packet, matches the topic against the subscription list (with wildcard support), and dispatches the message to the user event handler if subscribed. Responds with the appropriate acknowledgment packet based on the QoS level:
+ * - QoS 0: Delivers the message without acknowledgment.
+ * - QoS 1: Delivers the message and sends a PUBACK.
+ * - QoS 2: Implements QoS 2 method B, sending PUBREC and managing acknowledgment handlers.
+ *
+ * @param client Pointer to the MQTT client instance.
+ * @param pIncomingPacket Pointer to the incoming MQTT packet information.
+ * @return RyanMqttError_e Result code indicating success or the type of error encountered.
  */
 static RyanMqttError_e RyanMqttPublishPacketHandler(RyanMqttClient_t *client, MQTTPacketInfo_t *pIncomingPacket)
 {
@@ -312,10 +330,13 @@ static RyanMqttError_e RyanMqttPublishPacketHandler(RyanMqttClient_t *client, MQ
 }
 
 /**
- * @brief 订阅确认处理函数
+ * @brief Handles incoming SUBACK packets to process subscription acknowledgments.
  *
- * @param client
- * @return RyanMqttError_e
+ * Processes a SUBACK packet by matching it to the corresponding acknowledgment handler. If the subscription is successful, creates and registers a message handler for the subscribed topic and triggers the subscription success event. If the subscription is rejected by the server, triggers the subscription failure event and cleans up the acknowledgment handler.
+ *
+ * @param client Pointer to the MQTT client instance.
+ * @param pIncomingPacket Pointer to the incoming SUBACK packet information.
+ * @return RyanMqttError_e Result of the SUBACK handling operation.
  */
 static RyanMqttError_e RyanMqttSubackHandler(RyanMqttClient_t *client, MQTTPacketInfo_t *pIncomingPacket)
 {
@@ -377,10 +398,12 @@ static RyanMqttError_e RyanMqttSubackHandler(RyanMqttClient_t *client, MQTTPacke
 }
 
 /**
- * @brief 取消订阅确认处理函数
+ * @brief Handles incoming UNSUBACK packets to confirm unsubscription.
  *
- * @param client
- * @return RyanMqttError_e
+ * Processes an UNSUBACK packet by locating the corresponding acknowledgment handler, removing the associated subscription handler if present, and triggering the unsubscription event callback. Cleans up acknowledgment and message handlers as needed.
+ *
+ * @param pIncomingPacket Pointer to the received UNSUBACK packet information.
+ * @return RyanMqttError_e Result of the unsubscription acknowledgment handling.
  */
 static RyanMqttError_e RyanMqttUnSubackHandler(RyanMqttClient_t *client, MQTTPacketInfo_t *pIncomingPacket)
 {
@@ -418,9 +441,9 @@ static RyanMqttError_e RyanMqttUnSubackHandler(RyanMqttClient_t *client, MQTTPac
 }
 
 /**
- * @brief 将用户空间的ack链表搬到mqtt线程空间
+ * @brief Transfers acknowledgment handlers from the user acknowledgment list to the MQTT thread's acknowledgment list.
  *
- * @param client
+ * Ensures thread safety by locking the user acknowledgment list during the transfer.
  */
 static void RyanMqttSyncUserAckHandle(RyanMqttClient_t *client)
 {
@@ -440,11 +463,11 @@ static void RyanMqttSyncUserAckHandle(RyanMqttClient_t *client)
 }
 
 /**
- * @brief mqtt数据包处理函数
+ * @brief Reads and processes an incoming MQTT packet for the client.
  *
- * @param client
- * @param packetType
- * @return RyanMqttError_e
+ * Retrieves the next MQTT packet from the network, synchronizes user acknowledgment handlers, and dispatches the packet to the appropriate handler based on its type (e.g., PUBLISH, PUBACK, SUBACK, etc.). Allocates and frees memory for packet payloads as needed. Returns a status code indicating the result of packet processing.
+ *
+ * @return RyanMqttError_e Result of the packet handling operation.
  */
 static RyanMqttError_e RyanMqttReadPacketHandler(RyanMqttClient_t *client)
 {
@@ -548,12 +571,12 @@ static RyanMqttError_e RyanMqttReadPacketHandler(RyanMqttClient_t *client)
 
 // 也可以考虑有ack链表的时候recvTime可以短一些，有坑点
 /**
- * @brief 遍历ack链表，进行相应的处理
+ * @brief Scans the MQTT acknowledgment handler list to process timeouts and retransmissions.
  *
- * @param client
- * @param WaitFlag
- *      WaitFlag : RyanMqttFalse 表示不需要等待超时立即处理这些数据包。通常在重新连接后立即进行处理
- *      WaitFlag : RyanMqttTrue 表示需要等待超时再处理这些消息，一般是稳定连接下的超时处理
+ * Iterates through the client's acknowledgment handler list to handle message retransmissions or failures based on packet type and timeout status. For QoS 1 and 2 publish acknowledgments (PUBACK, PUBREC, PUBREL, PUBCOMP), retransmits packets if the acknowledgment has timed out, triggers warning events if the retry count exceeds a threshold, and resets timers. For subscription acknowledgments (SUBACK, UNSUBACK), removes handlers and triggers failure events if timed out. Processing is limited by a maximum scan duration and is skipped if the client is disconnected or a throttle timer is active.
+ *
+ * @param client Pointer to the MQTT client instance.
+ * @param WaitFlag If RyanMqttTrue, only processes handlers whose timers have expired (normal operation). If RyanMqttFalse, processes all handlers immediately (typically after reconnect).
  */
 static void RyanMqttAckListScan(RyanMqttClient_t *client, RyanMqttBool_e WaitFlag)
 {
@@ -654,10 +677,11 @@ static void RyanMqttAckListScan(RyanMqttClient_t *client, RyanMqttBool_e WaitFla
 }
 
 /**
- * @brief mqtt连接函数
+ * @brief Establishes a connection to the MQTT server and completes the MQTT CONNECT handshake.
  *
- * @param client
- * @return RyanMqttError_e
+ * Prepares and serializes the MQTT CONNECT packet using the client's configuration, including optional Last Will and Testament (LWT) information. Establishes a network connection to the server, sends the CONNECT packet, and waits for the CONNACK response to confirm the connection. Handles memory allocation and cleanup for the packet buffer.
+ *
+ * @return RyanMqttError_e Result code indicating success or the type of failure encountered during connection or handshake.
  */
 static RyanMqttError_e RyanMqttConnect(RyanMqttClient_t *client)
 {
@@ -731,11 +755,12 @@ static RyanMqttError_e RyanMqttConnect(RyanMqttClient_t *client)
 }
 
 /**
- * @brief mqtt事件处理函数
+ * @brief Handles MQTT client events and dispatches user event callbacks.
  *
- * @param client
- * @param eventId
- * @param eventData
+ * Processes core MQTT client events such as connection, disconnection, and reconnection, updating client state and managing resources accordingly. If a user event handler is configured and the event is enabled, invokes the user callback with the provided event data.
+ *
+ * @param eventId The MQTT event identifier to process.
+ * @param eventData Optional data associated with the event.
  */
 void RyanMqttEventMachine(RyanMqttClient_t *client, RyanMqttEventId_e eventId, void *eventData)
 {
@@ -779,9 +804,11 @@ void RyanMqttEventMachine(RyanMqttClient_t *client, RyanMqttEventId_e eventId, v
 
 // todo 考虑将发送操作独立出去，异步发送
 /**
- * @brief mqtt运行线程
+ * @brief Main MQTT client thread handling connection, packet processing, and state transitions.
  *
- * @param argument
+ * Runs the MQTT client state machine in an infinite loop, managing connection establishment, packet reading, keepalive, reconnection logic, and resource cleanup upon destruction. Handles both automatic and manual reconnection scenarios and ensures proper cleanup of all resources when the client is destroyed.
+ *
+ * @param argument Pointer to the initialized MQTT client structure.
  */
 void RyanMqttThread(void *argument)
 {

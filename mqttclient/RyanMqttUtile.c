@@ -3,12 +3,14 @@
 #include "RyanMqttUtile.h"
 
 /**
- * @brief 字符串拷贝，需要手动释放内存
+ * @brief Copies a string segment into newly allocated memory and null-terminates it.
  *
- * @param dest
- * @param rest
- * @param strLen
- * @return RyanMqttError_e
+ * Allocates memory for a string of the specified length, copies the content from the source buffer, appends a null terminator, and assigns the result to the destination pointer.
+ *
+ * @param dest Pointer to the destination string pointer to receive the allocated and copied string.
+ * @param rest Source buffer containing the string segment to copy.
+ * @param strLen Number of bytes to copy from the source buffer.
+ * @return RyanMqttSuccessError on success, or RyanMqttNotEnoughMemError if memory allocation fails.
  */
 RyanMqttError_e RyanMqttStringCopy(char **dest, char *rest, uint32_t strLen)
 {
@@ -30,12 +32,14 @@ RyanMqttError_e RyanMqttStringCopy(char **dest, char *rest, uint32_t strLen)
 }
 
 /**
- * @brief RyanMqtt 针对 coreMqtt 特殊场景专用
+ * @brief Receives data from the MQTT network context with socket-style return values.
  *
- * @param pNetworkContext
- * @param pBuffer
- * @param bytesToRecv
- * @return int32_t
+ * Attempts to receive a specified number of bytes into the provided buffer using the MQTT client's network context.
+ * Returns the number of bytes received, 0 on timeout, or -1 on failure.
+ *
+ * @param pBuffer Buffer to store received data.
+ * @param bytesToRecv Number of bytes to receive.
+ * @return int32_t Number of bytes received, 0 if timeout occurred, or -1 on error.
  */
 int32_t coreMqttTransportRecv(NetworkContext_t *pNetworkContext, void *pBuffer, size_t bytesToRecv)
 {
@@ -56,12 +60,13 @@ int32_t coreMqttTransportRecv(NetworkContext_t *pNetworkContext, void *pBuffer, 
 }
 
 /**
- * @brief mqtt读取报文
+ * @brief Receives a specified number of bytes from the network into a buffer with timeout handling.
  *
- * @param client
- * @param buf
- * @param length
- * @return RyanMqttError_e
+ * Attempts to read `recvLen` bytes asynchronously from the client's network connection into `recvBuf` within the configured receive timeout. Accumulates received data until the requested length is met or the timeout expires. If a socket error occurs, triggers a disconnect event and returns a socket failure error. Returns a timeout error if the full length is not received within the timeout period.
+ *
+ * @param recvBuf Buffer to store received data.
+ * @param recvLen Number of bytes to receive.
+ * @return RyanMqttSuccessError on success, RyanMqttRecvPacketTimeOutError on timeout, or RyanSocketFailedError on socket failure.
  */
 RyanMqttError_e RyanMqttRecvPacket(RyanMqttClient_t *client, uint8_t *recvBuf, uint32_t recvLen)
 {
@@ -104,12 +109,13 @@ RyanMqttError_e RyanMqttRecvPacket(RyanMqttClient_t *client, uint8_t *recvBuf, u
 }
 
 /**
- * @brief mqtt发送报文
+ * @brief Sends an MQTT packet asynchronously over the network with timeout and mutex protection.
  *
- * @param client
- * @param buf
- * @param length
- * @return RyanMqttError_e
+ * Attempts to send the specified buffer within the configured timeout period, handling partial sends and socket errors. Returns an error if the full packet cannot be sent or if a socket failure occurs. Refreshes the client's keepalive timer on successful send.
+ *
+ * @param sendBuf Pointer to the buffer containing the packet data to send.
+ * @param sendLen Length of the data to send in bytes.
+ * @return RyanMqttError_e RyanMqttSuccessError on success, RyanMqttSendPacketTimeOutError on timeout, or RyanSocketFailedError on socket failure.
  */
 RyanMqttError_e RyanMqttSendPacket(RyanMqttClient_t *client, uint8_t *sendBuf, uint32_t sendLen)
 {
@@ -323,13 +329,15 @@ RyanMqttBool_e RyanMqttMatchTopic(const char *topic,
 }
 
 /**
- * @brief 创建msg句柄
+ * @brief Allocates and initializes a message handler for a specific topic and QoS.
  *
- * @param topic
- * @param topicLen
- * @param qos
- * @param pMsgHandler
- * @return RyanMqttError_e
+ * Creates a new message handler structure, copies the provided topic string, sets the QoS, and initializes the internal list node. Returns an error if memory allocation fails.
+ *
+ * @param topic Pointer to the topic string to associate with the handler.
+ * @param topicLen Length of the topic string.
+ * @param qos Quality of Service level for the handler.
+ * @param pMsgHandler Output pointer to the created message handler.
+ * @return RyanMqttError_e RyanMqttSuccessError on success, or an error code on failure.
  */
 RyanMqttError_e RyanMqttMsgHandlerCreate(RyanMqttClient_t *client, const char *topic, uint16_t topicLen, RyanMqttQos_e qos, RyanMqttMsgHandler_t **pMsgHandler)
 {
@@ -355,9 +363,9 @@ RyanMqttError_e RyanMqttMsgHandlerCreate(RyanMqttClient_t *client, const char *t
 }
 
 /**
- * @brief 销毁msg 句柄
+ * @brief Frees the memory allocated for a message handler.
  *
- * @param msgHandler
+ * Releases resources associated with the specified message handler.
  */
 void RyanMqttMsgHandlerDestory(RyanMqttClient_t *client, RyanMqttMsgHandler_t *msgHandler)
 {
@@ -367,14 +375,15 @@ void RyanMqttMsgHandlerDestory(RyanMqttClient_t *client, RyanMqttMsgHandler_t *m
 }
 
 /**
- * @brief 查找msg句柄
+ * @brief Searches for a message handler matching a given topic.
  *
- * @param client
- * @param topic
- * @param topicLen
- * @param topicMatchedFlag
- * @param pMsgHandler
- * @return RyanMqttError_e
+ * Traverses the client's message handler list to find a handler whose topic matches the specified topic. Supports exact or wildcard matching based on the topicMatchedFlag.
+ *
+ * @param topic The topic string to search for.
+ * @param topicLen The length of the topic string.
+ * @param topicMatchedFlag If true, enables wildcard matching; otherwise, only exact matches are considered.
+ * @param pMsgHandler Output pointer set to the found message handler if successful.
+ * @return RyanMqttSuccessError if a matching handler is found; RyanMqttNoRescourceError if not found.
  */
 RyanMqttError_e RyanMqttMsgHandlerFind(RyanMqttClient_t *client, const char *topic, uint16_t topicLen, RyanMqttBool_e topicMatchedFlag, RyanMqttMsgHandler_t **pMsgHandler)
 {
@@ -460,15 +469,18 @@ RyanMqttError_e RyanMqttMsgHandlerRemoveToMsgList(RyanMqttClient_t *client, Ryan
 }
 
 /**
- * @brief 创建ack句柄
+ * @brief Allocates and initializes an acknowledgment handler for a specific MQTT packet.
  *
- * @param client
- * @param packetType
- * @param packetId
- * @param packetLen
- * @param msgHandler
- * @param pAckHandler
- * @return RyanMqttError_e
+ * Creates an acknowledgment handler structure for the given packet type, packet ID, and packet data. The function supports using either a preallocated packet buffer or allocating and copying the packet data internally, based on the isPreallocatedPacket flag. Initializes the handler's timer for acknowledgment timeout and associates it with the provided message handler.
+ *
+ * @param packetType The MQTT packet type for which the acknowledgment handler is created.
+ * @param packetId The packet identifier associated with the acknowledgment.
+ * @param packetLen The length of the packet data.
+ * @param packet Pointer to the packet data buffer.
+ * @param msgHandler Pointer to the associated message handler.
+ * @param pAckHandler Output pointer to the created acknowledgment handler.
+ * @param isPreallocatedPacket Indicates whether the packet buffer is preallocated (true) or should be copied (false).
+ * @return RyanMqttError_e Returns RyanMqttSuccessError on success, or RyanMqttNotEnoughMemError if memory allocation fails.
  */
 RyanMqttError_e RyanMqttAckHandlerCreate(RyanMqttClient_t *client, uint8_t packetType, uint16_t packetId, uint16_t packetLen,
                                          uint8_t *packet, RyanMqttMsgHandler_t *msgHandler, RyanMqttAckHandler_t **pAckHandler, RyanMqttBool_e isPreallocatedPacket)
@@ -522,10 +534,9 @@ RyanMqttError_e RyanMqttAckHandlerCreate(RyanMqttClient_t *client, uint8_t packe
 }
 
 /**
- * @brief 销毁ack句柄
+ * @brief Frees an acknowledgment handler and its associated resources.
  *
- * @param client
- * @param ackHandler
+ * Releases the memory for the acknowledgment handler, its associated message handler, and the packet buffer if it was preallocated.
  */
 void RyanMqttAckHandlerDestroy(RyanMqttClient_t *client, RyanMqttAckHandler_t *ackHandler)
 {
@@ -542,13 +553,14 @@ void RyanMqttAckHandlerDestroy(RyanMqttClient_t *client, RyanMqttAckHandler_t *a
 }
 
 /**
- * @brief 检查链表中是否存在ack句柄
+ * @brief Searches for an acknowledgment handler in the client's list matching the given packet type and ID.
  *
- * @param client
- * @param packetType
- * @param packetId
- * @param pAckHandler
- * @return RyanMqttError_e
+ * If a matching acknowledgment handler is found, sets the output pointer to it and returns success. Returns a no resource error if not found. The search is protected by a mutex.
+ *
+ * @param packetType MQTT packet type to match.
+ * @param packetId Packet identifier to match.
+ * @param pAckHandler Output pointer for the found acknowledgment handler, if any.
+ * @return RyanMqttSuccessError if found, RyanMqttNoRescourceError if not found.
  */
 RyanMqttError_e RyanMqttAckListNodeFind(RyanMqttClient_t *client, uint8_t packetType, uint16_t packetId, RyanMqttAckHandler_t **pAckHandler)
 {

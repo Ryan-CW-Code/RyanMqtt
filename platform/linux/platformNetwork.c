@@ -30,14 +30,13 @@ RyanMqttError_e platformNetworkDestroy(void *userData, platformNetwork_t *platfo
 }
 
 /**
- * @brief 连接mqtt服务器
+ * @brief Establishes a TCP connection to an MQTT server at the specified host and port.
  *
- * @param userData
- * @param platformNetwork
- * @param host
- * @param port
- * @return RyanMqttError_e
- * 成功返回RyanMqttSuccessError， 失败返回错误信息
+ * If the host is an IP address, connects directly without DNS resolution. If the host is a domain name, attempts DNS resolution using a thread-safe method, falling back to a non-thread-safe method if necessary. Allocates and frees temporary memory for DNS resolution as needed. On failure, cleans up resources and returns an appropriate error code.
+ *
+ * @param host The server hostname or IP address to connect to.
+ * @param port The server port number.
+ * @return RyanMqttError_e Returns RyanMqttSuccessError on success, or an error code on failure.
  */
 RyanMqttError_e platformNetworkConnect(void *userData, platformNetwork_t *platformNetwork, const char *host, uint16_t port)
 {
@@ -113,17 +112,14 @@ __exit:
 }
 
 /**
- * @brief 非阻塞接收数据
+ * @brief Performs a non-blocking receive operation on the network socket with a specified timeout.
  *
- * @param userData
- * @param platformNetwork
- * @param recvBuf
- * @param recvLen
- * @param timeout
- * @return RyanMqttError_e
- * socket错误返回 RyanSocketFailedError
- * 接收超时或者接收数据长度不等于期待数据接受长度 RyanMqttRecvPacketTimeOutError
- * 接收成功 RyanMqttSuccessError
+ * Attempts to read up to recvLen bytes into recvBuf from the socket associated with platformNetwork. The function sets a receive timeout and returns immediately if no data is available or if the operation would block.
+ *
+ * @param recvBuf Buffer to store received data.
+ * @param recvLen Maximum number of bytes to receive.
+ * @param timeout Timeout in milliseconds for the receive operation.
+ * @return int32_t Number of bytes received on success; 0 if no data is available or operation is interrupted; -1 if the socket is closed or a fatal error occurs.
  */
 int32_t platformNetworkRecvAsync(void *userData, platformNetwork_t *platformNetwork, char *recvBuf, size_t recvLen, int32_t timeout)
 {
@@ -168,17 +164,14 @@ int32_t platformNetworkRecvAsync(void *userData, platformNetwork_t *platformNetw
 }
 
 /**
- * @brief 非阻塞发送数据
+ * @brief Sends data asynchronously over a socket with a specified timeout.
  *
- * @param userData
- * @param platformNetwork
- * @param sendBuf
- * @param sendLen
- * @param timeout
- * @return RyanMqttError_e
- * socket错误返回 RyanSocketFailedError
- * 接收超时或者接收数据长度不等于期待数据接受长度 RyanMqttRecvPacketTimeOutError
- * 接收成功 RyanMqttSuccessError
+ * Attempts to send data from the buffer over the network socket in non-blocking mode, using a send timeout. Returns the number of bytes sent on success, 0 if the operation would block or times out, and -1 if the socket is closed or a fatal error occurs.
+ *
+ * @param sendBuf Pointer to the data buffer to send.
+ * @param sendLen Number of bytes to send from the buffer.
+ * @param timeout Timeout for the send operation in milliseconds.
+ * @return int32_t Number of bytes sent on success, 0 if no data sent due to timeout or non-fatal error, -1 on socket closure or fatal error.
  */
 int32_t platformNetworkSendAsync(void *userData, platformNetwork_t *platformNetwork, char *sendBuf, size_t sendLen, int32_t timeout)
 {
@@ -224,11 +217,11 @@ int32_t platformNetworkSendAsync(void *userData, platformNetwork_t *platformNetw
 }
 
 /**
- * @brief 断开mqtt服务器连接
+ * @brief Closes the network socket and resets the socket descriptor.
  *
- * @param userData
- * @param platformNetwork
- * @return RyanMqttError_e
+ * If the socket is open, closes it and sets the descriptor to -1.
+ *
+ * @return RyanMqttSuccessError on successful closure.
  */
 RyanMqttError_e platformNetworkClose(void *userData, platformNetwork_t *platformNetwork)
 {

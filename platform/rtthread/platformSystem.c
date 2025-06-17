@@ -1,4 +1,3 @@
-
 #include "platformSystem.h"
 
 /**
@@ -196,11 +195,11 @@ RyanMqttError_e platformCriticalDestroy(void *userData, platformCritical_t *plat
 }
 
 /**
- * @brief 进入临界区
+ * @brief Enters a critical section by disabling interrupts and saving the previous interrupt state.
  *
- * @param userData
- * @param platformCritical
- * @return RyanMqttError_e
+ * Saves the current interrupt state in the provided critical section structure to allow safe restoration later.
+ *
+ * @return RyanMqttSuccessError on success.
  */
 inline RyanMqttError_e platformCriticalEnter(void *userData, platformCritical_t *platformCritical)
 {
@@ -209,11 +208,11 @@ inline RyanMqttError_e platformCriticalEnter(void *userData, platformCritical_t 
 }
 
 /**
- * @brief 退出临界区
+ * @brief Exits a critical section by restoring the previous interrupt state.
  *
- * @param userData
- * @param platformCritical
- * @return RyanMqttError_e
+ * Restores the interrupt level saved in the provided critical section structure, re-enabling interrupts as appropriate.
+ *
+ * @return RyanMqttSuccessError on successful exit from the critical section.
  */
 inline RyanMqttError_e platformCriticalExit(void *userData, platformCritical_t *platformCritical)
 {

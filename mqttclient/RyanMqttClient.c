@@ -6,10 +6,12 @@
 #include "RyanMqttThread.h"
 
 /**
- * @brief 获取报文标识符，报文标识符不可为0
- * 都在sendbuf锁内调用
- * @param client
- * @return uint16_t
+ * @brief Returns the next valid MQTT packet identifier for the client.
+ *
+ * Ensures the packet identifier is non-zero and wraps around to 1 if it exceeds the maximum allowed value.
+ * The operation is performed within a critical section to guarantee thread safety.
+ *
+ * @return uint16_t The next packet identifier to use for MQTT packets.
  */
 static uint16_t RyanMqttGetNextPacketId(RyanMqttClient_t *client)
 {
@@ -25,6 +27,15 @@ static uint16_t RyanMqttGetNextPacketId(RyanMqttClient_t *client)
     return packetId;
 }
 
+/**
+ * @brief Sets a configuration string value by copying a new string and freeing the previous value.
+ *
+ * Frees the memory pointed to by `*dest`, copies the string from `rest` into newly allocated memory, and updates `*dest` to point to the new string.
+ *
+ * @param dest Pointer to the destination string pointer to update.
+ * @param rest Source string to copy.
+ * @return RyanMqttSuccessError if the operation succeeds, RyanMqttFailedError if memory allocation fails.
+ */
 static RyanMqttError_e setConfigValue(char **dest, char const *const rest)
 {
     RyanMqttAssert(NULL != dest && NULL != rest);
@@ -42,11 +53,12 @@ static RyanMqttError_e setConfigValue(char **dest, char const *const rest)
 }
 
 /**
- * @brief mqtt初始化
+ * @brief Initializes a new MQTT client instance.
  *
- * @param clientConfig
- * @param pClient mqtt客户端指针
- * @return RyanMqttError_e
+ * Allocates and initializes all resources and internal structures required for an MQTT client, including synchronization primitives, handler lists, timers, and network interfaces. Sets the client to its initial state and returns a pointer to the created client.
+ *
+ * @param pClient Pointer to where the initialized MQTT client instance will be stored.
+ * @return RyanMqttSuccessError on success, or an error code if initialization fails.
  */
 RyanMqttError_e RyanMqttInit(RyanMqttClient_t **pClient)
 {
@@ -106,11 +118,12 @@ RyanMqttError_e RyanMqttDestroy(RyanMqttClient_t *client)
 }
 
 /**
- * @brief 启动mqtt客户端
- * !不要重复调用,重复调用会返回错误
+ * @brief Starts the MQTT client and creates the MQTT processing thread.
  *
- * @param client
- * @return RyanMqttError_e
+ * Transitions the client from the initialization state to the start state and initializes the MQTT thread.
+ * Returns an error if called when the client is not in the initialization state or if thread creation fails.
+ *
+ * @return RyanMqttError_e Error code indicating the result of the operation.
  */
 RyanMqttError_e RyanMqttStart(RyanMqttClient_t *client)
 {
@@ -133,11 +146,12 @@ RyanMqttError_e RyanMqttStart(RyanMqttClient_t *client)
 }
 
 /**
- * @brief 断开mqtt服务器连接
+ * @brief Disconnects the MQTT client from the server.
  *
- * @param client
- * @param sendDiscFlag RyanMqttTrue表示发送断开连接报文，RyanMqttFalse表示不发送断开连接报文
- * @return RyanMqttError_e
+ * If requested, sends a DISCONNECT packet to the MQTT server before disconnecting. Updates the client state to reflect the disconnection.
+ *
+ * @param sendDiscFlag If RyanMqttTrue, a DISCONNECT packet is sent to the server; if RyanMqttFalse, no packet is sent.
+ * @return RyanMqttError_e Result of the disconnect operation.
  */
 RyanMqttError_e RyanMqttDisconnect(RyanMqttClient_t *client, RyanMqttBool_e sendDiscFlag)
 {
@@ -194,12 +208,13 @@ RyanMqttError_e RyanMqttReconnect(RyanMqttClient_t *client)
 }
 
 /**
- * @brief 订阅主题
+ * @brief Subscribes the MQTT client to a specified topic with a given QoS level.
  *
- * @param client
- * @param topic
- * @param qos 服务端可以授予比订阅者要求的低一些的QoS等级，可在订阅成功回调函数中查看服务端给定的qos等级
- * @return RyanMqttError_e
+ * Allocates and serializes a SUBSCRIBE packet, creates message and acknowledgment handlers, and sends the subscription request to the MQTT broker. The granted QoS may be lower than requested and can be checked in the subscription success callback.
+ *
+ * @param topic The topic filter to subscribe to.
+ * @param qos The requested Quality of Service level for the subscription.
+ * @return RyanMqttError_e Result code indicating success or the type of error encountered.
  */
 RyanMqttError_e RyanMqttSubscribe(RyanMqttClient_t *client, char *topic, RyanMqttQos_e qos)
 {
@@ -260,11 +275,12 @@ RyanMqttError_e RyanMqttSubscribe(RyanMqttClient_t *client, char *topic, RyanMqt
 }
 
 /**
- * @brief 取消订阅指定主题
+ * @brief Unsubscribes the client from a specified MQTT topic.
  *
- * @param client
- * @param topic
- * @return RyanMqttError_e
+ * Attempts to remove the subscription for the given topic if it exists. Serializes and sends an UNSUBSCRIBE packet to the MQTT broker, and manages acknowledgment handlers for the operation.
+ *
+ * @param topic The topic string to unsubscribe from.
+ * @return RyanMqttError_e Result code indicating success or the type of failure.
  */
 RyanMqttError_e RyanMqttUnSubscribe(RyanMqttClient_t *client, char *topic)
 {
@@ -325,15 +341,16 @@ RyanMqttError_e RyanMqttUnSubscribe(RyanMqttClient_t *client, char *topic)
 }
 
 /**
- * @brief 客户端向服务端发送消息
+ * @brief Publishes a message to a specified MQTT topic.
  *
- * @param client
- * @param topic
- * @param payload
- * @param payloadLen
- * @param QOS
- * @param retain
- * @return RyanMqttError_e
+ * Sends a message to the given topic with the specified payload, QoS, and retain flag. For QoS 1 and 2, the function manages acknowledgment handlers to ensure reliable delivery and retransmission if necessary.
+ *
+ * @param topic The topic to publish to.
+ * @param payload The message payload. May be NULL if payloadLen is zero.
+ * @param payloadLen Length of the payload in bytes.
+ * @param qos Quality of Service level for the message.
+ * @param retain Whether the message should be retained by the broker.
+ * @return RyanMqttError_e Result of the publish operation.
  */
 RyanMqttError_e RyanMqttPublish(RyanMqttClient_t *client, char *topic, char *payload, uint32_t payloadLen, RyanMqttQos_e qos, RyanMqttBool_e retain)
 {
@@ -426,13 +443,15 @@ RyanMqttState_e RyanMqttGetState(RyanMqttClient_t *client)
 }
 
 /**
- * @brief 获取已订阅主题
+ * @brief Retrieves the list of currently subscribed topics and their QoS levels.
  *
- * @param client
- * @param msgHandles 存放已订阅主题的空间
- * @param msgHandleSize  存放已订阅主题的空间大小个数
- * @param subscribeNum 函数内部返回已订阅主题的个数
- * @return RyanMqttState_e
+ * Copies up to `msgHandleSize` subscribed topics and their QoS values into the provided array.
+ * The actual number of subscriptions copied is returned via `subscribeNum`.
+ *
+ * @param msgHandles Array to receive the subscribed topics and QoS values.
+ * @param msgHandleSize Maximum number of entries to copy into `msgHandles`.
+ * @param subscribeNum Pointer to an integer where the number of subscriptions copied will be stored.
+ * @return RyanMqttError_e Returns RyanMqttSuccessError on success, or RyanMqttNoRescourceError if the provided array is too small.
  */
 RyanMqttError_e RyanMqttGetSubscribe(RyanMqttClient_t *client, RyanMqttMsgHandler_t *msgHandles, int32_t msgHandleSize, int32_t *subscribeNum)
 {
@@ -470,11 +489,10 @@ __next:
 }
 
 /**
- * @brief 获取已订阅主题个数
+ * @brief Retrieves the total number of subscribed topics for the MQTT client.
  *
- * @param client
- * @param subscribeTotalCount
- * @return RyanMqttError_e
+ * @param subscribeTotalCount Pointer to an integer where the total count will be stored.
+ * @return RyanMqttSuccessError on success, or RyanMqttParamInvalidError if parameters are invalid.
  */
 RyanMqttError_e RyanMqttGetSubscribeTotalCount(RyanMqttClient_t *client, int32_t *subscribeTotalCount)
 {
@@ -544,19 +562,11 @@ RyanMqttError_e RyanMqttGetSubscribeTotalCount(RyanMqttClient_t *client, int32_t
 
 //  todo 增加更多校验，比如判断心跳包和recv的关系
 /**
- * @brief 设置mqtt config 这是很危险的操作，需要考虑mqtt thread线程和用户线程的资源互斥
+ * @brief Sets the MQTT client configuration.
  *
- * 推荐在 RyanMqttStart函数前 / 非用户手动触发的事件回调函数中 / mqtt thread处于挂起状态时调用
- * mqtt thread处于阻塞状态时调用此函数也是很危险的行为
- * 要保证mqtt线程和用户线程的资源互斥
- * 如果修改参数需要重新连接才生效的，这里set不会生效。比如 keepAlive
+ * Updates the client's configuration parameters such as client ID, host, credentials, timeouts, and flags. This operation is not thread-safe and must be performed only when the MQTT thread is not running or is safely suspended to avoid resource conflicts. If the function fails, the client is destroyed and further MQTT operations must be stopped.
  *
- * !项目中用户不应频繁调用此函数
- * ! 此函数如果返回RyanMqttFailedError,需要立即停止mqtt客户端相关操作.因为操作失败此函数会调用RyanMqttDestroy()销毁客户端
- *
- * @param client
- * @param clientConfig
- * @return RyanMqttError_e
+ * @return RyanMqttSuccessError on success, RyanMqttFailedError on failure (client is destroyed).
  */
 RyanMqttError_e RyanMqttSetConfig(RyanMqttClient_t *client, RyanMqttClientConfig_t *clientConfig)
 {
@@ -622,16 +632,16 @@ __exit:
 }
 
 /**
- * @brief 设置遗嘱的配置信息
- * 此函数必须在发送connect报文前调用，因为遗嘱消息包含在connect报文中
- * 例如 RyanMqttStart前 / RyanMqttEventReconnectBefore事件中
+ * @brief Configures the Last Will and Testament (LWT) message for the MQTT client.
  *
- * @param client
- * @param topicName
- * @param qos
- * @param retain
- * @param payload
- * @return RyanMqttError_e
+ * Sets the topic, payload, QoS, and retain flag for the LWT message, which will be included in the CONNECT packet sent to the broker. This function must be called before establishing a connection (e.g., before RyanMqttStart or during the RyanMqttEventReconnectBefore event).
+ *
+ * @param topicName The topic for the LWT message.
+ * @param payload The payload for the LWT message. Can be NULL if payloadLen is 0.
+ * @param payloadLen The length of the payload in bytes.
+ * @param qos The Quality of Service level for the LWT message.
+ * @param retain Whether the LWT message should be retained by the broker.
+ * @return RyanMqttSuccessError on success, or an error code on failure.
  */
 RyanMqttError_e RyanMqttSetLwt(RyanMqttClient_t *client, char *topicName, char *payload, uint32_t payloadLen, RyanMqttQos_e qos, RyanMqttBool_e retain)
 {
@@ -668,11 +678,11 @@ RyanMqttError_e RyanMqttSetLwt(RyanMqttClient_t *client, char *topicName, char *
 }
 
 /**
- * @brief 丢弃指定ack
+ * @brief Discards a specified acknowledgment handler from the MQTT client.
  *
- * @param client
- * @param ackHandler
- * @return RyanMqttError_e
+ * Removes the given acknowledgment handler from the client's acknowledgment list, invokes the associated event callback, and destroys the handler.
+ *
+ * @return RyanMqttError_e Result of the operation.
  */
 RyanMqttError_e RyanMqttDiscardAckHandler(RyanMqttClient_t *client, RyanMqttAckHandler_t *ackHandler)
 {
@@ -685,6 +695,14 @@ RyanMqttError_e RyanMqttDiscardAckHandler(RyanMqttClient_t *client, RyanMqttAckH
     return RyanMqttSuccessError;
 }
 
+/**
+ * @brief Registers an event ID for the MQTT client.
+ *
+ * Sets the specified event ID in the client's event flag in a thread-safe manner.
+ *
+ * @param eventId The event identifier to register.
+ * @return RyanMqttSuccessError on success, or RyanMqttParamInvalidError if the client is NULL.
+ */
 RyanMqttError_e RyanMqttRegisterEventId(RyanMqttClient_t *client, RyanMqttEventId_e eventId)
 {
     RyanMqttCheck(NULL != client, RyanMqttParamInvalidError, rlog_d);
@@ -695,6 +713,14 @@ RyanMqttError_e RyanMqttRegisterEventId(RyanMqttClient_t *client, RyanMqttEventI
     return RyanMqttSuccessError;
 }
 
+/**
+ * @brief Cancels a registered event ID for the MQTT client.
+ *
+ * Clears the specified event ID from the client's event flag in a thread-safe manner.
+ *
+ * @param eventId The event identifier to cancel.
+ * @return RyanMqttSuccessError on success, or RyanMqttParamInvalidError if the client is NULL.
+ */
 RyanMqttError_e RyanMqttCancelEventId(RyanMqttClient_t *client, RyanMqttEventId_e eventId)
 {
     RyanMqttCheck(NULL != client, RyanMqttParamInvalidError, rlog_d);
