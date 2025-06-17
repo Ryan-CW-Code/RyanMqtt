@@ -85,7 +85,7 @@ static RyanMqttError_e RyanMqttSubscribeTest(RyanMqttQos_e qos)
 {
     RyanMqttError_e result = RyanMqttSuccessError;
     RyanMqttClient_t *client;
-    RyanMqttMsgHandler_t msgHandles[10] = {0};
+    RyanMqttMsgHandler_t msgHandles[20] = {0};
     int32_t subscribeNum = 0;
 
     exportQos = qos;
@@ -126,7 +126,7 @@ static RyanMqttError_e RyanMqttSubscribeTest(RyanMqttQos_e qos)
         RyanMqttBool_e isFindflag = topicIsSubscribeArr(msgHandles[i].topic);
         if (RyanMqttTrue != isFindflag)
         {
-            rlog_i("主题不匹配或者qos不对, topic: %s, qos: %d", msgHandles[i].topic, msgHandles[i].qos);
+            rlog_e("主题不匹配或者qos不对, topic: %s, qos: %d", msgHandles[i].topic, msgHandles[i].qos);
             result = RyanMqttFailedError;
             goto __exit;
         }

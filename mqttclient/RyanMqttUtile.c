@@ -71,8 +71,7 @@ RyanMqttError_e RyanMqttRecvPacket(RyanMqttClient_t *client, uint8_t *recvBuf, u
     platformTimer_t timer = {0};
     RyanMqttAssert(NULL != client);
     RyanMqttAssert(NULL != recvBuf);
-
-    RyanMqttCheck(0 != recvLen, RyanMqttSuccessError, rlog_d);
+    RyanMqttAssert(0 != recvLen);
 
     timeOut = client->config.recvTimeout;
     platformTimerInit(&timer);
@@ -120,8 +119,7 @@ RyanMqttError_e RyanMqttSendPacket(RyanMqttClient_t *client, uint8_t *sendBuf, u
     platformTimer_t timer = {0};
     RyanMqttAssert(NULL != client);
     RyanMqttAssert(NULL != sendBuf);
-
-    RyanMqttCheck(0 != sendLen, RyanMqttSuccessError, rlog_d);
+    RyanMqttAssert(0 != sendLen);
 
     timeOut = client->config.sendTimeout;
     platformTimerInit(&timer);
@@ -503,8 +501,15 @@ RyanMqttError_e RyanMqttAckHandlerCreate(RyanMqttClient_t *client, uint8_t packe
 
     if (RyanMqttTrue != isPreallocatedPacket)
     {
-        ackHandler->packet = (uint8_t *)ackHandler + sizeof(RyanMqttAckHandler_t);
-        memcpy(ackHandler->packet, packet, packetLen); // 将packet数据保存到ack中
+        if (packetLen > 0)
+        {
+            ackHandler->packet = (uint8_t *)ackHandler + sizeof(RyanMqttAckHandler_t);
+            memcpy(ackHandler->packet, packet, packetLen); // 将packet数据保存到ack中
+        }
+        else
+        {
+            ackHandler->packet = NULL;
+        }
     }
     else
     {
@@ -530,7 +535,7 @@ void RyanMqttAckHandlerDestroy(RyanMqttClient_t *client, RyanMqttAckHandler_t *a
 
     RyanMqttMsgHandlerDestory(client, ackHandler->msgHandler); // 释放msgHandler
 
-    if (RyanMqttTrue == ackHandler->isPreallocatedPacket)
+    if (RyanMqttTrue == ackHandler->isPreallocatedPacket && NULL != ackHandler->packet)
         platformMemoryFree(ackHandler->packet);
 
     platformMemoryFree(ackHandler);

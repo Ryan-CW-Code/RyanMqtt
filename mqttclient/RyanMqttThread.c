@@ -509,16 +509,16 @@ static RyanMqttError_e RyanMqttReadPacketHandler(RyanMqttClient_t *client)
     }
     break;
 
-    case MQTT_PACKET_TYPE_PUBACK:  // QoS 1消息发布收到确认
+    case MQTT_PACKET_TYPE_PUBACK:  // 客户端发送QoS 1消息，服务端发布收到确认
     case MQTT_PACKET_TYPE_PUBCOMP: // 发送QOS2 发布完成
         result = RyanMqttPubackAndPubcompPacketHandler(client, &pIncomingPacket);
         break;
 
-    case MQTT_PACKET_TYPE_PUBREC: // 发送QOS2 发布收到
+    case MQTT_PACKET_TYPE_PUBREC: // 客户端发送QOS2，服务端发布PUBREC，需要客户端继续发送PUBREL
         result = RyanMqttPubrecPacketHandler(client, &pIncomingPacket);
         break;
 
-    case (MQTT_PACKET_TYPE_PUBREL & 0xF0U): // 接收QOS2 发布释放
+    case (MQTT_PACKET_TYPE_PUBREL & 0xF0U): // 客户端接收QOS2 已经发布PUBREC，等待服务器发布释放
         if (pIncomingPacket.type & 0x02U)   // PUBREL 控制报文固定报头的第 3,2,1,0 位必须被设置为 0,0,1,0。必须将其它的任何值都当做是不合法的并关闭网络连接
             result = RyanMqttPubrelPacketHandler(client, &pIncomingPacket);
         break;
@@ -769,7 +769,11 @@ void RyanMqttEventMachine(RyanMqttClient_t *client, RyanMqttEventId_e eventId, v
     if (client->config.mqttEventHandle == NULL)
         return;
 
-    if (client->eventFlag & eventId)
+    platformCriticalEnter(client->config.userData, &client->criticalLock);
+    RyanMqttEventId_e eventFlag = client->eventFlag;
+    platformCriticalExit(client->config.userData, &client->criticalLock);
+
+    if (eventFlag & eventId)
         client->config.mqttEventHandle(client, eventId, eventData);
 }
 

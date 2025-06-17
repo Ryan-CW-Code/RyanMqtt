@@ -42,21 +42,34 @@ RyanMqttError_e platformNetworkDestroy(void *userData, platformNetwork_t *platfo
 RyanMqttError_e platformNetworkConnect(void *userData, platformNetwork_t *platformNetwork, const char *host, uint16_t port)
 {
     RyanMqttError_e result = RyanMqttSuccessError;
+    char *buf = NULL;
+    struct sockaddr_in server_addr = {
+        .sin_family = AF_INET,
+        .sin_port = htons(port), // 指定端口号
+    };
 
-    struct hostent hostinfo = {0};
-    char *buf = (char *)platformMemoryMalloc(384);
-    if (NULL == buf)
+    // 传递的是ip地址，不用进行dns解析，某些情况下调用dns解析反而会错误
+    if (INADDR_NONE != inet_addr(host))
     {
-        result = RyanMqttNoRescourceError;
-        goto __exit;
+        rlog_d("host: %s, 不用dns解析", host);
+        server_addr.sin_addr.s_addr = inet_addr(host);
     }
-
     // 解析域名信息
+    else
     {
+        rlog_d("host: %s, 需要dns解析", host);
         int h_errnop;
         struct hostent *phost;
+        struct hostent hostinfo = {0};
 
-        if (0 != gethostbyname_r(host, &hostinfo, buf, 384, &phost, &h_errnop))
+        buf = (char *)platformMemoryMalloc(384);
+        if (NULL == buf)
+        {
+            result = RyanMqttNoRescourceError;
+            goto __exit;
+        }
+
+        if (0 != gethostbyname_r(host, &hostinfo, buf, sizeof(buf), &phost, &h_errnop))
         {
             rlog_w("平台可能不支持 gethostbyname_r 函数, 再次尝试使用 gethostbyname 获取域名信息");
 
@@ -71,6 +84,8 @@ RyanMqttError_e platformNetworkConnect(void *userData, platformNetwork_t *platfo
 
             hostinfo = *phostinfo;
         }
+
+        server_addr.sin_addr = *((struct in_addr *)hostinfo.h_addr_list[0]);
     }
 
     platformNetwork->socket = socket(AF_INET, SOCK_STREAM, IPPROTO_IP);
@@ -79,12 +94,6 @@ RyanMqttError_e platformNetworkConnect(void *userData, platformNetwork_t *platfo
         result = RyanSocketFailedError;
         goto __exit;
     }
-
-    struct sockaddr_in server_addr = {
-        .sin_family = AF_INET,
-        .sin_port = htons(port), // 指定端口号
-        .sin_addr = *((struct in_addr *)hostinfo.h_addr_list[0]),
-    };
 
     // 绑定套接字到主机地址和端口号
     if (connect(platformNetwork->socket, (struct sockaddr *)&server_addr, sizeof(server_addr)) != 0)
@@ -232,7 +241,7 @@ RyanMqttError_e platformNetworkClose(void *userData, platformNetwork_t *platform
 
     if (platformNetwork->socket >= 0)
     {
-        close(platformNetwork->socket);
+        closesocket(platformNetwork->socket);
         rlog_w("platformNetworkClose socket close %d", platformNetwork->socket);
         platformNetwork->socket = -1;
     }

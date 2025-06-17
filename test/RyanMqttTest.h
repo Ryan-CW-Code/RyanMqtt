@@ -20,7 +20,8 @@ extern "C"
 #include "RyanMqttClient.h"
 
 #define RyanMqttClientId ("RyanMqttTest888") // 填写mqtt客户端id，要求唯一
-#define RyanMqttHost ("127.0.0.1")           // 填写你的mqtt服务器ip
+// #define RyanMqttHost ("127.0.0.1")           // 填写你的mqtt服务器ip
+#define RyanMqttHost ("localhost")           // 填写你的mqtt服务器ip
 #define RyanMqttPort (1883)                  // mqtt服务器端口
 #define RyanMqttUserName ("test")            // 填写你的用户名,没有填NULL
 #define RyanMqttPassword ("test")            // 填写你的密码,没有填NULL

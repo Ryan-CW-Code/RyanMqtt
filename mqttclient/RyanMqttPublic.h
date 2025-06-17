@@ -76,23 +76,23 @@ extern "C"
     typedef enum
     {
         RyanMqttEventError = RyanMqttBit0,                 // 保留事件
-        RyanMqttEventConnected = RyanMqttBit1,             // 连接成功                                                      eventData: 正数为RyanMqttConnectStatus_e*, 负数为RyanMqttError_e*
-        RyanMqttEventDisconnected = RyanMqttBit2,          // 可能由用户触发,断开连接                                        eventData: 正数为RyanMqttConnectStatus_e*, 负数为RyanMqttError_e*
-        RyanMqttEventSubscribed = RyanMqttBit3,            // 订阅成功事件,服务端可以授予比订阅者要求的低的QoS等级。            eventData: RyanMqttMsgHandler_t*
-        RyanMqttEventSubscribedFaile = RyanMqttBit4,       // 订阅失败事件,超时 / 服务器返回订阅失败                           eventData: RyanMqttMsgHandler_t*
-        RyanMqttEventUnSubscribed = RyanMqttBit5,          // 取消订阅事件                                                   eventData: RyanMqttMsgHandler_t*
-        RyanMqttEventUnSubscribedFaile = RyanMqttBit6,     // 取消订阅失败事件，超时                                          eventData: RyanMqttMsgHandler_t*
-        RyanMqttEventPublished = RyanMqttBit7,             // qos1 / qos2发送成功事件。发送没有失败,只会重发或者用户手动丢弃。   eventData: RyanMqttAckHandler_t*
-        RyanMqttEventRepeatPublishPacket = RyanMqttBit8,   // qos1 / qos2数据(或者ack)重发回调函数                            eventData: RyanMqttAckHandler_t*
-        RyanMqttEventAckRepeatCountWarning = RyanMqttBit9, // ack重发次数超过警戒值                                           eventData: RyanMqttAckHandler_t*
-        RyanMqttEventAckCountWarning = RyanMqttBit10,      // ack记数值超过警戒值                                             eventData: uint16_t* ackHandlerCount;  等待ack的记录个数
+        RyanMqttEventConnected = RyanMqttBit1,             // 连接成功  eventData: 正数为RyanMqttConnectStatus_e*, 负数为RyanMqttError_e*
+        RyanMqttEventDisconnected = RyanMqttBit2,          // 可能由用户触发,断开连接   eventData: 正数为RyanMqttConnectStatus_e*, 负数为RyanMqttError_e*
+        RyanMqttEventSubscribed = RyanMqttBit3,            // 订阅成功事件,服务端可以授予比订阅者要求的低的QoS等级  eventData: RyanMqttMsgHandler_t*
+        RyanMqttEventSubscribedFaile = RyanMqttBit4,       // 订阅失败事件,超时 / 服务器返回订阅失败    eventData: RyanMqttMsgHandler_t*
+        RyanMqttEventUnSubscribed = RyanMqttBit5,          // 取消订阅事件  eventData: RyanMqttMsgHandler_t*
+        RyanMqttEventUnSubscribedFaile = RyanMqttBit6,     // 取消订阅失败事件，超时    eventData: RyanMqttMsgHandler_t*
+        RyanMqttEventPublished = RyanMqttBit7,             // qos1 / qos2发送成功事件。发送没有失败,只会重发或者用户手动丢弃    eventData: RyanMqttAckHandler_t*
+        RyanMqttEventRepeatPublishPacket = RyanMqttBit8,   // qos1 / qos2数据(或者ack)重发回调函数  eventData: RyanMqttAckHandler_t*
+        RyanMqttEventAckRepeatCountWarning = RyanMqttBit9, // ack重发次数超过警戒值 eventData: RyanMqttAckHandler_t*
+        RyanMqttEventAckCountWarning = RyanMqttBit10,      // ack记数值超过警戒值   eventData: uint16_t* ackHandlerCount;  等待ack的记录个数
         RyanMqttEventAckHandlerdiscard = RyanMqttBit11,    /* 用户触发,ack句柄丢弃事件,由用户手动调用RyanMqttDestroyAckHandler函数触发
                                                             * 可能是发送qos1 / qos2消息丢弃、ack丢弃，也可能是publish报文的ack丢弃
                                                             * eventData: RyanMqttAckHandler_t*
                                                             */
-        RyanMqttEventReconnectBefore = RyanMqttBit12,      // 重连前事件,用户可以在此时更改connect信息                          eventData: NULL
-        RyanMqttEventDestoryBefore = RyanMqttBit13,        // 用户触发，销毁客户端前回调                                        eventData: NULL
-        RyanMqttEventData = RyanMqttBit14,                 // 接收到订阅主题数据事件,支持通配符识别，返回的主题信息是报文主题       eventData: RyanMqttMsgData_t*
+        RyanMqttEventReconnectBefore = RyanMqttBit12,      // 重连前事件,用户可以在此时更改connect信息  eventData: NULL
+        RyanMqttEventDestoryBefore = RyanMqttBit13,        // 用户触发，销毁客户端前回调    eventData: NULL
+        RyanMqttEventData = RyanMqttBit14,                 // 接收到订阅主题数据事件,支持通配符识别，返回的主题信息是报文主题   eventData: RyanMqttMsgData_t*
         RyanMqttEventAnyId = UINT32_MAX,
     } RyanMqttEventId_e;
 
