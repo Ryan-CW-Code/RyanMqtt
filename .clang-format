@@ -1,0 +1,118 @@
+# SPDX-License-Identifier: Apache-2.0
+#
+# Note: The list of ForEachMacros can be obtained using:
+#
+#    git grep -h '^#define [^[:space:]]*FOR_EACH[^[:space:]]*(' include/ \
+#    | sed "s,^#define \([^[:space:]]*FOR_EACH[^[:space:]]*\)(.*$,  - '\1'," \
+#    | sort | uniq
+#
+# References:
+#   - https://clang.llvm.org/docs/ClangFormatStyleOptions.html
+
+---
+# 基于 LLVM 的代码风格
+BasedOnStyle: LLVM
+# 连续宏定义的对齐方式：跨注释对齐
+AlignConsecutiveMacros: AcrossComments
+# 短代码块不允许单行显示
+AllowShortBlocksOnASingleLine: Never
+# 短 case 标签不允许单行显示
+AllowShortCaseLabelsOnASingleLine: true
+# 短枚举不允许单行显示
+AllowShortEnumsOnASingleLine: false
+# 短函数不允许单行显示（None 表示对所有函数都应用此规则）
+AllowShortFunctionsOnASingleLine: None
+# 短 if 语句不允许单行显示
+AllowShortIfStatementsOnASingleLine: true
+# 短循环不允许单行显示
+AllowShortLoopsOnASingleLine: true
+
+# 属性宏列表
+AttributeMacros:
+  - __aligned
+  - __deprecated
+  - __packed
+  - __printf_like
+  - __syscall
+  - __syscall_always_inline
+  - __subsystem
+
+# 位字段冒号后的空格位置：冒号后
+BitFieldColonSpacing: After
+
+BreakBeforeBraces: Custom
+BraceWrapping:
+  AfterCaseLabel: false
+  AfterClass: true
+  AfterControlStatement: Always
+  AfterEnum: true
+  AfterExternBlock: false
+  AfterFunction: true
+  AfterNamespace: true
+  AfterObjCDeclaration: true
+  AfterStruct: true
+  AfterUnion: false
+  BeforeCatch: true
+  BeforeElse: true
+  BeforeLambdaBody: false
+  BeforeWhile: false
+  IndentBraces: false
+  SplitEmptyFunction: true
+  SplitEmptyRecord: true
+  SplitEmptyNamespace: true
+
+# 单行代码的最大列数
+ColumnLimit: 120
+# 构造函数初始化列表的缩进宽度
+ConstructorInitializerIndentWidth: 8
+# 折行缩进宽度
+ContinuationIndentWidth: 8
+# ForEach 宏列表
+ForEachMacros:
+  - "ARRAY_FOR_EACH"
+  - "ARRAY_FOR_EACH_PTR"
+  - "FOR_EACH"
+
+# If 宏列表
+IfMacros:
+  - "CHECKIF"
+
+# 包含文件的分类和优先级
+IncludeCategories:
+  - Regex: '^".*\.h"$'
+    Priority: 0
+  - Regex: '^<(assert|complex|ctype|errno|fenv|float|inttypes|limits|locale|math|setjmp|signal|stdarg|stdbool|stddef|stdint|stdio|stdlib|string|tgmath|time|wchar|wctype)\.h>$'
+    Priority: 1
+  - Regex: '^\<Ryan/.*\.h\>$'
+    Priority: 2
+  - Regex: ".*"
+    Priority: 3
+
+# case 标签不缩进
+IndentCaseLabels: false
+# goto 标签不缩进
+IndentGotoLabels: false
+# 缩进宽度
+IndentWidth: 8
+# 自动插入大括号
+InsertBraces: true
+# 文件末尾自动插入新行
+InsertNewlineAtEOF: true
+# 继承冒号前不加空格
+SpaceBeforeInheritanceColon: False
+# 控制语句（除了控制宏）前加空格
+SpaceBeforeParens: ControlStatementsExceptControlMacros
+# 从不排序包含文件
+SortIncludes: Never
+# 使用制表符进行续行和缩进
+UseTab: ForContinuationAndIndentation
+# 对空白字符敏感的宏列表
+WhitespaceSensitiveMacros:
+  - COND_CODE_0
+  - COND_CODE_1
+  - IF_DISABLED
+  - IF_ENABLED
+  - LISTIFY
+  - STRINGIFY
+  - Z_STRINGIFY
+  - DT_FOREACH_PROP_ELEM_SEP

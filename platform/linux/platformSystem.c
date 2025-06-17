@@ -9,7 +9,7 @@
  */
 inline void *platformMemoryMalloc(size_t size)
 {
-    return malloc(size);
+	return malloc(size);
 }
 
 /**
@@ -19,7 +19,7 @@ inline void *platformMemoryMalloc(size_t size)
  */
 inline void platformMemoryFree(void *ptr)
 {
-    free(ptr);
+	free(ptr);
 }
 
 /**
@@ -29,7 +29,17 @@ inline void platformMemoryFree(void *ptr)
  */
 inline void platformDelay(uint32_t ms)
 {
-    usleep(ms * 1000);
+	usleep(ms * 1000);
+}
+
+uint32_t platformUptimeMs(void)
+{
+	struct timespec ts;
+	if (clock_gettime(CLOCK_MONOTONIC, &ts) != 0)
+	{
+		return 0;
+	}
+	return (uint32_t)(ts.tv_sec * 1000 + ts.tv_nsec / 1000000);
 }
 
 /**
@@ -40,7 +50,7 @@ inline void platformDelay(uint32_t ms)
  */
 inline void platformPrint(char *str, uint16_t strLen)
 {
-    printf("%.*s", strLen, str);
+	printf("%.*s", strLen, str);
 }
 
 /**
@@ -55,28 +65,25 @@ inline void platformPrint(char *str, uint16_t strLen)
  * @param priority
  * @return RyanMqttError_e
  */
-RyanMqttError_e platformThreadInit(void *userData,
-                                   platformThread_t *platformThread,
-                                   const char *name,
-                                   void (*entry)(void *),
-                                   void *const param,
-                                   uint32_t stackSize,
-                                   uint32_t priority)
+RyanMqttError_e platformThreadInit(void *userData, platformThread_t *platformThread, const char *name,
+				   void (*entry)(void *), void *const param, uint32_t stackSize, uint32_t priority)
 {
 
-    pthread_attr_t attr = {0};
-    pthread_attr_init(&attr);
-    pthread_attr_setstacksize(&attr, stackSize);
-    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED); // 设置为分离状态
+	pthread_attr_t attr = {0};
+	pthread_attr_init(&attr);
+	pthread_attr_setstacksize(&attr, stackSize);
+	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED); // 设置为分离状态
 
-    int ret = pthread_create(&platformThread->thread, &attr, (void *)entry, param);
-    if (0 != ret)
-        return RyanMqttNoRescourceError;
+	int ret = pthread_create(&platformThread->thread, &attr, (void *)entry, param);
+	if (0 != ret)
+	{
+		return RyanMqttNoRescourceError;
+	}
 
-    pthread_mutex_init(&platformThread->mutex, NULL);
-    pthread_cond_init(&platformThread->cond, NULL);
+	pthread_mutex_init(&platformThread->mutex, NULL);
+	pthread_cond_init(&platformThread->cond, NULL);
 
-    return RyanMqttSuccessError;
+	return RyanMqttSuccessError;
 }
 
 /**
@@ -88,8 +95,8 @@ RyanMqttError_e platformThreadInit(void *userData,
  */
 RyanMqttError_e platformThreadDestroy(void *userData, platformThread_t *platformThread)
 {
-    pthread_exit(NULL);
-    return RyanMqttSuccessError;
+	pthread_exit(NULL);
+	return RyanMqttSuccessError;
 }
 
 /**
@@ -101,10 +108,10 @@ RyanMqttError_e platformThreadDestroy(void *userData, platformThread_t *platform
  */
 RyanMqttError_e platformThreadStart(void *userData, platformThread_t *platformThread)
 {
-    pthread_mutex_lock(&platformThread->mutex);
-    pthread_cond_signal(&platformThread->cond);
-    pthread_mutex_unlock(&platformThread->mutex);
-    return RyanMqttSuccessError;
+	pthread_mutex_lock(&platformThread->mutex);
+	pthread_cond_signal(&platformThread->cond);
+	pthread_mutex_unlock(&platformThread->mutex);
+	return RyanMqttSuccessError;
 }
 
 /**
@@ -116,10 +123,10 @@ RyanMqttError_e platformThreadStart(void *userData, platformThread_t *platformTh
  */
 RyanMqttError_e platformThreadStop(void *userData, platformThread_t *platformThread)
 {
-    pthread_mutex_lock(&platformThread->mutex);
-    pthread_cond_wait(&platformThread->cond, &platformThread->mutex);
-    pthread_mutex_unlock(&platformThread->mutex);
-    return RyanMqttSuccessError;
+	pthread_mutex_lock(&platformThread->mutex);
+	pthread_cond_wait(&platformThread->cond, &platformThread->mutex);
+	pthread_mutex_unlock(&platformThread->mutex);
+	return RyanMqttSuccessError;
 }
 
 /**
@@ -131,11 +138,11 @@ RyanMqttError_e platformThreadStop(void *userData, platformThread_t *platformThr
  */
 RyanMqttError_e platformMutexInit(void *userData, platformMutex_t *platformMutex)
 {
-    pthread_mutexattr_t attr;
-    pthread_mutexattr_init(&attr);
-    pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
-    pthread_mutex_init(&platformMutex->mutex, &attr);
-    return RyanMqttSuccessError;
+	pthread_mutexattr_t attr;
+	pthread_mutexattr_init(&attr);
+	pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
+	pthread_mutex_init(&platformMutex->mutex, &attr);
+	return RyanMqttSuccessError;
 }
 
 /**
@@ -147,8 +154,8 @@ RyanMqttError_e platformMutexInit(void *userData, platformMutex_t *platformMutex
  */
 RyanMqttError_e platformMutexDestroy(void *userData, platformMutex_t *platformMutex)
 {
-    pthread_mutex_destroy(&platformMutex->mutex);
-    return RyanMqttSuccessError;
+	pthread_mutex_destroy(&platformMutex->mutex);
+	return RyanMqttSuccessError;
 }
 
 /**
@@ -160,8 +167,8 @@ RyanMqttError_e platformMutexDestroy(void *userData, platformMutex_t *platformMu
  */
 RyanMqttError_e platformMutexLock(void *userData, platformMutex_t *platformMutex)
 {
-    pthread_mutex_lock(&platformMutex->mutex); // 互斥锁上锁
-    return RyanMqttSuccessError;
+	pthread_mutex_lock(&platformMutex->mutex); // 互斥锁上锁
+	return RyanMqttSuccessError;
 }
 
 /**
@@ -173,8 +180,8 @@ RyanMqttError_e platformMutexLock(void *userData, platformMutex_t *platformMutex
  */
 RyanMqttError_e platformMutexUnLock(void *userData, platformMutex_t *platformMutex)
 {
-    pthread_mutex_unlock(&platformMutex->mutex); // 互斥锁解锁
-    return RyanMqttSuccessError;
+	pthread_mutex_unlock(&platformMutex->mutex); // 互斥锁解锁
+	return RyanMqttSuccessError;
 }
 
 /**
@@ -186,8 +193,8 @@ RyanMqttError_e platformMutexUnLock(void *userData, platformMutex_t *platformMut
  */
 RyanMqttError_e platformCriticalInit(void *userData, platformCritical_t *platformCritical)
 {
-    pthread_spin_init(&platformCritical->spin, PTHREAD_PROCESS_PRIVATE);
-    return RyanMqttSuccessError;
+	pthread_spin_init(&platformCritical->spin, PTHREAD_PROCESS_PRIVATE);
+	return RyanMqttSuccessError;
 }
 
 /**
@@ -199,8 +206,8 @@ RyanMqttError_e platformCriticalInit(void *userData, platformCritical_t *platfor
  */
 RyanMqttError_e platformCriticalDestroy(void *userData, platformCritical_t *platformCritical)
 {
-    pthread_spin_destroy(&platformCritical->spin);
-    return RyanMqttSuccessError;
+	pthread_spin_destroy(&platformCritical->spin);
+	return RyanMqttSuccessError;
 }
 
 /**
@@ -212,8 +219,8 @@ RyanMqttError_e platformCriticalDestroy(void *userData, platformCritical_t *plat
  */
 inline RyanMqttError_e platformCriticalEnter(void *userData, platformCritical_t *platformCritical)
 {
-    pthread_spin_lock(&platformCritical->spin);
-    return RyanMqttSuccessError;
+	pthread_spin_lock(&platformCritical->spin);
+	return RyanMqttSuccessError;
 }
 
 /**
@@ -225,6 +232,6 @@ inline RyanMqttError_e platformCriticalEnter(void *userData, platformCritical_t 
  */
 inline RyanMqttError_e platformCriticalExit(void *userData, platformCritical_t *platformCritical)
 {
-    pthread_spin_unlock(&platformCritical->spin);
-    return RyanMqttSuccessError;
+	pthread_spin_unlock(&platformCritical->spin);
+	return RyanMqttSuccessError;
 }

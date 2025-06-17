@@ -1,0 +1,8 @@
+# 最顶层包含几个主要部分：If, CompileFlags, Diagnostics, InlayHints, Completion, 和 SemanticTokens
+
+CompileFlags:            # 编译标志部分
+  CompilationDatabase: .vscode     # 指定编译数据库
+
+  
+Diagnostics:
+  UnusedIncludes: None  # 可选值为 Strict/None（默认：Strict）

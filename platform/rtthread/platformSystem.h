@@ -30,7 +30,7 @@ extern "C"
 
     typedef struct
     {
-        uint8_t invalid; // 不使用，避免报错
+        rt_base_t level;
     } platformCritical_t;
 
     extern void *platformMemoryMalloc(size_t size);
@@ -38,6 +38,7 @@ extern "C"
 
     extern void platformPrint(char *str, uint16_t strLen);
     extern void platformDelay(uint32_t ms);
+    extern uint32_t platformUptimeMs(void);
 
     extern RyanMqttError_e platformThreadInit(void *userData,
                                               platformThread_t *platformThread,

@@ -15,4 +15,8 @@ null
 
 # 忽略
 core
-
+*.lua
+build
+.xmake
+todo.h
+.vscode-ctags

@@ -3,10 +3,7 @@
  *
  */
 
-// #define rlogEnable               // 是否使能日志
-#define rlogColorEnable          // 是否使能日志颜色
 #define rlogLevel (rlogLvlWarning) // 日志打印等级
-#define rlogTag "RyanMqttNet"      // 日志tag
 
 #include "platformNetwork.h"
 #include "RyanMqttLog.h"
@@ -197,12 +194,12 @@ RyanMqttError_e platformNetworkRecvAsync(void *userData, platformNetwork_t *plat
     int32_t offset = 0;
     int32_t timeOut2 = timeout;
     int32_t eventId;
-    platformTimer_t timer = {0};
+    RyanMqttTimer_t timer = {0};
 
     if (-1 == platformNetwork->socket)
         return RyanSocketFailedError;
 
-    platformTimerCutdown(&timer, timeout);
+    RyanMqttTimerCutdown(&timer, timeout);
     while ((offset < recvLen) && (0 != timeOut2))
     {
 
@@ -233,7 +230,7 @@ RyanMqttError_e platformNetworkRecvAsync(void *userData, platformNetwork_t *plat
             }
         }
 
-        timeOut2 = platformTimerRemain(&timer);
+        timeOut2 = RyanMqttTimerRemain(&timer);
     }
 
     if (offset != recvLen)
@@ -262,12 +259,12 @@ RyanMqttError_e platformNetworkSendAsync(void *userData, platformNetwork_t *plat
     int32_t offset = 0;
     int32_t timeOut2 = timeout;
     int32_t eventId;
-    platformTimer_t timer = {0};
+    RyanMqttTimer_t timer = {0};
 
     if (-1 == platformNetwork->socket)
         return RyanSocketFailedError;
 
-    platformTimerCutdown(&timer, timeout);
+    RyanMqttTimerCutdown(&timer, timeout);
 
     while ((offset < sendLen) && (0 != timeOut2))
     {
@@ -280,7 +277,7 @@ RyanMqttError_e platformNetworkSendAsync(void *userData, platformNetwork_t *plat
                 return RyanSocketFailedError;
         }
         offset += sendResult;
-        timeOut2 = platformTimerRemain(&timer);
+        timeOut2 = RyanMqttTimerRemain(&timer);
     }
 
     // osDelay(1000);

@@ -32,6 +32,16 @@ inline void platformDelay(uint32_t ms)
     luat_rtos_task_sleep(luat_rtos_ms2tick(ms));
 }
 
+uint32_t platformUptimeMs(void)
+{
+    if (1000 == luat_mcu_hz())
+        return (uint32_t)luat_mcu_ticks();
+
+    uint32_t tick = 0;
+    tick = luat_mcu_ticks() * 1000;
+    return (uint32_t)((tick + luat_mcu_ticks() - 1) / luat_mcu_ticks());
+}
+
 /**
  * @brief 打印字符串函数,可通过串口打印出去
  *

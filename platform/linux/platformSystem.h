@@ -11,6 +11,8 @@ extern "C"
 #include <assert.h>
 #include <pthread.h>
 #include <unistd.h>
+#include <stdlib.h>
+ #include <time.h>
 #include "RyanMqttPublic.h"
 #include "valloc.h"
 
@@ -38,6 +40,7 @@ extern "C"
 
     extern void platformPrint(char *str, uint16_t strLen);
     extern void platformDelay(uint32_t ms);
+    extern uint32_t platformUptimeMs(void);
 
     extern RyanMqttError_e platformThreadInit(void *userData,
                                               platformThread_t *platformThread,

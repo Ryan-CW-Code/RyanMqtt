@@ -1,5 +1,23 @@
 {
-    "files.associations": {
-        "string.h": "c"
-    }
+    "clangd.enable": false,
+    "C_Cpp.intelliSenseEngine": "default",
+    "C_Cpp.codeAnalysis.clangTidy.enabled": true,
+    "c-cpp-flylint.enable": true,
+    "c-cpp-flylint.cppcheck.severityLevels": {
+        "error": "Error",
+        "warning": "Warning",
+        "style": "Information",
+        "performance": "Information",
+        "portability": "Information",
+        "information": "Information"
+    },
+    "c-cpp-flylint.cppcheck.extraArgs": [
+        // "--suppress=constParameterPointer",
+        // "--suppress=constParameterCallback",
+        "--check-level=exhaustive",
+        // "--suppress=variableScope",
+        // "--suppress=unreadVariable",
+        // "--suppress=constVariablePointer",
+        // "--suppress=constParameter",
+    ],
 }

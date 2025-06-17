@@ -32,6 +32,17 @@ inline void platformDelay(uint32_t ms)
     rt_thread_mdelay(ms);
 }
 
+uint32_t platformUptimeMs(void)
+{
+#if (RT_TICK_PER_SECOND == 1000)
+    return (uint32_t)rt_tick_get();
+#else
+    // 已经不能提供精准的ms了
+    rt_tick_t tick = rt_tick_get();
+    return (uint32_t)((tick * 1000 + RT_TICK_PER_SECOND - 1) / RT_TICK_PER_SECOND);
+#endif
+}
+
 /**
  * @brief 打印字符串函数,可通过串口打印出去
  *
@@ -204,7 +215,7 @@ RyanMqttError_e platformCriticalDestroy(void *userData, platformCritical_t *plat
  */
 inline RyanMqttError_e platformCriticalEnter(void *userData, platformCritical_t *platformCritical)
 {
-    rt_enter_critical();
+    platformCritical->level = rt_hw_interrupt_disable();
     return RyanMqttSuccessError;
 }
 
@@ -217,6 +228,6 @@ inline RyanMqttError_e platformCriticalEnter(void *userData, platformCritical_t 
  */
 inline RyanMqttError_e platformCriticalExit(void *userData, platformCritical_t *platformCritical)
 {
-    rt_exit_critical();
+    rt_hw_interrupt_enable(platformCritical->level);
     return RyanMqttSuccessError;
 }
