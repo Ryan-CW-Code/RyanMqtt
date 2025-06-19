@@ -1,4 +1,5 @@
-#define rlogLevel (rlogLvlInfo) // 日志打印等级
+#define rlogLevel (rlogLvlAssert) // 日志打印等级
+// #define rlogLevel (rlogLvlDebug) // 日志打印等级
 
 #include "RyanMqttUtile.h"
 #include "RyanMqttLog.h"

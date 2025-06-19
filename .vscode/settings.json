@@ -20,4 +20,7 @@
         // "--suppress=constVariablePointer",
         // "--suppress=constParameter",
     ],
+    "files.associations": {
+        "*.c": "c",
+    },
 }
