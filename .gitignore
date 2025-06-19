@@ -4,6 +4,8 @@
 # 平台移植层
 # platform/linux/*
 platform/FreeRTOS/*
+# 暂时不放出来quecOpen不维护了
+platform/quecOpen2/*
 
 null
 .vscode
@@ -15,4 +17,10 @@ null
 
 # 忽略
 core
+*.lua
+build
+.xmake
+todo.h
+.vscode-ctags
+
 
