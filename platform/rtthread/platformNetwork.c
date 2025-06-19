@@ -146,8 +146,8 @@ int32_t platformNetworkRecvAsync(void *userData, platformNetwork_t *platformNetw
 		return -1;
 	}
 
-	setsockopt(platformNetwork->socket, SOL_SOCKET, SO_RCVTIMEO, (char *)&tv,
-		   sizeof(struct timeval)); // 设置操作模式为非阻塞
+	// 设置操作模式为非阻塞
+	setsockopt(platformNetwork->socket, SOL_SOCKET, SO_RCVTIMEO, (char *)&tv, sizeof(struct timeval));
 
 	recvResult = recv(platformNetwork->socket, recvBuf, recvLen, 0);
 	if (0 == recvResult)
@@ -209,8 +209,8 @@ int32_t platformNetworkSendAsync(void *userData, platformNetwork_t *platformNetw
 		return -1;
 	}
 
-	setsockopt(platformNetwork->socket, SOL_SOCKET, SO_SNDTIMEO, (char *)&tv,
-		   sizeof(struct timeval)); // 设置操作模式为非阻塞
+	// 设置操作模式为非阻塞
+	setsockopt(platformNetwork->socket, SOL_SOCKET, SO_SNDTIMEO, (char *)&tv, sizeof(struct timeval));
 
 	sendResult = send(platformNetwork->socket, sendBuf, sendLen, 0);
 	if (0 == sendResult)

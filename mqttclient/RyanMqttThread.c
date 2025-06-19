@@ -42,7 +42,7 @@ static RyanMqttError_e RyanMqttKeepalive(RyanMqttClient_t *client)
 		RyanMqttConnectStatus_e connectState = RyanMqttKeepaliveTimeout;
 		RyanMqttEventMachine(client, RyanMqttEventDisconnected, (void *)&connectState);
 		RyanMqttLog_d("ErrorCode: %d, strError: %s", RyanMqttKeepaliveTimeout,
-		       RyanMqttStrError(RyanMqttKeepaliveTimeout));
+			      RyanMqttStrError(RyanMqttKeepaliveTimeout));
 		return RyanMqttFailedError;
 	}
 
@@ -107,8 +107,9 @@ static RyanMqttError_e RyanMqttPubackAndPubcompPacketHandler(RyanMqttClient_t *c
 
 	// 可能会多次收到 puback / pubcomp,仅在首次收到时触发发布成功回调函数
 	result = RyanMqttAckListNodeFind(client, pIncomingPacket->type & 0xF0U, packetId, &ackHandler);
-	RyanMqttCheckCode(RyanMqttSuccessError == result, result, RyanMqttLog_d,
-			  { RyanMqttLog_i("packetType: %02x, packetId: %d", pIncomingPacket->type & 0xF0U, packetId); });
+	RyanMqttCheckCode(RyanMqttSuccessError == result, result, RyanMqttLog_d, {
+		RyanMqttLog_i("packetType: %02x, packetId: %d", pIncomingPacket->type & 0xF0U, packetId);
+	});
 
 	RyanMqttEventMachine(client, RyanMqttEventPublished, (void *)ackHandler); // 回调函数
 
@@ -144,7 +145,7 @@ static RyanMqttError_e RyanMqttPubrelPacketHandler(RyanMqttClient_t *client, MQT
 	}
 
 	// 制作确认数据包并发送
-	uint8_t buffer[MQTT_PUBLISH_ACK_PACKET_SIZE];
+	uint8_t buffer[MQTT_PUBLISH_ACK_PACKET_SIZE] = {0};
 	MQTTFixedBuffer_t fixedBuffer = {
 		.pBuffer = buffer,
 		.size = MQTT_PUBLISH_ACK_PACKET_SIZE,
@@ -182,7 +183,7 @@ static RyanMqttError_e RyanMqttPubrecPacketHandler(RyanMqttClient_t *client, MQT
 	RyanMqttCheck(MQTTSuccess == status, RyanMqttSerializePacketError, RyanMqttLog_d);
 
 	// 每次收到PUBREC都返回ack,确保服务器可以认为数据包被发送了
-	uint8_t buffer[MQTT_PUBLISH_ACK_PACKET_SIZE];
+	uint8_t buffer[MQTT_PUBLISH_ACK_PACKET_SIZE] = {0};
 	MQTTFixedBuffer_t fixedBuffer = {
 		.pBuffer = buffer,
 		.size = MQTT_PUBLISH_ACK_PACKET_SIZE,
@@ -274,7 +275,7 @@ static RyanMqttError_e RyanMqttPublishPacketHandler(RyanMqttClient_t *client, MQ
 		// 先分发消息，再回答ack
 		RyanMqttEventMachine(client, RyanMqttEventData, (void *)&msgData);
 
-		uint8_t buffer[MQTT_PUBLISH_ACK_PACKET_SIZE];
+		uint8_t buffer[MQTT_PUBLISH_ACK_PACKET_SIZE] = {0};
 		MQTTFixedBuffer_t fixedBuffer = {
 			.pBuffer = buffer,
 			.size = MQTT_PUBLISH_ACK_PACKET_SIZE,
@@ -293,7 +294,7 @@ static RyanMqttError_e RyanMqttPublishPacketHandler(RyanMqttClient_t *client, MQ
 	case RyanMqttQos2: // qos2采用方法B
 	{
 		RyanMqttAckHandler_t *ackHandler = NULL;
-		uint8_t buffer[MQTT_PUBLISH_ACK_PACKET_SIZE];
+		uint8_t buffer[MQTT_PUBLISH_ACK_PACKET_SIZE] = {0};
 		MQTTFixedBuffer_t fixedBuffer = {
 			.pBuffer = buffer,
 			.size = MQTT_PUBLISH_ACK_PACKET_SIZE,
@@ -576,7 +577,6 @@ static RyanMqttError_e RyanMqttReadPacketHandler(RyanMqttClient_t *client)
 
 	case MQTT_PACKET_TYPE_CONNACK: // 连接报文确认
 	{
-		MQTTStatus_t status = MQTTSuccess;
 		uint16_t packetId;
 		bool sessionPresent; // 会话位
 
@@ -979,7 +979,7 @@ void RyanMqttThread(void *argument)
 		}
 
 		// 客户端状态变更状态机
-		switch (client->clientState)
+		switch (RyanMqttGetClientState(client))
 		{
 
 		case RyanMqttStartState: // 开始状态状态

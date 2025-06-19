@@ -11,7 +11,7 @@ extern "C" {
 #ifdef PKG_USING_RYANMQTT_IS_ENABLE_ASSERT
 #define RyanMqttAssert(EX) platformAssert(EX)
 #else
-#define RyanMqttAssert(EX)
+#define RyanMqttAssert(EX) (void)(EX)
 #endif
 
 // 定义枚举类型

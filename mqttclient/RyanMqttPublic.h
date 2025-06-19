@@ -206,7 +206,6 @@ extern const char *RyanMqttStrError(int32_t state);
 #define RyanMqttCheckCodeNoReturn(EX, ErrorCode, Ryanlevel, code)                                                      \
 	if (!(EX))                                                                                                     \
 	{                                                                                                              \
-                                                                                                                       \
 		Ryanlevel("ErrorCode: %d, strError: %s", ErrorCode, RyanMqttStrError(ErrorCode));                      \
 		{code};                                                                                                \
 	}
