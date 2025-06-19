@@ -1,0 +1,79 @@
+# abseil-   与 Abseil 库相关的检查。
+# altera-   与用于 FPGA 的开源 CL 编程相关的检查。
+# android-    与 Android 相关的检查。
+# boost-    与 Boost 库相关的检查。
+# bugprone-   检查易出错代码结构。
+# cert-   与 CERT 安全编码指南相关的检查。
+# clang-analyzer-Clang    静态分析器检查。
+# concurrency-    与并发编程相关的检查（包括线程、纤程、协程等）。
+# cppcoreguidelines-    与 C++核心指南相关的检查。
+# darwin-   与达尔文编码规范相关的检查。
+# fuchsia-    与 Fuchsia 编码规范相关的检查。
+# google-   与 Google 编码规范相关的检查。
+# hicpp-    与高完整性 C++编码标准相关的检查。
+# linuxkernel-    与 Linux 内核编码规范相关的检查。
+# llvm-   与 LLVM 编码规范相关的检查。
+# llvmlibc-   与 LLVM-libc 编码标准相关的检查。
+# misc-   我们没有一个更好的类别的检查。
+# modernize-    提倡使用现代（目前“现代”意味着“C++11”）语言结构的检查。
+# mpi-    与 MPI（消息传递接口）相关的检查。
+# objc-   与 Objective-C 编码规范相关的检查。
+# openmp-   与 OpenMP API 相关的检查。
+# performance-    针对性能相关问题的检查。
+# portability-    针对与特定编码风格无关的可移植性问题进行检查。
+# readability-    检查与特定编码风格无关的目标可读性问题。
+# zircon-     检查与 Zircon 内核编码约定相关的内容。
+
+# Checks: '-*,clang-diagnostic-*,llvm-*,misc-*,-misc-const-correctness,-misc-unused-parameters,-misc-non-private-member-variables-in-classes,-misc-no-recursion,-misc-use-anonymous-namespace,readability-identifier-naming,-misc-include-cleaner'
+
+Checks: 
+  - "-*,clang-diagnostic-*,clang-analyzer-*,llvm-*,concurrency-*,performance-*,cert-*"
+  # 静默的窄化转换交给编译器来判断？
+  - 'bugprone-*,-bugprone-easily-swappable-parameters'
+  - 'readability-identifier-naming'
+  - 'misc-*,-misc-const-correctness,-misc-unused-parameters,-misc-non-private-member-variables-in-classes,-misc-no-recursion,-misc-use-anonymous-namespace,-misc-include-cleaner'
+
+CheckOptions:
+  # 类名使用帕斯卡命名法（如 MyClass）
+  - key: readability-identifier-naming.ClassCase
+    value: camelCase
+
+  # 枚举名使用帕斯卡命名法（如 ColorMode）
+  - key: readability-identifier-naming.EnumCase
+    value: camelCase
+
+  # 函数名使用驼峰命名法（如 getValue()）
+  - key: readability-identifier-naming.FunctionCase
+    value: camelBack,CamelBack
+
+  # 忽略符合正则表达式的函数名（常用于兼容外部接口）
+  - key: readability-identifier-naming.FunctionIgnoredRegexp
+    value: "LLVMFuzzerTestOneInput"
+
+  # 成员变量名使用帕斯卡命名法（如 MemberVar）
+  - key: readability-identifier-naming.MemberCase
+    value: camelCase
+
+  # 参数名使用帕斯卡命名法（如 ParamName）
+  - key: readability-identifier-naming.ParameterCase
+    value: camelBack
+
+  # 联合体名使用帕斯卡命名法（如 MyUnion）
+  - key: readability-identifier-naming.UnionCase
+    value: camelCase
+
+  # 变量名使用帕斯卡命名法（如 LocalVar）
+  - key: readability-identifier-naming.VariableCase
+    value: camelCase
+
+  # 忽略main-like函数（如测试入口函数）
+  - key: readability-identifier-naming.IgnoreMainLikeFunctions
+    value: 1
+
+  # 忽略拷贝构造函数中的基类成员初始化检查
+  - key: readability-redundant-member-init.IgnoreBaseInCopyConstructors
+    value: 1
+
+  # 使用赋值初始化而非就地初始化（C++11特性）
+  - key: modernize-use-default-member-init.UseAssignment
+    value: 1

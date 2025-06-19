@@ -23,8 +23,8 @@ extern "C"
     void v_free(void *block);
     void *v_realloc(void *block, size_t size);
     int v_mcheck(int *_count, int *_use);
-    void displayMem();
-    void vallocInit();
+    void displayMem(void);
+    void vallocInit(void);
 
 #define malloc v_malloc
 #define calloc v_calloc
