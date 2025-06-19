@@ -996,7 +996,6 @@ RyanMqttError_e RyanMqttSetLwt(RyanMqttClient_t *client, char *topicName, char *
 	client->lwtOptions.retain = retain;
 	client->lwtOptions.topic = lwtNewTopic;
 	client->lwtOptions.payload = lwtNewPayload;
-	client->lwtOptions.retain = retain;
 	client->lwtOptions.payloadLen = payloadLen;
 
 	return RyanMqttSuccessError;
