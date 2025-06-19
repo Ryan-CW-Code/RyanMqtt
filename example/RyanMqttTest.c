@@ -1,38 +1,33 @@
+// NOLINTBEGIN(cert-err34-c,llvm-include-order)
+#ifdef PKG_USING_RYANMQTT_EXAMPLE
+
+#define RyanMqttLogLevel (RyanMqttLogLevelDebug) // 日志打印等级
+
+#include <stdint.h>
+#include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
+
 #include "rtconfig.h"
+#include <board.h>
+#include <rtthread.h>
+#include <rtdevice.h>
+#include <rtdbg.h>
+
+#include "RyanMqttLog.h"
+#include "RyanMqttClient.h"
 
 #define RyanMqttClientId ("RyanMqttTessdfwrt") // 填写mqtt客户端id，要求唯一
 #define RyanMqttHost     ("broker.emqx.io")    // 填写你的mqtt服务器ip
 #define RyanMqttPort     (1883)                // mqtt服务器端口
 #define RyanMqttUserName (NULL)                // 填写你的用户名,没有填NULL
 #define RyanMqttPassword (NULL)                // 填写你的密码,没有填NULL
-
-#ifdef PKG_USING_RYANMQTT_EXAMPLE
-#include <stdio.h>
-#include <stdint.h>
-#include <string.h>
-#include <stdlib.h>
-#include <board.h>
-
-#include <rtthread.h>
-#include <rtdevice.h>
-#include <rtdbg.h>
-
-#define RyanMqttLogLevel (RyanMqttLogLevelDebug) // 日志打印等级
-
-#include "RyanMqttLog.h"
-#include "RyanMqttClient.h"
-
-#define delay(ms) rt_thread_mdelay(ms)
+#define delay(ms)        rt_thread_mdelay(ms)
 
 static RyanMqttClient_t *client = NULL;
 
-static char mqttRecvBuffer[512];
-static char mqttSendBuffer[512];
-
-// 具体数值计算可以查看事件回调函数
-static uint32_t mqttTest[10] = {0};
-#define dataEventCount      (0) // 接收到数据次数统计
-#define PublishedEventCount (1) // qos1和qos2发布成功的次数统计
+static int32_t pubTestPublishedEventCount = 0; // qos1和qos2发布成功的次数统计
+static int32_t pubTestDataEventCount = 0;      // 接收到数据次数统计
 
 static void printfArrStr(char *buf, uint32_t len, char *userData)
 {
@@ -116,7 +111,7 @@ static void mqttEventHandle(void *pclient, RyanMqttEventId_e event, const void *
 			      ackHandler->packetType, ackHandler->packetId, ackHandler->msgHandler->topic,
 			      ackHandler->msgHandler->qos);
 
-		printfArrStr(ackHandler->packet, ackHandler->packetLen, "重发数据: ");
+		printfArrStr((char *)ackHandler->packet, ackHandler->packetLen, "重发数据: ");
 		break;
 	}
 
@@ -219,6 +214,8 @@ static int MqttConnect(int argc, char *argv[])
 		return 0;
 	}
 
+	RyanMqttLog_i("mqtt开始连接");
+
 	RyanMqttError_e result = RyanMqttSuccessError;
 	RyanMqttClientConfig_t mqttConfig = {.clientId = RyanMqttClientId,
 					     .userName = RyanMqttUserName,
@@ -260,6 +257,8 @@ static int MqttConnect(int argc, char *argv[])
 	// 启动mqtt客户端线程
 	result = RyanMqttStart(client);
 	RyanMqttCheck(RyanMqttSuccessError == result, result, RyanMqttLog_d);
+
+	RyanMqttLog_i("mqtt已开启自动重连,断连后会每3秒尝试重连一次");
 	return 0;
 }
 
@@ -423,13 +422,9 @@ static int MqttListSubscribe(int argc, char *argv[])
 	result = RyanMqttGetSubscribeSafe(client, &msgHandles, &subscribeNum);
 	if (RyanMqttSuccessError != result)
 	{
-		if (RyanMqttNoRescourceError == result)
+		if (RyanMqttNoRescourceError != result)
 		{
-			RyanMqttLog_w("没用订阅的主题~~~");
-		}
-		else
-		{
-			RyanMqttLog_e("获取订阅主题数失败可能没用内存");
+			RyanMqttLog_e("获取订阅主题数失败可能是内存不足");
 		}
 	}
 
@@ -446,66 +441,6 @@ static int MqttListSubscribe(int argc, char *argv[])
 }
 
 /**
- * @brief 打印ack链表
- *
- * @param argc
- * @param argv
- * @return int
- */
-static int MqttListAck(int argc, char *argv[])
-{
-	RyanList_t *curr, *next;
-	RyanMqttAckHandler_t *ackHandler = NULL;
-
-	if (RyanListIsEmpty(&client->ackHandlerList))
-	{
-		RyanMqttLog_w("ack链表为空，没有等待ack的消息");
-		return 0;
-	}
-
-	// 遍历链表
-	RyanListForEachSafe(curr, next, &client->ackHandlerList)
-	{
-		// 获取此节点的结构体
-		ackHandler = RyanListEntry(curr, RyanMqttAckHandler_t, list);
-
-		// 发送qos1 / qos2消息服务器ack响应超时。需要重新发送它们。
-		RyanMqttLog_i(" type: %d, packetId is %d ", ackHandler->packetType, ackHandler->packetId);
-		if (NULL != ackHandler->msgHandler)
-		{
-			RyanMqttLog_i("topic: %s, qos: %d", ackHandler->msgHandler->topic, ackHandler->msgHandler->qos);
-		}
-	}
-	return 0;
-}
-
-/**
- * @brief 打印msg链表
- *
- * @param argc
- * @param argv
- * @return int
- */
-static int MqttListMsg(int argc, char *argv[])
-{
-	RyanList_t *curr = NULL, *next = NULL;
-	RyanMqttMsgHandler_t *msgHandler = NULL;
-
-	if (RyanListIsEmpty(&client->msgHandlerList))
-	{
-		RyanMqttLog_w("msg链表为空，没有等待的msg消息");
-		return 0;
-	}
-
-	RyanListForEachSafe(curr, next, &client->msgHandlerList)
-	{
-		msgHandler = RyanListEntry(curr, RyanMqttMsgHandler_t, list);
-		RyanMqttLog_i("topic: %s, qos: %d", msgHandler->topic, msgHandler->qos);
-	}
-	return 0;
-}
-
-/**
  * @brief 打印接收到的数据计数
  *
  * @param argc
@@ -514,20 +449,6 @@ static int MqttListMsg(int argc, char *argv[])
  */
 static int Mqttdata(int argc, char *argv[])
 {
-	// mqtt data
-	if (argc == 3)
-	{
-		uint32_t num = atoi(argv[2]);
-		if (num < sizeof(mqttTest) / sizeof(mqttTest[0]) - 1)
-		{
-			mqttTest[num] = 0;
-		}
-		else
-		{
-			RyanMqttLog_e("数组越界");
-		}
-	}
-
 	RyanMqttLog_i("接收到数据次数统计: %d, qos1和qos2发布成功的次数统计: %d", pubTestDataEventCount,
 		      pubTestPublishedEventCount);
 
@@ -546,9 +467,8 @@ static const struct RyanMqttCmdDes cmdTab[] = {
 	// {"sub",         "mqtt订阅主题               params: topic、qos", Mqttsubscribe},
 	// {"unsub",       "mqtt取消订阅主题           params: 取消订阅主题", MqttUnSubscribe},
 	// {"listsub",     "mqtt获取已订阅主题         params: null", MqttListSubscribe},
-	// {"listack",     "打印ack链表                params: null", MqttListAck},
 	// {"listmsg",     "打印msg链表                params: null", MqttListMsg},
-	// {"data",        "打印测试信息用户自定义的    params: null", Mqttdata},
+	// {"data",        "打印测试信息                params: null", Mqttdata},
 
 	{"help", "打印帮助信息               params: null", MqttHelp},
 	{"state", "打印mqtt客户端状态         params: null", MqttState},
@@ -560,15 +480,13 @@ static const struct RyanMqttCmdDes cmdTab[] = {
 	{"sub", "mqtt订阅主题               params: topic、qos", Mqttsubscribe},
 	{"unsub", "mqtt取消订阅主题           params: 取消订阅主题", MqttUnSubscribe},
 	{"listsub", "mqtt获取已订阅主题         params: null", MqttListSubscribe},
-	{"listack", "打印ack链表                params: null", MqttListAck},
-	{"listmsg", "打印msg链表                params: null", MqttListMsg},
-	{"data", "打印测试信息用户自定义的   params: null", Mqttdata},
+	{"data", "打印测试信息               params: null", Mqttdata},
 };
 
 static int MqttHelp(int argc, char *argv[])
 {
 
-	for (uint8_t i = 0; i < sizeof(cmdTab) / sizeof(cmdTab[0]); i++)
+	for (int32_t i = 0; i < sizeof(cmdTab) / sizeof(cmdTab[0]); i++)
 	{
 		RyanMqttLog_raw("mqtt %-16s %s\r\n", cmdTab[i].cmd, cmdTab[i].explain);
 	}
@@ -615,3 +533,4 @@ MSH_CMD_EXPORT_ALIAS(RyanMqttMsh, mqtt, RyanMqtt command);
 #endif
 
 #endif
+// NOLINTEND(cert-err34-c,llvm-include-order)
