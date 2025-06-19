@@ -189,9 +189,18 @@ RyanMqttError_e RyanMqttInitSync(RyanMqttClient_t **client, RyanMqttBool_e syncF
 	result = RyanMqttStart(*client);
 	RyanMqttCheck(RyanMqttSuccessError == result, result, rlog_e);
 
-	while (RyanMqttConnectState != RyanMqttGetState(*client))
+	uint32_t timeout_ms = 30000; // 30 seconds
+	uint32_t elapsed = 0;
+	while (RyanMqttConnectState != RyanMqttGetState(*client) && elapsed < timeout_ms)
 	{
 		delay(100);
+		elapsed += 100;
+	}
+
+	if (RyanMqttConnectState != RyanMqttGetState(*client))
+	{
+		rlog_e("Connection timeout after %d ms", timeout_ms);
+		return RyanMqttFailedError;
 	}
 
 	return RyanMqttSuccessError;
