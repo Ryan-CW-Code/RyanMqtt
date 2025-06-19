@@ -7,14 +7,15 @@ extern "C" {
 
 #include <stdio.h>
 #include <stdint.h>
-#include "RyanMqttPublic.h"
-#include "platformTimer.h"
 
 #include <rtthread.h>
 #include <sys/socket.h>
 #include <sys/errno.h>
 #include <sys/time.h>
 #include <netdb.h>
+
+#include "RyanMqttPublic.h"
+#include "platformSystem.h"
 
 typedef struct
 {

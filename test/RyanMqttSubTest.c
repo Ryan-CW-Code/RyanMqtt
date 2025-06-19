@@ -24,17 +24,17 @@ static void RyanMqttSubEventHandle(void *pclient, RyanMqttEventId_e event, const
 
 	case RyanMqttEventSubscribed: {
 		RyanMqttMsgHandler_t *msgHandler = (RyanMqttMsgHandler_t *)eventData;
-		rlog_i("mqtt订阅成功回调 topic: %s, qos: %d", msgHandler->topic, msgHandler->qos);
+		RyanMqttLog_i("mqtt订阅成功回调 topic: %s, qos: %d", msgHandler->topic, msgHandler->qos);
 		RyanMqttSubscribeData_t *subscribeData = topicIsSubscribeArr(msgHandler->topic);
 		if (NULL == subscribeData)
 		{
-			rlog_e("mqtt 订阅主题非法 topic: %s", msgHandler->topic);
+			RyanMqttLog_e("mqtt 订阅主题非法 topic: %s", msgHandler->topic);
 			RyanMqttDestroy(client);
 		}
 
 		if (subscribeData->qos != msgHandler->qos)
 		{
-			rlog_e("mqtt 订阅主题降级 topic: %s, exportQos: %d, qos: %d", msgHandler->topic,
+			RyanMqttLog_e("mqtt 订阅主题降级 topic: %s, exportQos: %d, qos: %d", msgHandler->topic,
 			       subscribeData->qos, msgHandler->qos);
 			RyanMqttDestroy(client);
 		}
@@ -44,21 +44,21 @@ static void RyanMqttSubEventHandle(void *pclient, RyanMqttEventId_e event, const
 
 	case RyanMqttEventSubscribedFaile: {
 		RyanMqttMsgHandler_t *msgHandler = (RyanMqttMsgHandler_t *)eventData;
-		rlog_i("mqtt订阅失败回调 topic: %s, qos: %d", msgHandler->topic, msgHandler->qos);
+		RyanMqttLog_i("mqtt订阅失败回调 topic: %s, qos: %d", msgHandler->topic, msgHandler->qos);
 		break;
 	}
 
 	case RyanMqttEventUnSubscribed: {
 		RyanMqttMsgHandler_t *msgHandler = (RyanMqttMsgHandler_t *)eventData;
-		rlog_i("mqtt取消订阅成功回调 topic: %s, qos: %d", msgHandler->topic, msgHandler->qos);
+		RyanMqttLog_i("mqtt取消订阅成功回调 topic: %s, qos: %d", msgHandler->topic, msgHandler->qos);
 		RyanMqttSubscribeData_t *subscribeData = topicIsSubscribeArr(msgHandler->topic);
 		if (NULL == subscribeData)
 		{
-			rlog_e("mqtt 订阅主题非法 topic: %s", msgHandler->topic);
+			RyanMqttLog_e("mqtt 订阅主题非法 topic: %s", msgHandler->topic);
 		}
 		if (subscribeData->qos != msgHandler->qos)
 		{
-			rlog_e("mqtt 取消订阅主题信息不对 topic: %s, exportQos: %d, qos: %d", msgHandler->topic,
+			RyanMqttLog_e("mqtt 取消订阅主题信息不对 topic: %s, exportQos: %d, qos: %d", msgHandler->topic,
 			       subscribeData->qos, msgHandler->qos);
 			RyanMqttDestroy(client);
 		}
@@ -68,7 +68,7 @@ static void RyanMqttSubEventHandle(void *pclient, RyanMqttEventId_e event, const
 
 	case RyanMqttEventUnSubscribedFaile: {
 		RyanMqttMsgHandler_t *msgHandler = (RyanMqttMsgHandler_t *)eventData;
-		rlog_w("mqtt取消订阅失败回调 topic: %s, qos: %d", msgHandler->topic, msgHandler->qos);
+		RyanMqttLog_w("mqtt取消订阅失败回调 topic: %s, qos: %d", msgHandler->topic, msgHandler->qos);
 		break;
 	}
 
@@ -90,18 +90,18 @@ static RyanMqttError_e RyanMqttSubscribeCheckMsgHandle(RyanMqttClient_t *client)
 		{
 			if (RyanMqttNoRescourceError == result)
 			{
-				rlog_w("没有订阅的主题");
+				RyanMqttLog_w("没有订阅的主题");
 			}
 			else
 			{
-				rlog_e("获取订阅主题数失败！！！");
+				RyanMqttLog_e("获取订阅主题数失败！！！");
 			}
 		}
 		else
 		{
-			rlog_i("mqtt客户端已订阅的主题数: %d, 应该订阅主题数: %d", subscribeNum, subTestCount);
+			RyanMqttLog_i("mqtt客户端已订阅的主题数: %d, 应该订阅主题数: %d", subscribeNum, subTestCount);
 			// for (int32_t i = 0; i < subscribeNum; i++)
-			//     rlog_i("已经订阅主题: %d, topic: %s, QOS: %d", i, msgHandles[i].topic,
+			//     RyanMqttLog_i("已经订阅主题: %d, topic: %s, QOS: %d", i, msgHandles[i].topic,
 			//     msgHandles[i].qos);
 			int32_t subscribeTotalCount = 0;
 			RyanMqttGetSubscribeTotalCount(client, &subscribeTotalCount);
@@ -128,7 +128,7 @@ static RyanMqttError_e RyanMqttSubscribeCheckMsgHandle(RyanMqttClient_t *client)
 	{
 		if (NULL == topicIsSubscribeArr(msgHandles[i].topic))
 		{
-			rlog_e("主题不匹配或者qos不对, topic: %s, qos: %d", msgHandles[i].topic, msgHandles[i].qos);
+			RyanMqttLog_e("主题不匹配或者qos不对, topic: %s, qos: %d", msgHandles[i].topic, msgHandles[i].qos);
 			result = RyanMqttFailedError;
 			goto __exit;
 		}
@@ -154,7 +154,7 @@ static RyanMqttError_e RyanMqttSubscribeTest(int32_t count)
 	subscribeManyData = (RyanMqttSubscribeData_t *)malloc(sizeof(RyanMqttSubscribeData_t) * count);
 	if (NULL == subscribeManyData)
 	{
-		rlog_e("内存不足");
+		RyanMqttLog_e("内存不足");
 		return RyanMqttNotEnoughMemError;
 	}
 
@@ -164,7 +164,7 @@ static RyanMqttError_e RyanMqttSubscribeTest(int32_t count)
 		char *topic = (char *)malloc(64);
 		if (NULL == topic)
 		{
-			rlog_e("内存不足");
+			RyanMqttLog_e("内存不足");
 			return RyanMqttNotEnoughMemError;
 		}
 		snprintf(topic, 64, "test/subscribe/%d", i);
@@ -176,12 +176,12 @@ static RyanMqttError_e RyanMqttSubscribeTest(int32_t count)
 	RyanMqttSubscribeMany(client, count - 1, subscribeManyData);
 	RyanMqttSubscribe(client, subscribeManyData[count - 1].topic, subscribeManyData[count - 1].qos);
 	result = RyanMqttSubscribeCheckMsgHandle(client);
-	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttFailedError, rlog_e, { goto __exit; });
+	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttFailedError, RyanMqttLog_e, { goto __exit; });
 
 	// 测试重复订阅，不修改qos等级
 	RyanMqttSubscribeMany(client, count / 2, subscribeManyData);
 	result = RyanMqttSubscribeCheckMsgHandle(client);
-	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttFailedError, rlog_e, { goto __exit; });
+	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttFailedError, RyanMqttLog_e, { goto __exit; });
 
 	// 测试重复订阅并且修改qos等级
 	for (int32_t i = count; i > 0; i--)
@@ -190,13 +190,13 @@ static RyanMqttError_e RyanMqttSubscribeTest(int32_t count)
 	}
 	RyanMqttSubscribeMany(client, count, subscribeManyData);
 	result = RyanMqttSubscribeCheckMsgHandle(client);
-	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttFailedError, rlog_e, { goto __exit; });
+	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttFailedError, RyanMqttLog_e, { goto __exit; });
 
 	// 测试取消所有订阅消息
 	unSubscribeManyData = malloc(sizeof(RyanMqttUnSubscribeData_t) * count);
 	if (NULL == unSubscribeManyData)
 	{
-		rlog_e("内存不足");
+		RyanMqttLog_e("内存不足");
 		return RyanMqttNotEnoughMemError;
 	}
 	for (int32_t i = 0; i < count; i++)
@@ -204,7 +204,7 @@ static RyanMqttError_e RyanMqttSubscribeTest(int32_t count)
 		char *topic = (char *)malloc(64);
 		if (NULL == topic)
 		{
-			rlog_e("内存不足");
+			RyanMqttLog_e("内存不足");
 			return RyanMqttNotEnoughMemError;
 		}
 		snprintf(topic, 64, "test/subscribe/%d", i);
@@ -227,11 +227,11 @@ static RyanMqttError_e RyanMqttSubscribeTest(int32_t count)
 		{
 			if (RyanMqttNoRescourceError == result)
 			{
-				rlog_w("没有订阅的主题");
+				RyanMqttLog_w("没有订阅的主题");
 			}
 			else
 			{
-				rlog_e("获取订阅主题数失败！！！");
+				RyanMqttLog_e("获取订阅主题数失败！！！");
 			}
 		}
 		RyanMqttSafeFreeSubscribeResources(msgHandles, subscribeNum);
@@ -239,7 +239,7 @@ static RyanMqttError_e RyanMqttSubscribeTest(int32_t count)
 		// result = RyanMqttGetSubscribe(client, msgHandles, count, &subscribeNum);
 		// if (RyanMqttNoRescourceError == result)
 		// {
-		// 	rlog_w("订阅主题数超过缓冲区%d个，已截断，请修改msgHandles缓冲区", count);
+		// 	RyanMqttLog_w("订阅主题数超过缓冲区%d个，已截断，请修改msgHandles缓冲区", count);
 		// }
 
 		if (0 == subscribeNum)
@@ -257,7 +257,7 @@ static RyanMqttError_e RyanMqttSubscribeTest(int32_t count)
 	}
 
 	result = checkAckList(client);
-	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttFailedError, rlog_e, { goto __exit; });
+	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttFailedError, RyanMqttLog_e, { goto __exit; });
 
 __exit:
 
@@ -282,7 +282,7 @@ __exit:
 		free(unSubscribeManyData);
 	}
 
-	rlog_i("mqtt 订阅测试，销毁mqtt客户端");
+	RyanMqttLog_i("mqtt 订阅测试，销毁mqtt客户端");
 	RyanMqttDestorySync(client);
 	return result;
 }
@@ -291,7 +291,7 @@ RyanMqttError_e RyanMqttSubTest(void)
 {
 	RyanMqttError_e result = RyanMqttSuccessError;
 	result = RyanMqttSubscribeTest(1000);
-	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttFailedError, rlog_e, { goto __exit; });
+	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttFailedError, RyanMqttLog_e, { goto __exit; });
 	checkMemory;
 
 	return RyanMqttSuccessError;

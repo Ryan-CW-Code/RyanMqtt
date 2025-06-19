@@ -1,4 +1,4 @@
-#define rlogLevel (rlogLvlDebug) // 日志打印等级
+#define RyanMqttLogLevel (RyanMqttLogLevelDebug) // 日志打印等级
 
 #include "platformNetwork.h"
 #include "RyanMqttLog.h"
@@ -52,14 +52,14 @@ RyanMqttError_e platformNetworkConnect(void *userData, platformNetwork_t *platfo
 	// 传递的是ip地址，不用进行dns解析，某些情况下调用dns解析反而会错误
 	if (INADDR_NONE != inet_addr(host))
 	{
-		// rlog_d("host: %s, 不用dns解析", host);
+		// RyanMqttLog_d("host: %s, 不用dns解析", host);
 		server_addr.sin_addr.s_addr = inet_addr(host);
 	}
 	// 解析域名信息
 	else
 	{
 #define dnsBufferSize (384)
-		// rlog_d("host: %s, 需要dns解析", host);
+		// RyanMqttLog_d("host: %s, 需要dns解析", host);
 		int h_errnop;
 		struct hostent *phost;
 		struct hostent hostinfo = {0};
@@ -73,7 +73,7 @@ RyanMqttError_e platformNetworkConnect(void *userData, platformNetwork_t *platfo
 
 		if (0 != gethostbyname_r(host, &hostinfo, buf, dnsBufferSize, &phost, &h_errnop))
 		{
-			rlog_w("平台可能不支持 gethostbyname_r 函数, 再次尝试使用 gethostbyname 获取域名信息");
+			RyanMqttLog_w("平台可能不支持 gethostbyname_r 函数, 再次尝试使用 gethostbyname 获取域名信息");
 
 			// 非线程安全版本,请根据实际情况选择使用
 			// NOLINTNEXTLINE(concurrency-mt-unsafe)
@@ -113,7 +113,7 @@ __exit:
 
 	if (RyanMqttSuccessError != result)
 	{
-		rlog_e("socket连接失败: %d", result);
+		RyanMqttLog_e("socket连接失败: %d", result);
 	}
 	return result;
 }
@@ -142,7 +142,7 @@ int32_t platformNetworkRecvAsync(void *userData, platformNetwork_t *platformNetw
 
 	if (-1 == platformNetwork->socket)
 	{
-		rlog_e("对端关闭socket连接");
+		RyanMqttLog_e("对端关闭socket连接");
 		return -1;
 	}
 
@@ -152,7 +152,7 @@ int32_t platformNetworkRecvAsync(void *userData, platformNetwork_t *platformNetw
 	recvResult = recv(platformNetwork->socket, recvBuf, recvLen, 0);
 	if (0 == recvResult)
 	{
-		rlog_e("对端关闭socket连接");
+		RyanMqttLog_e("对端关闭socket连接");
 		return -1;
 	}
 
@@ -169,7 +169,7 @@ int32_t platformNetworkRecvAsync(void *userData, platformNetwork_t *platformNetw
 		}
 
 		// NOLINTNEXTLINE(concurrency-mt-unsafe)
-		rlog_e("recvResult: %d, errno: %d  str: %s", recvResult, rt_errno, strerror(rt_errno));
+		RyanMqttLog_e("recvResult: %d, errno: %d  str: %s", recvResult, rt_errno, strerror(rt_errno));
 		return -1;
 	}
 
@@ -200,7 +200,7 @@ int32_t platformNetworkSendAsync(void *userData, platformNetwork_t *platformNetw
 
 	if (-1 == platformNetwork->socket)
 	{
-		rlog_e("对端关闭socket连接");
+		RyanMqttLog_e("对端关闭socket连接");
 		return -1;
 	}
 
@@ -210,7 +210,7 @@ int32_t platformNetworkSendAsync(void *userData, platformNetwork_t *platformNetw
 	sendResult = send(platformNetwork->socket, sendBuf, sendLen, 0);
 	if (0 == sendResult)
 	{
-		rlog_e("对端关闭socket连接");
+		RyanMqttLog_e("对端关闭socket连接");
 		return -1;
 	}
 
@@ -227,7 +227,7 @@ int32_t platformNetworkSendAsync(void *userData, platformNetwork_t *platformNetw
 		}
 
 		// NOLINTNEXTLINE(concurrency-mt-unsafe)
-		rlog_e("sendResult: %d, errno: %d str: %s", sendResult, rt_errno, strerror(rt_errno));
+		RyanMqttLog_e("sendResult: %d, errno: %d str: %s", sendResult, rt_errno, strerror(rt_errno));
 		return -1;
 	}
 
@@ -246,7 +246,7 @@ RyanMqttError_e platformNetworkClose(void *userData, platformNetwork_t *platform
 
 	if (platformNetwork->socket >= 0)
 	{
-		rlog_w("platformNetworkClose socket close %d", platformNetwork->socket);
+		RyanMqttLog_w("platformNetworkClose socket close %d", platformNetwork->socket);
 		close(platformNetwork->socket);
 		platformNetwork->socket = -1;
 	}

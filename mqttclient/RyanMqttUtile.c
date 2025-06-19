@@ -1,5 +1,5 @@
-#define rlogLevel (rlogLvlAssert) // 日志打印等级
-// #define rlogLevel (rlogLvlDebug) // 日志打印等级
+#define RyanMqttLogLevel (RyanMqttLogLevelAssert) // 日志打印等级
+// #define RyanMqttLogLevel (RyanMqttLogLevelDebug) // 日志打印等级
 
 #include "RyanMqttUtile.h"
 #include "RyanMqttLog.h"
@@ -18,7 +18,7 @@ RyanMqttError_e RyanMqttStringCopy(char **dest, char *rest, uint32_t strLen)
 	char *str2 = NULL;
 	RyanMqttAssert(NULL != dest);
 	RyanMqttAssert(NULL != rest);
-	// RyanMqttCheck(0 != strLen, RyanMqttFailedError, rlog_d);
+	// RyanMqttCheck(0 != strLen, RyanMqttFailedError, RyanMqttLog_d);
 
 	str2 = (char *)platformMemoryMalloc(strLen + 1);
 	if (NULL == str2)
@@ -93,14 +93,14 @@ RyanMqttError_e RyanMqttRecvPacket(RyanMqttClient_t *client, uint8_t *recvBuf, u
 		timeOut = RyanMqttTimerRemain(&timer);
 	}
 
-	// rlog_d("offset: %d, recvLen: %d, recvResult: %d", offset, recvLen, recvResult);
+	// RyanMqttLog_d("offset: %d, recvLen: %d, recvResult: %d", offset, recvLen, recvResult);
 
 	// 错误
 	if (-1 == recvResult)
 	{
 		RyanMqttConnectStatus_e connectState = RyanMqttConnectAccepted;
 		RyanMqttEventMachine(client, RyanMqttEventDisconnected, &connectState);
-		rlog_d("recv错误, result: %d", recvResult);
+		RyanMqttLog_d("recv错误, result: %d", recvResult);
 		return RyanSocketFailedError;
 	}
 
@@ -375,7 +375,7 @@ RyanMqttError_e RyanMqttMsgHandlerCreate(RyanMqttClient_t *client, const char *t
 	RyanMqttAssert(RyanMqttQos0 == qos || RyanMqttQos1 == qos || RyanMqttQos2 == qos);
 
 	msgHandler = (RyanMqttMsgHandler_t *)platformMemoryMalloc(sizeof(RyanMqttMsgHandler_t) + topicLen + 1);
-	RyanMqttCheck(NULL != msgHandler, RyanMqttNotEnoughMemError, rlog_d);
+	RyanMqttCheck(NULL != msgHandler, RyanMqttNotEnoughMemError, RyanMqttLog_d);
 	memset(msgHandler, 0, sizeof(RyanMqttMsgHandler_t) + topicLen + 1);
 
 	// 初始化链表
@@ -585,7 +585,7 @@ RyanMqttError_e RyanMqttAckHandlerCreate(RyanMqttClient_t *client, uint8_t packe
 
 	// 给消息主题添加空格
 	ackHandler = (RyanMqttAckHandler_t *)platformMemoryMalloc(mallocLen);
-	RyanMqttCheck(NULL != ackHandler, RyanMqttNotEnoughMemError, rlog_d);
+	RyanMqttCheck(NULL != ackHandler, RyanMqttNotEnoughMemError, RyanMqttLog_d);
 	memset(ackHandler, 0, mallocLen);
 
 	RyanListInit(&ackHandler->list);
@@ -856,6 +856,17 @@ void RyanMqttCleanSession(RyanMqttClient_t *client)
 	}
 	RyanListDelInit(&client->userAckHandlerList);
 	platformMutexUnLock(client->config.userData, &client->userAckHandleLock);
+}
+
+/**
+ * @brief 初始化计时器
+ *
+ * @param platformTimer
+ */
+void RyanMqttTimerInit(RyanMqttTimer_t *platformTimer)
+{
+	platformTimer->timeOut = 0;
+	platformTimer->time = 0;
 }
 
 /**

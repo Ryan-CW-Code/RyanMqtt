@@ -202,18 +202,6 @@ typedef enum
 	RyanMqttConnectStatusForceInt32 = INT32_MAX // 强制编译器使用int32_t类型
 } RyanMqttConnectStatus_e;
 
-// 定义结构体类型
-
-/* extern variables-----------------------------------------------------------*/
-typedef struct
-{
-	uint32_t time;
-	uint32_t timeOut;
-} RyanMqttTimer_t;
-
-extern void RyanMqttTimerCutdown(RyanMqttTimer_t *platformTimer, uint32_t timeout);
-extern uint32_t RyanMqttTimerRemain(RyanMqttTimer_t *platformTimer);
-
 extern const char *RyanMqttStrError(int32_t state);
 #define RyanMqttCheckCodeNoReturn(EX, ErrorCode, Ryanlevel, code)                                                      \
 	if (!(EX))                                                                                                     \
@@ -232,6 +220,21 @@ extern const char *RyanMqttStrError(int32_t state);
 #define RyanMqttCheckNoReturn(EX, ErrorCode, level) RyanMqttCheckCodeNoReturn(EX, ErrorCode, level, {})
 #define RyanMqttCheck(EX, ErrorCode, level)         RyanMqttCheckCode(EX, ErrorCode, level, {})
 #define RyanMqttCheckAssert(EX, ErrorCode, level)   RyanMqttCheckCodeNoReturn(EX, ErrorCode, level, { assert(NULL); })
+
+// 定义结构体类型
+
+/* extern variables-----------------------------------------------------------*/
+
+typedef struct
+{
+	uint32_t time;
+	uint32_t timeOut;
+} RyanMqttTimer_t;
+
+extern void RyanMqttTimerInit(RyanMqttTimer_t *platformTimer);
+extern void RyanMqttTimerCutdown(RyanMqttTimer_t *platformTimer, uint32_t timeout);
+extern uint32_t RyanMqttTimerRemain(RyanMqttTimer_t *platformTimer);
+
 #ifdef __cplusplus
 }
 #endif

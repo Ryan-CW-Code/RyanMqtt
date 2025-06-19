@@ -1,7 +1,7 @@
 #include "RyanMqttLog.h"
 #include "platformSystem.h"
 
-void rlog_output(char *lvl, uint8_t color, char *fileStr, uint32_t lineNum, char *const fmt, ...)
+void RyanMqttLogOutPut(char *lvl, uint8_t color, char *fileStr, uint32_t lineNum, char *const fmt, ...)
 {
 	// RyanLogPrintf("\033[字背景颜色;字体颜色m  用户字符串 \033[0m" );
 	char dbgBuffer[256];
@@ -26,7 +26,7 @@ void rlog_output(char *lvl, uint8_t color, char *fileStr, uint32_t lineNum, char
 	platformPrint(dbgBuffer, len);
 }
 
-void rlog_output_raw(char *const fmt, ...)
+void RyanMqttLogOutPutRaw(char *const fmt, ...)
 {
 	char dbgBuffer[256];
 	uint16_t len;

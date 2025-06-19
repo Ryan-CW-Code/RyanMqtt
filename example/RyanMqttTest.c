@@ -17,7 +17,7 @@
 #include <rtdevice.h>
 #include <rtdbg.h>
 
-#define rlogLevel (rlogLvlDebug) // 日志打印等级
+#define RyanMqttLogLevel (RyanMqttLogLevelDebug) // 日志打印等级
 
 #include "RyanMqttLog.h"
 #include "RyanMqttClient.h"
@@ -36,13 +36,13 @@ static uint32_t mqttTest[10] = {0};
 
 static void printfArrStr(char *buf, uint32_t len, char *userData)
 {
-	rlog_raw("%s", userData);
+	RyanMqttLog_raw("%s", userData);
 	for (uint32_t i = 0; i < len; i++)
 	{
-		rlog_raw("%x", buf[i]);
+		RyanMqttLog_raw("%x", buf[i]);
 	}
 
-	rlog_raw("\r\n");
+	RyanMqttLog_raw("\r\n");
 }
 
 /**
@@ -62,48 +62,48 @@ static void mqttEventHandle(void *pclient, RyanMqttEventId_e event, const void *
 	case RyanMqttEventError: break;
 
 	case RyanMqttEventConnected: // 不管有没有使能clearSession，都非常推荐在连接成功回调函数中订阅主题
-		rlog_i("mqtt连接成功回调 %d", *(int32_t *)eventData);
+		RyanMqttLog_i("mqtt连接成功回调 %d", *(int32_t *)eventData);
 		break;
 
-	case RyanMqttEventDisconnected: rlog_w("mqtt断开连接回调 %d", *(int32_t *)eventData); break;
+	case RyanMqttEventDisconnected: RyanMqttLog_w("mqtt断开连接回调 %d", *(int32_t *)eventData); break;
 
 	case RyanMqttEventSubscribed: {
 		RyanMqttMsgHandler_t *msgHandler = (RyanMqttMsgHandler_t *)eventData;
-		rlog_w("mqtt订阅成功回调 topic: %s, qos: %d", msgHandler->topic, msgHandler->qos);
+		RyanMqttLog_w("mqtt订阅成功回调 topic: %s, qos: %d", msgHandler->topic, msgHandler->qos);
 		break;
 	}
 
 	case RyanMqttEventSubscribedFaile: {
 		RyanMqttMsgHandler_t *msgHandler = (RyanMqttMsgHandler_t *)eventData;
-		rlog_w("mqtt订阅失败回调 topic: %s, qos: %d", msgHandler->topic, msgHandler->qos);
+		RyanMqttLog_w("mqtt订阅失败回调 topic: %s, qos: %d", msgHandler->topic, msgHandler->qos);
 		break;
 	}
 
 	case RyanMqttEventUnSubscribed: {
 		RyanMqttMsgHandler_t *msgHandler = (RyanMqttMsgHandler_t *)eventData;
-		rlog_w("mqtt取消订阅成功回调 topic: %s, qos: %d", msgHandler->topic, msgHandler->qos);
+		RyanMqttLog_w("mqtt取消订阅成功回调 topic: %s, qos: %d", msgHandler->topic, msgHandler->qos);
 		break;
 	}
 
 	case RyanMqttEventUnSubscribedFaile: {
 		RyanMqttMsgHandler_t *msgHandler = (RyanMqttMsgHandler_t *)eventData;
-		rlog_w("mqtt取消订阅失败回调 topic: %s, qos: %d", msgHandler->topic, msgHandler->qos);
+		RyanMqttLog_w("mqtt取消订阅失败回调 topic: %s, qos: %d", msgHandler->topic, msgHandler->qos);
 		break;
 	}
 
 	case RyanMqttEventPublished: {
 		RyanMqttMsgHandler_t *msgHandler = ((RyanMqttAckHandler_t *)eventData)->msgHandler;
-		rlog_w("qos1 / qos2发送成功事件回调 topic: %s, qos: %d", msgHandler->topic, msgHandler->qos);
+		RyanMqttLog_w("qos1 / qos2发送成功事件回调 topic: %s, qos: %d", msgHandler->topic, msgHandler->qos);
 		pubTestPublishedEventCount++;
 		break;
 	}
 
 	case RyanMqttEventData: {
 		RyanMqttMsgData_t *msgData = (RyanMqttMsgData_t *)eventData;
-		rlog_i("接收到mqtt消息事件回调 topic: %.*s, packetId: %d, payload len: %d", msgData->topicLen,
-		       msgData->topic, msgData->packetId, msgData->payloadLen);
+		RyanMqttLog_i("接收到mqtt消息事件回调 topic: %.*s, packetId: %d, payload len: %d", msgData->topicLen,
+			      msgData->topic, msgData->packetId, msgData->payloadLen);
 
-		rlog_i("%.*s", msgData->payloadLen, msgData->payload);
+		RyanMqttLog_i("%.*s", msgData->payloadLen, msgData->payload);
 
 		pubTestDataEventCount++;
 		break;
@@ -112,8 +112,9 @@ static void mqttEventHandle(void *pclient, RyanMqttEventId_e event, const void *
 	case RyanMqttEventRepeatPublishPacket: // qos2 / qos1重发事件回调
 	{
 		RyanMqttAckHandler_t *ackHandler = (RyanMqttAckHandler_t *)eventData;
-		rlog_w("发布消息进行重发了，packetType: %d, packetId: %d, topic: %s, qos: %d", ackHandler->packetType,
-		       ackHandler->packetId, ackHandler->msgHandler->topic, ackHandler->msgHandler->qos);
+		RyanMqttLog_w("发布消息进行重发了，packetType: %d, packetId: %d, topic: %s, qos: %d",
+			      ackHandler->packetType, ackHandler->packetId, ackHandler->msgHandler->topic,
+			      ackHandler->msgHandler->qos);
 
 		printfArrStr(ackHandler->packet, ackHandler->packetLen, "重发数据: ");
 		break;
@@ -121,7 +122,7 @@ static void mqttEventHandle(void *pclient, RyanMqttEventId_e event, const void *
 
 	case RyanMqttEventReconnectBefore:
 		// 如果每次connect都需要修改连接信息，这里是最好的选择。 否则需要注意资源互斥
-		rlog_i("重连前事件回调");
+		RyanMqttLog_i("重连前事件回调");
 		break;
 
 	case RyanMqttEventAckCountWarning: // qos2 / qos1的ack链表超过警戒值，不进行释放会一直重发，占用额外内存
@@ -129,7 +130,7 @@ static void mqttEventHandle(void *pclient, RyanMqttEventId_e event, const void *
 		// 根据实际情况清除ack, 这里等待每个ack重发次数到达警戒值后清除。
 		// 在资源有限的单片机中也不应频繁发送qos2 / qos1消息
 		uint16_t ackHandlerCount = *(uint16_t *)eventData;
-		rlog_i("ack记数值超过警戒值回调: %d", ackHandlerCount);
+		RyanMqttLog_i("ack记数值超过警戒值回调: %d", ackHandlerCount);
 		break;
 	}
 
@@ -137,21 +138,21 @@ static void mqttEventHandle(void *pclient, RyanMqttEventId_e event, const void *
 	{
 		// 这里选择直接丢弃该消息
 		RyanMqttAckHandler_t *ackHandler = (RyanMqttAckHandler_t *)eventData;
-		rlog_w("ack重发次数超过警戒值回调 packetType: %d, packetId: %d, topic: %s, qos: %d",
-		       ackHandler->packetType, ackHandler->packetId, ackHandler->msgHandler->topic,
-		       ackHandler->msgHandler->qos);
+		RyanMqttLog_w("ack重发次数超过警戒值回调 packetType: %d, packetId: %d, topic: %s, qos: %d",
+			      ackHandler->packetType, ackHandler->packetId, ackHandler->msgHandler->topic,
+			      ackHandler->msgHandler->qos);
 		RyanMqttDiscardAckHandler(client, ackHandler->packetType, ackHandler->packetId);
 		break;
 	}
 
 	case RyanMqttEventAckHandlerdiscard: {
 		RyanMqttAckHandler_t *ackHandler = (RyanMqttAckHandler_t *)eventData;
-		rlog_i("ack丢弃回调: packetType: %d, packetId: %d, topic: %s, qos: %d", ackHandler->packetType,
-		       ackHandler->packetId, ackHandler->msgHandler->topic, ackHandler->msgHandler->qos);
+		RyanMqttLog_i("ack丢弃回调: packetType: %d, packetId: %d, topic: %s, qos: %d", ackHandler->packetType,
+			      ackHandler->packetId, ackHandler->msgHandler->topic, ackHandler->msgHandler->qos);
 		break;
 	}
 
-	case RyanMqttEventDestoryBefore: rlog_i("销毁mqtt客户端前回调"); break;
+	case RyanMqttEventDestoryBefore: RyanMqttLog_i("销毁mqtt客户端前回调"); break;
 
 	default: break;
 	}
@@ -195,10 +196,10 @@ static int MqttState(int argc, char *argv[])
 
 	case RyanMqttReconnectState: str = "重新连接状态"; break;
 
-	default: RyanMqttCheck(NULL, RyanMqttFailedError, rlog_d); break;
+	default: RyanMqttCheck(NULL, RyanMqttFailedError, RyanMqttLog_d); break;
 	}
 
-	rlog_i("client state: %s", str);
+	RyanMqttLog_i("client state: %s", str);
 
 	return 0;
 }
@@ -214,7 +215,7 @@ static int MqttConnect(int argc, char *argv[])
 {
 	if (RyanMqttConnectState == RyanMqttGetState(client))
 	{
-		rlog_w("mqtt客户端已经连接,请不要重复连接");
+		RyanMqttLog_w("mqtt客户端已经连接,请不要重复连接");
 		return 0;
 	}
 
@@ -242,23 +243,23 @@ static int MqttConnect(int argc, char *argv[])
 
 	// 初始化mqtt客户端
 	result = RyanMqttInit(&client);
-	RyanMqttCheck(RyanMqttSuccessError == result, result, rlog_d);
+	RyanMqttCheck(RyanMqttSuccessError == result, result, RyanMqttLog_d);
 
 	// 注册需要的事件回调
 	result = RyanMqttRegisterEventId(client, RyanMqttEventAnyId);
-	RyanMqttCheck(RyanMqttSuccessError == result, result, rlog_d);
+	RyanMqttCheck(RyanMqttSuccessError == result, result, RyanMqttLog_d);
 
 	// 设置mqtt客户端config
 	result = RyanMqttSetConfig(client, &mqttConfig);
-	RyanMqttCheck(RyanMqttSuccessError == result, result, rlog_d);
+	RyanMqttCheck(RyanMqttSuccessError == result, result, RyanMqttLog_d);
 
 	// 设置遗嘱消息
 	result = RyanMqttSetLwt(client, "pub/test", "this is will", strlen("this is will"), RyanMqttQos0, 0);
-	RyanMqttCheck(RyanMqttSuccessError == result, result, rlog_d);
+	RyanMqttCheck(RyanMqttSuccessError == result, result, RyanMqttLog_d);
 
 	// 启动mqtt客户端线程
 	result = RyanMqttStart(client);
-	RyanMqttCheck(RyanMqttSuccessError == result, result, rlog_d);
+	RyanMqttCheck(RyanMqttSuccessError == result, result, RyanMqttLog_d);
 	return 0;
 }
 
@@ -300,7 +301,7 @@ static int MqttDisconnect(int argc, char *argv[])
 {
 	if (RyanMqttConnectState != RyanMqttGetState(client))
 	{
-		rlog_w("mqtt客户端没有连接");
+		RyanMqttLog_w("mqtt客户端没有连接");
 		return 0;
 	}
 	RyanMqttDisconnect(client, RyanMqttTrue);
@@ -318,13 +319,13 @@ static int Mqttpublish(int argc, char *argv[])
 {
 	if (argc < 7)
 	{
-		rlog_w("参数不完整! 请输入 topic、 qos、 payload内容、 发送条数、 间隔时间(可以为0) ");
+		RyanMqttLog_w("参数不完整! 请输入 topic、 qos、 payload内容、 发送条数、 间隔时间(可以为0) ");
 		return 0;
 	}
 
 	if (RyanMqttConnectState != RyanMqttGetState(client))
 	{
-		rlog_w("mqtt客户端没有连接");
+		RyanMqttLog_w("mqtt客户端没有连接");
 		return 0;
 	}
 
@@ -335,7 +336,7 @@ static int Mqttpublish(int argc, char *argv[])
 	uint16_t delayTime = atoi(argv[6]);
 
 	uint16_t pubCount = 0;
-	rlog_i("qos: %d, count: %d, delayTime: %d, payload: %s", qos, count, delayTime, payload);
+	RyanMqttLog_i("qos: %d, count: %d, delayTime: %d, payload: %s", qos, count, delayTime, payload);
 
 	for (uint16_t i = 0; i < count; i++)
 	{
@@ -346,7 +347,7 @@ static int Mqttpublish(int argc, char *argv[])
 		delay(delayTime);
 	}
 
-	rlog_w("pubCount: %d", pubCount);
+	RyanMqttLog_w("pubCount: %d", pubCount);
 	return 0;
 }
 
@@ -361,13 +362,13 @@ static int Mqttsubscribe(int argc, char *argv[])
 {
 	if (argc < 4)
 	{
-		rlog_w("参数不完整! 请输入 topic、 qos ");
+		RyanMqttLog_w("参数不完整! 请输入 topic、 qos ");
 		return 0;
 	}
 
 	if (RyanMqttConnectState != RyanMqttGetState(client))
 	{
-		rlog_w("mqtt客户端没有连接");
+		RyanMqttLog_w("mqtt客户端没有连接");
 		return 0;
 	}
 
@@ -386,13 +387,13 @@ static int MqttUnSubscribe(int argc, char *argv[])
 {
 	if (argc < 3)
 	{
-		rlog_w("参数不完整! 请输入 取消订阅主题");
+		RyanMqttLog_w("参数不完整! 请输入 取消订阅主题");
 		return 0;
 	}
 
 	if (RyanMqttConnectState != RyanMqttGetState(client))
 	{
-		rlog_w("mqtt客户端没有连接");
+		RyanMqttLog_w("mqtt客户端没有连接");
 		return 0;
 	}
 
@@ -411,7 +412,7 @@ static int MqttListSubscribe(int argc, char *argv[])
 {
 	if (RyanMqttConnectState != RyanMqttGetState(client))
 	{
-		rlog_w("mqtt客户端没有连接");
+		RyanMqttLog_w("mqtt客户端没有连接");
 		return 0;
 	}
 
@@ -424,19 +425,19 @@ static int MqttListSubscribe(int argc, char *argv[])
 	{
 		if (RyanMqttNoRescourceError == result)
 		{
-			rlog_w("没用订阅的主题~~~");
+			RyanMqttLog_w("没用订阅的主题~~~");
 		}
 		else
 		{
-			rlog_e("获取订阅主题数失败可能没用内存");
+			RyanMqttLog_e("获取订阅主题数失败可能没用内存");
 		}
 	}
 
-	rlog_i("mqtt客户端已订阅的主题数: %d", subscribeNum);
+	RyanMqttLog_i("mqtt客户端已订阅的主题数: %d", subscribeNum);
 
 	for (int32_t i = 0; i < subscribeNum; i++)
 	{
-		rlog_i("已经订阅主题: %d, topic: %s, QOS: %d", i, msgHandles[i].topic, msgHandles[i].qos);
+		RyanMqttLog_i("已经订阅主题: %d, topic: %s, QOS: %d", i, msgHandles[i].topic, msgHandles[i].qos);
 	}
 
 	RyanMqttSafeFreeSubscribeResources(msgHandles, subscribeNum);
@@ -458,7 +459,7 @@ static int MqttListAck(int argc, char *argv[])
 
 	if (RyanListIsEmpty(&client->ackHandlerList))
 	{
-		rlog_w("ack链表为空，没有等待ack的消息");
+		RyanMqttLog_w("ack链表为空，没有等待ack的消息");
 		return 0;
 	}
 
@@ -469,10 +470,10 @@ static int MqttListAck(int argc, char *argv[])
 		ackHandler = RyanListEntry(curr, RyanMqttAckHandler_t, list);
 
 		// 发送qos1 / qos2消息服务器ack响应超时。需要重新发送它们。
-		rlog_i(" type: %d, packetId is %d ", ackHandler->packetType, ackHandler->packetId);
+		RyanMqttLog_i(" type: %d, packetId is %d ", ackHandler->packetType, ackHandler->packetId);
 		if (NULL != ackHandler->msgHandler)
 		{
-			rlog_i("topic: %s, qos: %d", ackHandler->msgHandler->topic, ackHandler->msgHandler->qos);
+			RyanMqttLog_i("topic: %s, qos: %d", ackHandler->msgHandler->topic, ackHandler->msgHandler->qos);
 		}
 	}
 	return 0;
@@ -492,14 +493,14 @@ static int MqttListMsg(int argc, char *argv[])
 
 	if (RyanListIsEmpty(&client->msgHandlerList))
 	{
-		rlog_w("msg链表为空，没有等待的msg消息");
+		RyanMqttLog_w("msg链表为空，没有等待的msg消息");
 		return 0;
 	}
 
 	RyanListForEachSafe(curr, next, &client->msgHandlerList)
 	{
 		msgHandler = RyanListEntry(curr, RyanMqttMsgHandler_t, list);
-		rlog_i("topic: %s, qos: %d", msgHandler->topic, msgHandler->qos);
+		RyanMqttLog_i("topic: %s, qos: %d", msgHandler->topic, msgHandler->qos);
 	}
 	return 0;
 }
@@ -523,12 +524,12 @@ static int Mqttdata(int argc, char *argv[])
 		}
 		else
 		{
-			rlog_e("数组越界");
+			RyanMqttLog_e("数组越界");
 		}
 	}
 
-	rlog_i("接收到数据次数统计: %d, qos1和qos2发布成功的次数统计: %d", pubTestDataEventCount,
-	       pubTestPublishedEventCount);
+	RyanMqttLog_i("接收到数据次数统计: %d, qos1和qos2发布成功的次数统计: %d", pubTestDataEventCount,
+		      pubTestPublishedEventCount);
 
 	return 0;
 }
@@ -569,7 +570,7 @@ static int MqttHelp(int argc, char *argv[])
 
 	for (uint8_t i = 0; i < sizeof(cmdTab) / sizeof(cmdTab[0]); i++)
 	{
-		rlog_raw("mqtt %-16s %s\r\n", cmdTab[i].cmd, cmdTab[i].explain);
+		RyanMqttLog_raw("mqtt %-16s %s\r\n", cmdTab[i].cmd, cmdTab[i].explain);
 	}
 
 	return 0;

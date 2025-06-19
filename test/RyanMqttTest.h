@@ -13,7 +13,7 @@ extern "C" {
 #include <semaphore.h>
 #include <pthread.h>
 
-#define rlogLevel (rlogLvlDebug) // 日志打印等级
+#define RyanMqttLogLevel (RyanMqttLogLevelDebug) // 日志打印等级
 
 #include "RyanMqttLog.h"
 #include "RyanMqttClient.h"
@@ -34,12 +34,12 @@ extern "C" {
 		v_mcheck(&area, &use);                                                                                 \
 		if (area != 0 || use != 0)                                                                             \
 		{                                                                                                      \
-			rlog_e("内存泄漏");                                                                            \
+			RyanMqttLog_e("内存泄漏");                                                                            \
 			while (1)                                                                                      \
 			{                                                                                              \
 				int area = 0, use = 0;                                                                 \
 				v_mcheck(&area, &use);                                                                 \
-				rlog_w("|||----------->>> area = %d, size = %d", area, use);                           \
+				RyanMqttLog_w("|||----------->>> area = %d, size = %d", area, use);                           \
 				delay(3000);                                                                           \
 			}                                                                                              \
 		}                                                                                                      \

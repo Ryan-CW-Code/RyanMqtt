@@ -34,7 +34,7 @@ RyanMqttError_e RyanMqttReconnectTest(void)
 {
 	RyanMqttError_e result = RyanMqttSuccessError;
 	result = reconnectTest(3, 0);
-	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttFailedError, rlog_e, { goto __exit; });
+	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttFailedError, RyanMqttLog_e, { goto __exit; });
 	checkMemory;
 
 	return RyanMqttSuccessError;

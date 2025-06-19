@@ -42,7 +42,7 @@ RyanMqttError_e RyanMqttDestoryTest(void)
 {
 	RyanMqttError_e result = RyanMqttSuccessError;
 	result = RyanMqttConnectDestory(100, 0);
-	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttFailedError, rlog_e, { goto __exit; });
+	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttFailedError, RyanMqttLog_e, { goto __exit; });
 	checkMemory;
 
 	return RyanMqttSuccessError;

@@ -17,13 +17,13 @@ static RyanMqttError_e keepAliveTest(void)
 	{
 		if (RyanMqttConnectState != RyanMqttGetState(client))
 		{
-			rlog_e("mqtt断连了");
+			RyanMqttLog_e("mqtt断连了");
 			return RyanMqttFailedError;
 		}
 
 		RyanMqttGetKeepAliveRemain(client, &keepAliveRemain);
 
-		rlog_w("心跳倒计时: %d", keepAliveRemain);
+		RyanMqttLog_w("心跳倒计时: %d", keepAliveRemain);
 		if (0 == keepAliveRemain)
 		{
 			result = RyanMqttFailedError;
@@ -39,7 +39,7 @@ static RyanMqttError_e keepAliveTest(void)
 
 RyanMqttError_e RyanMqttKeepAliveTest(void)
 {
-	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == keepAliveTest(), RyanMqttFailedError, rlog_e,
+	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == keepAliveTest(), RyanMqttFailedError, RyanMqttLog_e,
 				  { goto __exit; });
 
 	return RyanMqttSuccessError;

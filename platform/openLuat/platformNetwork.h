@@ -9,8 +9,6 @@ extern "C" {
 #include <stdint.h>
 #include <string.h>
 #include <sys/time.h>
-#include "RyanMqttPublic.h"
-#include "platformTimer.h"
 
 #include "common_api.h"
 #include "lwip/ip4_addr.h"
@@ -19,6 +17,9 @@ extern "C" {
 #include "lwip/api.h"
 #include "lwip/sockets.h"
 #include "lwip/netdb.h"
+
+#include "RyanMqttPublic.h"
+#include "platformSystem.h"
 
 typedef struct
 {
