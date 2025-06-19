@@ -32,13 +32,19 @@ static uint16_t RyanMqttGetNextPacketId(RyanMqttClient_t *client)
 static RyanMqttError_e setConfigValue(char **dest, char const *const rest)
 {
 	RyanMqttAssert(NULL != dest && NULL != rest);
+	int32_t restStrLen = (int32_t)strlen(rest);
 
-	// if (0 == strcmp(*dest, rest))
-	//     return RyanMqttSuccessError;
+	if (NULL != *dest)
+	{
+		if (0 == strncmp(*dest, rest, restStrLen))
+		{
+			return RyanMqttSuccessError;
+		}
+	}
 
 	platformMemoryFree(*dest);
 
-	RyanMqttStringCopy(dest, (char *)rest, strlen(rest));
+	RyanMqttStringCopy(dest, (char *)rest, restStrLen);
 	if (NULL == *dest)
 	{
 		return RyanMqttFailedError;
