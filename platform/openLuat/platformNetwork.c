@@ -140,7 +140,7 @@ int32_t platformNetworkRecvAsync(void *userData, platformNetwork_t *platformNetw
 		.tv_usec = 1000 * timeout % 1000,
 	};
 
-	if (-1 == platformNetwork->socket)
+	if (platformNetwork->socket < 0)
 	{
 		RyanMqttLog_e("对端关闭socket连接");
 		return -1;
@@ -198,7 +198,7 @@ int32_t platformNetworkSendAsync(void *userData, platformNetwork_t *platformNetw
 		.tv_usec = 1000 * timeout % 1000,
 	};
 
-	if (-1 == platformNetwork->socket)
+	if (platformNetwork->socket < 0)
 	{
 		RyanMqttLog_e("对端关闭socket连接");
 		return -1;
