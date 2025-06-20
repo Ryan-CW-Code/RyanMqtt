@@ -7,13 +7,13 @@ extern "C" {
 
 #include <stdio.h>
 #include <stdint.h>
-#include <assert.h>
 #include "RyanMqttPublic.h"
 #include "luat_debug.h"
 #include "luat_malloc.h"
 #include "luat_rtos.h"
+#include "luat_mcu.h"
 
-#define platformAssert(EX) assert(EX)
+#define platformAssert(EX) LUAT_DEBUG_ASSERT(EX)
 
 typedef struct
 {
