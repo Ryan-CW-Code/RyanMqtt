@@ -523,7 +523,7 @@ static void RyanMqttSyncUserAckHandle(RyanMqttClient_t *client)
  * @param packetType
  * @return RyanMqttError_e
  */
-static RyanMqttError_e RyanMqttReadPacketHandler(RyanMqttClient_t *client)
+static RyanMqttError_e RyanMqttReadPacketHandler(RyanMqttClient_t *client, RyanMqttBool_e isConnect)
 {
 	RyanMqttError_e result = RyanMqttSuccessError;
 	MQTTPacketInfo_t pIncomingPacket = {0};
@@ -531,7 +531,7 @@ static RyanMqttError_e RyanMqttReadPacketHandler(RyanMqttClient_t *client)
 	RyanMqttAssert(NULL != client);
 
 	NetworkContext_t pNetworkContext = {.client = client};
-	// todo 可以考虑增加最大包大小显示，目前不准备加，因为意义不大
+	// todo 可以考虑增加包大小限制，目前不准备加，因为意义不大
 	MQTTStatus_t status =
 		MQTT_GetIncomingPacketTypeAndLength(coreMqttTransportRecv, &pNetworkContext, &pIncomingPacket);
 
@@ -577,14 +577,23 @@ static RyanMqttError_e RyanMqttReadPacketHandler(RyanMqttClient_t *client)
 
 	case MQTT_PACKET_TYPE_CONNACK: // 连接报文确认
 	{
-		uint16_t packetId;
-		bool sessionPresent; // 会话位
-
-		// 反序列化ack包
-		status = MQTT_DeserializeAck(&pIncomingPacket, &packetId, &sessionPresent);
-		if (MQTTSuccess != status)
+		if (RyanMqttTrue == isConnect)
 		{
-			result = RyanMqttFailedError;
+			uint16_t packetId;
+			bool sessionPresent; // 会话位
+
+			// 反序列化ack包
+			status = MQTT_DeserializeAck(&pIncomingPacket, &packetId, &sessionPresent);
+			if (MQTTSuccess != status)
+			{
+				result = RyanMqttFailedError;
+			}
+		}
+		// 客户端已处于连接状态时又收到CONNACK报文,应该视为严重错误，必须关闭mqtt客户端
+		else
+		{
+			RyanMqttDestroy(client);
+			result = RyanMqttHaveRescourceError;
 		}
 	}
 	break;
@@ -830,7 +839,7 @@ static RyanMqttError_e RyanMqttConnect(RyanMqttClient_t *client)
 
 	// 等待报文
 	// mqtt规范 服务端接收到connect报文后，服务端发送给客户端的第一个报文必须是 CONNACK
-	result = RyanMqttReadPacketHandler(client);
+	result = RyanMqttReadPacketHandler(client, RyanMqttTrue);
 	RyanMqttCheckCode(RyanMqttSuccessError == result, RyanMqttFailedError, RyanMqttLog_d, {
 		platformNetworkClose(client->config.userData, &client->network);
 		platformMemoryFree(fixedBuffer.pBuffer);
@@ -862,7 +871,6 @@ void RyanMqttEventMachine(RyanMqttClient_t *client, RyanMqttEventId_e eventId, v
 		break;
 
 	case RyanMqttEventDisconnected: // 断开连接事件
-
 		// 先将客户端状态设置为断开连接,避免close网络资源时用户依然在使用
 		RyanMqttSetClientState(client, RyanMqttDisconnectState);
 		platformNetworkClose(client->config.userData, &client->network);
@@ -993,7 +1001,7 @@ void RyanMqttThread(void *argument)
 
 		case RyanMqttConnectState: // 连接状态
 			RyanMqttLog_d("连接状态");
-			result = RyanMqttReadPacketHandler(client);
+			result = RyanMqttReadPacketHandler(client, RyanMqttFalse);
 			RyanMqttAckListScan(client, RyanMqttTrue);
 			RyanMqttKeepalive(client);
 			break;
