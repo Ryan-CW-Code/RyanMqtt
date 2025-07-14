@@ -292,8 +292,21 @@ static RyanMqttError_e RyanMqttSubackHandler(RyanMqttClient_t *client, MQTTPacke
 		}
 		platformMutexUnLock(client->config.userData, &client->msgHandleLock);
 
-		// todo 这里需要清除ack和msg
-		RyanMqttCheckCode(ackMsgCount == statusCount, RyanMqttNoRescourceError, RyanMqttLog_d, {});
+		RyanMqttCheckCode(ackMsgCount == statusCount, RyanMqttNoRescourceError, RyanMqttLog_d, {
+			RyanMqttClearAckSession(client, MQTT_PACKET_TYPE_SUBACK, packetId);
+			platformMutexLock(client->config.userData, &client->msgHandleLock);
+			RyanListForEachSafe(curr, next, &client->msgHandlerList)
+			{
+				msgHandler = RyanListEntry(curr, RyanMqttMsgHandler_t, list);
+
+				if (packetId == msgHandler->packetId)
+				{
+					RyanMqttMsgHandlerRemoveToMsgList(client, msgHandler);
+					RyanMqttMsgHandlerDestroy(client, msgHandler);
+				}
+			}
+			platformMutexUnLock(client->config.userData, &client->msgHandleLock);
+		});
 	}
 
 	uint32_t ackMsgIndex = 0;
