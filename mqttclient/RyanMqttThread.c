@@ -173,7 +173,7 @@ static void RyanMqttAckListScan(RyanMqttClient_t *client, RyanMqttBool_e waitFla
 		// 订阅 / 取消订阅超时就认为失败
 		case MQTT_PACKET_TYPE_SUBACK:
 
-			RyanMqttMsgHandlerFindAndDestoryByPackId(client, ackHandler->msgHandler, RyanMqttFalse);
+			RyanMqttMsgHandlerFindAndDestroyByPackId(client, ackHandler->msgHandler, RyanMqttFalse);
 
 			RyanMqttEventMachine(client, RyanMqttEventSubscribedFaile, (void *)ackHandler->msgHandler);
 
@@ -309,7 +309,7 @@ static RyanMqttError_e RyanMqttConnect(RyanMqttClient_t *client, RyanMqttConnect
 			// 服务端无历史会话，客户端这里选择直接进行清空
 			if (false == sessionPresent)
 			{
-				RyanMqttCleanSession(client);
+				RyanMqttPurgeSession(client);
 			}
 		}
 	}
@@ -351,7 +351,7 @@ void RyanMqttEventMachine(RyanMqttClient_t *client, RyanMqttEventId_e eventId, v
 		platformNetworkClose(client->config.userData, &client->network);
 		if (RyanMqttTrue == client->config.cleanSessionFlag)
 		{
-			RyanMqttCleanSession(client);
+			RyanMqttPurgeSession(client);
 		}
 		break;
 
@@ -392,9 +392,9 @@ void RyanMqttThread(void *argument)
 	while (1)
 	{
 		// 销毁客户端
-		if (RyanMqttTrue == client->destoryFlag)
+		if (RyanMqttTrue == client->destroyFlag)
 		{
-			RyanMqttEventMachine(client, RyanMqttEventDestoryBefore, (void *)NULL);
+			RyanMqttEventMachine(client, RyanMqttEventDestroyBefore, (void *)NULL);
 
 			// 关闭网络组件
 			platformNetworkClose(client->config.userData, &client->network);
@@ -436,7 +436,7 @@ void RyanMqttThread(void *argument)
 			}
 
 			// 清除session  ack链表和msg链表
-			RyanMqttCleanSession(client);
+			RyanMqttPurgeSession(client);
 
 			// 清除互斥锁
 			platformMutexDestroy(client->config.userData, &client->sendLock);

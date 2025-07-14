@@ -27,7 +27,7 @@ static RyanMqttError_e keepAliveTest(void)
 		delay(1000);
 	}
 
-	RyanMqttDestorySync(client);
+	RyanMqttDestroySync(client);
 
 	return result;
 }

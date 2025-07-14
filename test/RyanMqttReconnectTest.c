@@ -62,7 +62,7 @@ static RyanMqttError_e autoReconnectTest(uint32_t count, uint32_t delayms)
 
 __exit:
 	RyanMqttLog_i("mqtt 重连，销毁mqtt客户端");
-	RyanMqttDestorySync(client);
+	RyanMqttDestroySync(client);
 	return result;
 }
 
@@ -104,7 +104,7 @@ static RyanMqttError_e manualReconnectTest(uint32_t count, uint32_t delayms)
 	result = RyanMqttSuccessError;
 __exit:
 	RyanMqttLog_i("mqtt 重连，销毁mqtt客户端");
-	RyanMqttDestorySync(client);
+	RyanMqttDestroySync(client);
 	return result;
 }
 

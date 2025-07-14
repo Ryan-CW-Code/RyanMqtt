@@ -82,7 +82,7 @@ void RyanMqttAckHandlerDestroy(RyanMqttClient_t *client, RyanMqttAckHandler_t *a
 	RyanMqttAssert(NULL != ackHandler);
 	RyanMqttAssert(NULL != ackHandler->msgHandler);
 
-	RyanMqttMsgHandlerDestory(client, ackHandler->msgHandler); // 释放msgHandler
+	RyanMqttMsgHandlerDestroy(client, ackHandler->msgHandler); // 释放msgHandler
 
 	if (RyanMqttTrue == ackHandler->isPreallocatedPacket && NULL != ackHandler->packet)
 	{
@@ -256,4 +256,33 @@ RyanMqttError_e RyanMqttAckListRemoveToUserAckList(RyanMqttClient_t *client, Rya
 	platformMutexUnLock(client->config.userData, &client->userAckHandleLock);
 
 	return RyanMqttSuccessError;
+}
+
+void RyanMqttClearAckSession(RyanMqttClient_t *client, uint8_t packetType, uint16_t packetId)
+{
+	RyanMqttError_e result = RyanMqttSuccessError;
+	RyanMqttAckHandler_t *ackHandler = NULL;
+
+	// 清除所有ack链表
+	while (1)
+	{
+		result = RyanMqttAckListNodeFindByUserAckList(client, packetType, packetId, &ackHandler);
+		if (RyanMqttSuccessError == result)
+		{
+			RyanMqttAckListRemoveToUserAckList(client, ackHandler);
+			RyanMqttAckHandlerDestroy(client, ackHandler);
+			continue;
+		}
+
+		// 还有可能已经被添加到ack链表了
+		result = RyanMqttAckListNodeFind(client, packetType, packetId, &ackHandler);
+		if (RyanMqttSuccessError == result)
+		{
+			RyanMqttAckListRemoveToAckList(client, ackHandler);
+			RyanMqttAckHandlerDestroy(client, ackHandler);
+			continue;
+		}
+
+		break;
+	}
 }

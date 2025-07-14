@@ -37,7 +37,7 @@ static RyanMqttError_e setConfigValue(char **dest, char const *const rest)
 
 	if (NULL != *dest)
 	{
-		if (0 == strncmp(*dest, rest, restStrLen))
+		if (0 == strcmp(*dest, rest))
 		{
 			return RyanMqttSuccessError;
 		}
@@ -101,7 +101,7 @@ RyanMqttError_e RyanMqttInit(RyanMqttClient_t **pClient)
  * @brief 销毁mqtt客户端
  *  !用户线程直接删除mqtt线程是很危险的行为。所以这里设置标志位，稍后由mqtt线程自己释放所占有的资源。
  *  !mqtt删除自己的延时最大不会超过config里面 recvTimeout + 1秒
- *  !mqtt删除自己前会调用 RyanMqttEventDestoryBefore 事件回调
+ *  !mqtt删除自己前会调用 RyanMqttEventDestroyBefore 事件回调
  *  !调用此函数后就不应该再对该客户端进行任何操作
  * @param client
  * @return RyanMqttError_e
@@ -112,7 +112,7 @@ RyanMqttError_e RyanMqttDestroy(RyanMqttClient_t *client)
 	RyanMqttCheck(NULL != client, RyanMqttParamInvalidError, RyanMqttLog_d);
 
 	platformCriticalEnter(client->config.userData, &client->criticalLock);
-	client->destoryFlag = RyanMqttTrue;
+	client->destroyFlag = RyanMqttTrue;
 	platformCriticalExit(client->config.userData, &client->criticalLock);
 
 	return RyanMqttSuccessError;
@@ -205,38 +205,10 @@ RyanMqttError_e RyanMqttReconnect(RyanMqttClient_t *client)
 	platformThreadStart(client->config.userData, &client->mqttThread);
 	return RyanMqttSuccessError;
 }
-
 static void RyanMqttClearSubSession(RyanMqttClient_t *client, uint16_t packetId, int32_t count,
 				    MQTTSubscribeInfo_t *subscriptionList)
 {
-	RyanMqttError_e result = RyanMqttSuccessError;
-	RyanMqttAckHandler_t *userAckHandler = NULL;
-
-	// 清除所有ack链表
-	while (1)
-	{
-		RyanMqttAckHandler_t *ackHandler = NULL;
-		result = RyanMqttAckListNodeFindByUserAckList(client, MQTT_PACKET_TYPE_SUBACK, packetId,
-							      &userAckHandler);
-		if (RyanMqttSuccessError == result)
-		{
-			RyanMqttAckListRemoveToUserAckList(client, userAckHandler);
-			RyanMqttAckHandlerDestroy(client, userAckHandler);
-			continue;
-		}
-
-		// 还有可能已经被添加到ack链表了
-		result = RyanMqttAckListNodeFind(client, MQTT_PACKET_TYPE_SUBACK, packetId, &ackHandler);
-		if (RyanMqttSuccessError == result)
-		{
-			RyanMqttAckListRemoveToAckList(client, ackHandler);
-			RyanMqttAckHandlerDestroy(client, ackHandler);
-			continue;
-		}
-
-		break;
-	}
-
+	RyanMqttClearAckSession(client, MQTT_PACKET_TYPE_SUBACK, packetId);
 	// 清除msg链表
 	RyanMqttMsgHandler_t tempMsgHandler = {0};
 	for (int32_t i = 0; i < count; i++)
@@ -245,10 +217,9 @@ static void RyanMqttClearSubSession(RyanMqttClient_t *client, uint16_t packetId,
 		tempMsgHandler.topicLen = subscriptionList[i].topicFilterLength;
 		tempMsgHandler.packetId = packetId;
 
-		RyanMqttMsgHandlerFindAndDestoryByPackId(client, &tempMsgHandler, RyanMqttFalse);
+		RyanMqttMsgHandlerFindAndDestroyByPackId(client, &tempMsgHandler, RyanMqttFalse);
 	}
 }
-
 /**
  * @brief 订阅主题
  *
@@ -327,32 +298,36 @@ RyanMqttError_e RyanMqttSubscribeMany(RyanMqttClient_t *client, int32_t count,
 		result = RyanMqttAckHandlerCreate(client, MQTT_PACKET_TYPE_SUBACK, packetId, 0, NULL, msgHandler,
 						  &userAckHandler, RyanMqttFalse);
 		RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, result, RyanMqttLog_d, {
-			RyanMqttMsgHandlerDestory(client, msgHandler);
+			RyanMqttMsgHandlerDestroy(client, msgHandler);
 			goto __exit;
 		});
 
 		RyanMqttAckListAddToUserAckList(client, userAckHandler);
-
-		// 创建msg包,允许服务端在发送 SUBACK 报文之前就开始发送与订阅匹配的 PUBLISH 报文。
-		result = RyanMqttMsgHandlerCreate(client, subscriptionList[i].pTopicFilter,
-						  subscriptionList[i].topicFilterLength, packetId,
-						  (RyanMqttQos_e)subscriptionList[i].qos, &msgToListHandler);
-		RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, result, RyanMqttLog_d, {
-			RyanMqttAckListRemoveToUserAckList(client, userAckHandler);
-			RyanMqttAckHandlerDestroy(client, userAckHandler);
-			goto __exit;
-		});
-
-		// 将msg信息添加到订阅链表上
-		RyanMqttMsgHandlerAddToMsgList(client, msgToListHandler);
 		continue;
 
 __exit:
-		RyanMqttClearSubSession(client, packetId, i, subscriptionList);
+		RyanMqttClearAckSession(client, MQTT_PACKET_TYPE_SUBACK, packetId);
 
 		platformMemoryFree(subscriptionList);
 		platformMemoryFree(fixedBuffer.pBuffer);
 		return RyanMqttNotEnoughMemError;
+	}
+
+	for (int32_t i = 0; i < count; i++)
+	{
+		// 创建msg包,允许服务端在发送 SUBACK 报文之前就开始发送与订阅匹配的 PUBLISH 报文。
+		result = RyanMqttMsgHandlerCreate(client, subscriptionList[i].pTopicFilter,
+						  subscriptionList[i].topicFilterLength, packetId,
+						  (RyanMqttQos_e)subscriptionList[i].qos, &msgToListHandler);
+		RyanMqttCheckCode(RyanMqttSuccessError == result, result, RyanMqttLog_d, {
+			RyanMqttClearSubSession(client, packetId, i, subscriptionList);
+
+			platformMemoryFree(subscriptionList);
+			platformMemoryFree(fixedBuffer.pBuffer);
+		});
+
+		// 将msg信息添加到订阅链表上
+		RyanMqttMsgHandlerAddToMsgList(client, msgToListHandler);
 	}
 
 	// 发送订阅主题包
@@ -383,38 +358,6 @@ RyanMqttError_e RyanMqttSubscribe(RyanMqttClient_t *client, char *topic, RyanMqt
 {
 	RyanMqttSubscribeData_t subscribeManyData = {.qos = qos, .topic = topic, .topicLen = strlen(topic)};
 	return RyanMqttSubscribeMany(client, 1, &subscribeManyData);
-}
-
-static void RyanMqttClearUnSubSession(RyanMqttClient_t *client, uint16_t packetId, int32_t count,
-				      MQTTSubscribeInfo_t *subscriptionList)
-{
-	RyanMqttError_e result = RyanMqttSuccessError;
-	RyanMqttAckHandler_t *userAckHandler = NULL;
-
-	// 清除所有ack链表
-	while (1)
-	{
-		RyanMqttAckHandler_t *ackHandler = NULL;
-		result = RyanMqttAckListNodeFindByUserAckList(client, MQTT_PACKET_TYPE_UNSUBACK, packetId,
-							      &userAckHandler);
-		if (RyanMqttSuccessError == result)
-		{
-			RyanMqttAckListRemoveToUserAckList(client, userAckHandler);
-			RyanMqttAckHandlerDestroy(client, userAckHandler);
-			continue;
-		}
-
-		// 还有可能已经被添加到ack链表了
-		result = RyanMqttAckListNodeFind(client, MQTT_PACKET_TYPE_UNSUBACK, packetId, &ackHandler);
-		if (RyanMqttSuccessError == result)
-		{
-			RyanMqttAckListRemoveToAckList(client, ackHandler);
-			RyanMqttAckHandlerDestroy(client, ackHandler);
-			continue;
-		}
-
-		break;
-	}
 }
 
 /**
@@ -497,7 +440,7 @@ RyanMqttError_e RyanMqttUnSubscribeMany(RyanMqttClient_t *client, int32_t count,
 		result = RyanMqttAckHandlerCreate(client, MQTT_PACKET_TYPE_UNSUBACK, packetId, 0, NULL, msgHandler,
 						  &userAckHandler, RyanMqttFalse);
 		RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, result, RyanMqttLog_d, {
-			RyanMqttMsgHandlerDestory(client, msgHandler);
+			RyanMqttMsgHandlerDestroy(client, msgHandler);
 			goto __exit;
 		});
 
@@ -505,7 +448,7 @@ RyanMqttError_e RyanMqttUnSubscribeMany(RyanMqttClient_t *client, int32_t count,
 		continue;
 
 __exit:
-		RyanMqttClearUnSubSession(client, packetId, i, subscriptionList);
+		RyanMqttClearAckSession(client, MQTT_PACKET_TYPE_UNSUBACK, packetId);
 		platformMemoryFree(subscriptionList);
 		platformMemoryFree(fixedBuffer.pBuffer);
 		return RyanMqttNotEnoughMemError;
@@ -515,7 +458,7 @@ __exit:
 	// 如果发送失败就清除ack链表,创建ack链表必须在发送前
 	result = RyanMqttSendPacket(client, fixedBuffer.pBuffer, fixedBuffer.size);
 	RyanMqttCheckCode(RyanMqttSuccessError == result, result, RyanMqttLog_d, {
-		RyanMqttClearUnSubSession(client, packetId, count, subscriptionList);
+		RyanMqttClearAckSession(client, MQTT_PACKET_TYPE_UNSUBACK, packetId);
 
 		platformMemoryFree(subscriptionList);
 		platformMemoryFree(fixedBuffer.pBuffer);
@@ -629,7 +572,7 @@ RyanMqttError_e RyanMqttPublish(RyanMqttClient_t *client, char *topic, char *pay
 			fixedBuffer.size, fixedBuffer.pBuffer, msgHandler, &userAckHandler, RyanMqttTrue);
 		RyanMqttCheckCode(RyanMqttSuccessError == result, result, RyanMqttLog_d, {
 			platformMemoryFree(fixedBuffer.pBuffer);
-			RyanMqttMsgHandlerDestory(client, msgHandler);
+			RyanMqttMsgHandlerDestroy(client, msgHandler);
 		});
 
 		// 一定要先加再send，要不可能返回消息会比这个更快执行呢

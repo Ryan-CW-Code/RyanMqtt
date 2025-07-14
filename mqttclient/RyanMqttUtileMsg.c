@@ -184,6 +184,7 @@ RyanMqttError_e RyanMqttMsgHandlerCreate(RyanMqttClient_t *client, const char *t
 	RyanMqttAssert(NULL != pMsgHandler);
 	RyanMqttAssert(RyanMqttQos0 == qos || RyanMqttQos1 == qos || RyanMqttQos2 == qos);
 
+    // todo 可以考虑增加maxTopic限制
 	msgHandler = (RyanMqttMsgHandler_t *)platformMemoryMalloc(sizeof(RyanMqttMsgHandler_t) + topicLen + 1);
 	RyanMqttCheck(NULL != msgHandler, RyanMqttNotEnoughMemError, RyanMqttLog_d);
 	memset(msgHandler, 0, sizeof(RyanMqttMsgHandler_t) + topicLen + 1);
@@ -205,7 +206,7 @@ RyanMqttError_e RyanMqttMsgHandlerCreate(RyanMqttClient_t *client, const char *t
  *
  * @param msgHandler
  */
-void RyanMqttMsgHandlerDestory(RyanMqttClient_t *client, RyanMqttMsgHandler_t *msgHandler)
+void RyanMqttMsgHandlerDestroy(RyanMqttClient_t *client, RyanMqttMsgHandler_t *msgHandler)
 {
 	RyanMqttAssert(NULL != client);
 	RyanMqttAssert(NULL != msgHandler);
@@ -288,7 +289,7 @@ __exit:
 	return result;
 }
 
-void RyanMqttMsgHandlerFindAndDestoryByPackId(RyanMqttClient_t *client, RyanMqttMsgHandler_t *findMsgHandler,
+void RyanMqttMsgHandlerFindAndDestroyByPackId(RyanMqttClient_t *client, RyanMqttMsgHandler_t *findMsgHandler,
 					      RyanMqttBool_e isSkipMatchingId)
 {
 	RyanList_t *curr, *next;
@@ -326,7 +327,7 @@ void RyanMqttMsgHandlerFindAndDestoryByPackId(RyanMqttClient_t *client, RyanMqtt
 
 		// 到这里就是同名订阅了，直接删除
 		RyanMqttMsgHandlerRemoveToMsgList(client, msgHandler);
-		RyanMqttMsgHandlerDestory(client, msgHandler);
+		RyanMqttMsgHandlerDestroy(client, msgHandler);
 		break;
 	}
 	platformMutexUnLock(client->config.userData, &client->msgHandleLock);

@@ -54,12 +54,12 @@ extern "C" {
 extern RyanMqttError_e RyanMqttInitSync(RyanMqttClient_t **client, RyanMqttBool_e syncFlag,
 					RyanMqttBool_e autoReconnectFlag, uint16_t keepaliveTimeoutS,
 					RyanMqttEventHandle mqttEventCallback);
-extern RyanMqttError_e RyanMqttDestorySync(RyanMqttClient_t *client);
+extern RyanMqttError_e RyanMqttDestroySync(RyanMqttClient_t *client);
 extern void mqttEventBaseHandle(void *pclient, RyanMqttEventId_e event, const void *eventData);
 extern RyanMqttError_e checkAckList(RyanMqttClient_t *client);
 extern void printfArrStr(uint8_t *buf, uint32_t len, char *userData);
 
-extern RyanMqttError_e RyanMqttDestoryTest(void);
+extern RyanMqttError_e RyanMqttDestroyTest(void);
 extern RyanMqttError_e RyanMqttKeepAliveTest(void);
 extern RyanMqttError_e RyanMqttPubTest(void);
 extern RyanMqttError_e RyanMqttReconnectTest(void);

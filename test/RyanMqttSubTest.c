@@ -295,7 +295,7 @@ __exit:
 	}
 
 	RyanMqttLog_i("mqtt 订阅测试，销毁mqtt客户端");
-	RyanMqttDestorySync(client);
+	RyanMqttDestroySync(client);
 	return result;
 }
 

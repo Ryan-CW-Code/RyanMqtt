@@ -166,7 +166,7 @@ __exit:
 	free(pubStr);
 	pubStr = NULL;
 	RyanMqttLog_i("mqtt 发布测试，销毁mqtt客户端");
-	RyanMqttDestorySync(client);
+	RyanMqttDestroySync(client);
 	return result;
 }
 
@@ -283,7 +283,7 @@ __exit:
 	free(pubStr);
 	pubStr = NULL;
 	RyanMqttLog_i("mqtt 发布测试，销毁mqtt客户端");
-	RyanMqttDestorySync(client);
+	RyanMqttDestroySync(client);
 	return result;
 }
 

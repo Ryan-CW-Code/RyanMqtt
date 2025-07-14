@@ -147,7 +147,7 @@ static void mqttEventHandle(void *pclient, RyanMqttEventId_e event, const void *
 		break;
 	}
 
-	case RyanMqttEventDestoryBefore: RyanMqttLog_i("销毁mqtt客户端前回调"); break;
+	case RyanMqttEventDestroyBefore: RyanMqttLog_i("销毁mqtt客户端前回调"); break;
 
 	default: break;
 	}

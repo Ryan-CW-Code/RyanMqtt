@@ -12,7 +12,7 @@ src += Glob('platform/rtthread/*.c')
 
 path = [cwd + '/common']
 path += [cwd + '/pahoMqtt']
-path += [cwd + '/mqttclient']
+path += [cwd + '/mqttclient/include']
 path += [cwd + '/platform/rtthread']
 
 if GetDepend(['PKG_USING_RYANMQTT_EXAMPLE']):

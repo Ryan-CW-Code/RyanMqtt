@@ -162,7 +162,9 @@ typedef enum
 	 * @brief 用户触发，销毁客户端前回调
 	 * @eventData NULL
 	 */
-	RyanMqttEventDestoryBefore = RyanMqttBit13,
+	RyanMqttEventDestroyBefore = RyanMqttBit13,
+    // 拼写错误的兼容性措施
+    RyanMqttEventDestoryBefore = RyanMqttEventDestroyBefore,
 
 	/**
 	 * @brief 接收到订阅主题数据事件,支持通配符识别，返回的主题信息是报文主题

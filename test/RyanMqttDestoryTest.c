@@ -1,6 +1,6 @@
 #include "RyanMqttTest.h"
 
-static RyanMqttError_e RyanMqttConnectDestory(uint32_t count, uint32_t delayms)
+static RyanMqttError_e RyanMqttConnectDestroy(uint32_t count, uint32_t delayms)
 {
 	for (uint32_t i = 0; i < count; i++)
 	{
@@ -27,7 +27,7 @@ static RyanMqttError_e RyanMqttConnectDestory(uint32_t count, uint32_t delayms)
 
 		if (i == count - 1) // 最后一次同步释放
 		{
-			RyanMqttDestorySync(client);
+			RyanMqttDestroySync(client);
 			delay(100);
 		}
 		else
@@ -39,10 +39,10 @@ static RyanMqttError_e RyanMqttConnectDestory(uint32_t count, uint32_t delayms)
 	return RyanMqttSuccessError;
 }
 
-RyanMqttError_e RyanMqttDestoryTest(void)
+RyanMqttError_e RyanMqttDestroyTest(void)
 {
 	RyanMqttError_e result = RyanMqttSuccessError;
-	result = RyanMqttConnectDestory(100, 0);
+	result = RyanMqttConnectDestroy(100, 0);
 	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttFailedError, RyanMqttLog_e, { goto __exit; });
 	checkMemory;
 

@@ -130,7 +130,7 @@ static RyanMqttError_e RyanMqttPubrecPacketHandler(RyanMqttClient_t *client, MQT
 							  MQTT_PUBLISH_ACK_PACKET_SIZE, fixedBuffer.pBuffer, msgHandler,
 							  &ackHandler, RyanMqttFalse);
 			RyanMqttCheckCode(RyanMqttSuccessError == result, result, RyanMqttLog_d,
-					  { RyanMqttMsgHandlerDestory(client, msgHandler); });
+					  { RyanMqttMsgHandlerDestroy(client, msgHandler); });
 			RyanMqttAckListAddToAckList(client, ackHandler);
 
 			RyanMqttAckListRemoveToAckList(client, ackHandlerPubrec);
@@ -238,7 +238,7 @@ static RyanMqttError_e RyanMqttPublishPacketHandler(RyanMqttClient_t *client, MQ
 							  MQTT_PUBLISH_ACK_PACKET_SIZE, fixedBuffer.pBuffer, msgHandler,
 							  &ackHandler, RyanMqttFalse);
 			RyanMqttCheckCode(RyanMqttSuccessError == result, result, RyanMqttLog_d,
-					  { RyanMqttMsgHandlerDestory(client, msgHandler); });
+					  { RyanMqttMsgHandlerDestroy(client, msgHandler); });
 			RyanMqttAckListAddToAckList(client, ackHandler);
 
 			RyanMqttEventMachine(client, RyanMqttEventData, (void *)&msgData);
@@ -292,7 +292,7 @@ static RyanMqttError_e RyanMqttSubackHandler(RyanMqttClient_t *client, MQTTPacke
 		}
 		platformMutexUnLock(client->config.userData, &client->msgHandleLock);
 
-		// todo 这里需要清除ackMsg
+		// todo 这里需要清除ack和msg
 		RyanMqttCheckCode(ackMsgCount == statusCount, RyanMqttNoRescourceError, RyanMqttLog_d, {});
 	}
 
@@ -313,7 +313,7 @@ static RyanMqttError_e RyanMqttSubackHandler(RyanMqttClient_t *client, MQTTPacke
 		}
 
 		// 查找同名订阅并删除,保证订阅主题列表只有一个最新的
-		RyanMqttMsgHandlerFindAndDestoryByPackId(client, ackHandler->msgHandler, RyanMqttTrue);
+		RyanMqttMsgHandlerFindAndDestroyByPackId(client, ackHandler->msgHandler, RyanMqttTrue);
 
 		// 到这里说明找到重复订阅的msg了,需要清除
 		// 查找之前记录的topic句柄，根据服务器授权Qos进行更新
@@ -330,7 +330,7 @@ static RyanMqttError_e RyanMqttSubackHandler(RyanMqttClient_t *client, MQTTPacke
 		{
 			// 删除msg链表记录
 			RyanMqttMsgHandlerRemoveToMsgList(client, msgHandler);
-			RyanMqttMsgHandlerDestory(client, msgHandler);
+			RyanMqttMsgHandlerDestroy(client, msgHandler);
 
 			// mqtt事件回调
 			RyanMqttEventMachine(client, RyanMqttEventSubscribedFaile, (void *)ackHandler->msgHandler);
@@ -396,7 +396,7 @@ static RyanMqttError_e RyanMqttUnSubackHandler(RyanMqttClient_t *client, MQTTPac
 		{
 			ackHandler->msgHandler->qos = subMsgHandler->qos;
 			RyanMqttMsgHandlerRemoveToMsgList(client, subMsgHandler);
-			RyanMqttMsgHandlerDestory(client, subMsgHandler);
+			RyanMqttMsgHandlerDestroy(client, subMsgHandler);
 		}
 
 		// mqtt事件回调

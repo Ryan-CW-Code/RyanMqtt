@@ -192,7 +192,10 @@ void RyanMqttSetClientState(RyanMqttClient_t *client, RyanMqttState_e state)
 RyanMqttState_e RyanMqttGetClientState(RyanMqttClient_t *client)
 {
 	RyanMqttAssert(NULL != client);
-	return client->clientState;
+	platformCriticalEnter(client->config.userData, &client->criticalLock);
+	RyanMqttState_e state = client->clientState;
+	platformCriticalExit(client->config.userData, &client->criticalLock);
+	return state;
 }
 
 /**
@@ -200,7 +203,7 @@ RyanMqttState_e RyanMqttGetClientState(RyanMqttClient_t *client)
  *
  * @param client
  */
-void RyanMqttCleanSession(RyanMqttClient_t *client)
+void RyanMqttPurgeSession(RyanMqttClient_t *client)
 {
 	RyanList_t *curr, *next;
 	RyanMqttAckHandler_t *ackHandler = NULL;
@@ -214,7 +217,7 @@ void RyanMqttCleanSession(RyanMqttClient_t *client)
 	{
 		msgHandler = RyanListEntry(curr, RyanMqttMsgHandler_t, list);
 		RyanMqttMsgHandlerRemoveToMsgList(client, msgHandler);
-		RyanMqttMsgHandlerDestory(client, msgHandler);
+		RyanMqttMsgHandlerDestroy(client, msgHandler);
 	}
 	RyanListDelInit(&client->msgHandlerList);
 	platformMutexUnLock(client->config.userData, &client->msgHandleLock);

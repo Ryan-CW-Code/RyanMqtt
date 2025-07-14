@@ -106,7 +106,7 @@ void mqttEventBaseHandle(void *pclient, RyanMqttEventId_e event, const void *eve
 		break;
 	}
 
-	case RyanMqttEventDestoryBefore:
+	case RyanMqttEventDestroyBefore:
 		RyanMqttLog_e("销毁mqtt客户端前回调");
 		if (client->config.userData)
 		{
@@ -207,7 +207,7 @@ RyanMqttError_e RyanMqttInitSync(RyanMqttClient_t **client, RyanMqttBool_e syncF
 	return RyanMqttSuccessError;
 }
 
-RyanMqttError_e RyanMqttDestorySync(RyanMqttClient_t *client)
+RyanMqttError_e RyanMqttDestroySync(RyanMqttClient_t *client)
 {
 	sem_t *sem = (sem_t *)client->config.userData;
 	// 启动mqtt客户端线程
@@ -271,7 +271,7 @@ int main(void)
 	result = RyanMqttPubTest();
 	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttFailedError, RyanMqttLog_e, { goto __exit; });
 
-	result = RyanMqttDestoryTest();
+	result = RyanMqttDestroyTest();
 	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttFailedError, RyanMqttLog_e, { goto __exit; });
 
 	result = RyanMqttReconnectTest();
