@@ -205,6 +205,7 @@ RyanMqttError_e RyanMqttReconnect(RyanMqttClient_t *client)
 	platformThreadStart(client->config.userData, &client->mqttThread);
 	return RyanMqttSuccessError;
 }
+
 static void RyanMqttClearSubSession(RyanMqttClient_t *client, uint16_t packetId, int32_t count,
 				    MQTTSubscribeInfo_t *subscriptionList)
 {

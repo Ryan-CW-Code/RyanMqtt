@@ -163,8 +163,8 @@ typedef enum
 	 * @eventData NULL
 	 */
 	RyanMqttEventDestroyBefore = RyanMqttBit13,
-    // 拼写错误的兼容性措施
-    RyanMqttEventDestoryBefore = RyanMqttEventDestroyBefore,
+	// 拼写错误的兼容性措施
+	RyanMqttEventDestoryBefore = RyanMqttEventDestroyBefore,
 
 	/**
 	 * @brief 接收到订阅主题数据事件,支持通配符识别，返回的主题信息是报文主题
@@ -216,6 +216,7 @@ typedef enum
 	RyanMqttConnectUserDisconnected,            // 用户手动断开连接
 	RyanMqttConnectTimeout,                     // 超时断开
 	RyanMqttConnectFirstPackNotConnack,         // 发送connect后接受到的第一个报文不是connack
+	RyanMqttConnectProtocolError,               // 多次收到connack
 	RyanMqttConnectStatusForceInt32 = INT32_MAX // 强制编译器使用int32_t类型
 } RyanMqttConnectStatus_e;
 

@@ -277,27 +277,32 @@ void RyanMqttTimerCutdown(RyanMqttTimer_t *platformTimer, uint32_t timeout)
  */
 uint32_t RyanMqttTimerRemain(RyanMqttTimer_t *platformTimer)
 {
+
 	uint32_t tnow = platformUptimeMs();
-	uint32_t elapsed;
+	uint32_t overTime = platformTimer->time + platformTimer->timeOut;
+	// uint32_t 没有溢出
+	if (overTime >= platformTimer->time)
+	{
+		// tnow溢出,时间必然已经超时
+		if (tnow < platformTimer->time)
+		{
+			// return (UINT32_MAX - overTime + tnow + 1);
+			return 0;
+		}
 
-	// 处理时间溢出情况
-	if (tnow >= platformTimer->time)
-	{
-		elapsed = tnow - platformTimer->time;
-	}
-	else
-	{
-		// 处理32位计数器溢出情况
-		elapsed = (UINT32_MAX - platformTimer->time) + tnow + 1;
-	}
-
-	// 检查是否已超时
-	if (elapsed >= platformTimer->timeOut)
-	{
-		return 0;
+		// tnow没有溢出
+		return tnow >= overTime ? 0 : (overTime - tnow);
 	}
 
-	return platformTimer->timeOut - elapsed;
+	// uint32_t 溢出了
+	// tnow 溢出了
+	if (tnow < platformTimer->time)
+	{
+		return tnow >= overTime ? 0 : (overTime - tnow + 1);
+	}
+
+	// tnow 没有溢出
+	return UINT32_MAX - tnow + overTime + 1;
 }
 
 const char *RyanMqttStrError(int32_t state)
@@ -307,54 +312,32 @@ const char *RyanMqttStrError(int32_t state)
 	switch (state)
 	{
 	case RyanMqttRecvPacketTimeOutError: str = "读取数据超时"; break;
-
 	case RyanMqttParamInvalidError: str = "无效参数"; break;
-
 	case RyanSocketFailedError: str = "套接字失败"; break;
-
 	case RyanMqttSendPacketError: str = "数据包发送失败"; break;
-
 	case RyanMqttSerializePacketError: str = "序列化报文失败"; break;
-
 	case RyanMqttDeserializePacketError: str = "反序列化报文失败"; break;
-
 	case RyanMqttNoRescourceError: str = "没有资源"; break;
-
 	case RyanMqttHaveRescourceError: str = "资源已存在"; break;
-
 	case RyanMqttNotConnectError: str = "mqttClient没有连接"; break;
-
 	case RyanMqttConnectError: str = "mqttClient已经连接"; break;
-
 	case RyanMqttRecvBufToShortError: str = "接收缓冲区不足"; break;
-
 	case RyanMqttSendBufToShortError: str = "发送缓冲区不足"; break;
-
 	case RyanMqttSocketConnectFailError: str = "socket连接失败"; break;
-
 	case RyanMqttNotEnoughMemError: str = "动态内存不足"; break;
-
 	case RyanMqttFailedError: str = "mqtt失败, 详细信息请看函数内部"; break;
-
 	case RyanMqttSuccessError: str = "mqtt成功, 详细信息请看函数内部"; break;
-
 	case RyanMqttConnectRefusedProtocolVersion: str = "mqtt断开连接, 服务端不支持客户端请求的 MQTT 协议级别"; break;
-
 	case RyanMqttConnectRefusedIdentifier: str = "mqtt断开连接, 不合格的客户端标识符"; break;
-
 	case RyanMqttConnectRefusedServer: str = "mqtt断开连接, 服务端不可用"; break;
-
 	case RyanMqttConnectRefusedUsernamePass: str = "mqtt断开连接, 无效的用户名或密码"; break;
-
 	case RyanMqttConnectRefusedNotAuthorized: str = "mqtt断开连接, 连接已拒绝，未授权"; break;
-
 	case RyanMqttConnectClientInvalid: str = "mqtt断开连接, 客户端处于无效状态"; break;
 	case RyanMqttConnectNetWorkFail: str = "mqtt断开连接, 网络错误"; break;
 	case RyanMqttConnectDisconnected: str = "mqtt断开连接, mqtt客户端断开连接"; break;
 	case RyanMqttKeepaliveTimeout: str = "mqtt断开连接, 心跳超时断开连接"; break;
 	case RyanMqttConnectUserDisconnected: str = "mqtt断开连接, 用户手动断开连接"; break;
 	case RyanMqttConnectTimeout: str = "mqtt断开连接, connect超时断开"; break;
-
 	default: str = "未知错误描述"; break;
 	}
 

@@ -250,7 +250,7 @@ static RyanMqttError_e RyanMqttPublishPacketHandler(RyanMqttClient_t *client, MQ
 
 	break;
 
-	default: break;
+	default: RyanMqttLog_w("Unhandled QoS level: %d", msgData.qos); break;
 	}
 
 	return result;
@@ -540,8 +540,10 @@ RyanMqttError_e RyanMqttProcessPacketHandler(RyanMqttClient_t *client)
 		// 	}
 		// }
 
-		// 客户端已处于连接状态时又收到CONNACK报文,应该视为严重错误，必须关闭mqtt客户端
-		RyanMqttDestroy(client);
+		// 客户端已处于连接状态时又收到CONNACK报文,应该视为严重错误，断开连接
+		RyanMqttLog_e("收到 CONNACK 时已连接，正在断开连接");
+		RyanMqttConnectStatus_e connectState = RyanMqttConnectProtocolError;
+		RyanMqttEventMachine(client, RyanMqttEventDisconnected, &connectState);
 		result = RyanMqttHaveRescourceError;
 	}
 	break;
@@ -576,7 +578,7 @@ RyanMqttError_e RyanMqttProcessPacketHandler(RyanMqttClient_t *client)
 		result = RyanMqttSuccessError;
 		break;
 
-	default: break;
+	default: RyanMqttLog_w("Unhandled packet type: 0x%02X", pIncomingPacket.type & 0xF0U); break;
 	}
 
 __exit:
