@@ -22,13 +22,8 @@ static RyanMqttError_e keepAliveTest(void)
 		}
 
 		RyanMqttGetKeepAliveRemain(client, &keepAliveRemain);
-
 		RyanMqttLog_w("心跳倒计时: %d", keepAliveRemain);
-		if (0 == keepAliveRemain)
-		{
-			result = RyanMqttFailedError;
-			break;
-		}
+		RyanMqttCheckCodeNoReturn(0 != keepAliveRemain, RyanMqttFailedError, RyanMqttLog_e, { break; });
 		delay(1000);
 	}
 

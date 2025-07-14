@@ -9,14 +9,15 @@ static RyanMqttError_e RyanMqttConnectDestory(uint32_t count, uint32_t delayms)
 
 		RyanMqttInitSync(&client, i == count - 1 ? RyanMqttTrue : RyanMqttFalse, RyanMqttTrue, 120, NULL);
 
-		RyanMqttSubscribe(client, "testlinux/pub1", RyanMqttQos0);
-		RyanMqttSubscribe(client, "testlinux/pub2", RyanMqttQos1);
+		// 增加一些测试量
 		RyanMqttSubscribe(client, "testlinux/pub3", RyanMqttQos2);
-		RyanMqttPublish(client, "testlinux/pub1", "helloworld", strlen("helloworld"), RyanMqttQos0,
+		RyanMqttSubscribe(client, "testlinux/pub2", RyanMqttQos1);
+		RyanMqttSubscribe(client, "testlinux/pub1", RyanMqttQos0);
+		RyanMqttPublish(client, "testlinux/pub3", "helloworld", strlen("helloworld"), RyanMqttQos2,
 				RyanMqttFalse);
 		RyanMqttPublish(client, "testlinux/pub2", "helloworld", strlen("helloworld"), RyanMqttQos1,
 				RyanMqttFalse);
-		RyanMqttPublish(client, "testlinux/pub3", "helloworld", strlen("helloworld"), RyanMqttQos2,
+		RyanMqttPublish(client, "testlinux/pub1", "helloworld", strlen("helloworld"), RyanMqttQos0,
 				RyanMqttFalse);
 
 		if (delayms)

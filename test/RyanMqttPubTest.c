@@ -52,18 +52,47 @@ static void RyanMqttPublishEventHandle(void *pclient, RyanMqttEventId_e event, c
 	}
 }
 
+/**
+ * @brief 固定qos等级发布测试
+ *
+ * @param qos
+ * @param count
+ * @param delayms
+ * @return RyanMqttError_e
+ */
 static RyanMqttError_e RyanMqttPublishTest(RyanMqttQos_e qos, int32_t count, uint32_t delayms)
 {
 	RyanMqttError_e result = RyanMqttSuccessError;
 	RyanMqttClient_t *client;
 	time_t timeStampNow = 0;
 
+	exportQos = qos;
 	RyanMqttInitSync(&client, RyanMqttTrue, RyanMqttTrue, 120, RyanMqttPublishEventHandle);
 
-	RyanMqttSubscribe(client, "testlinux/pub", qos);
-	delay(100);
+	// 等待订阅主题成功
+	result = RyanMqttSubscribe(client, "testlinux/pub", qos);
+	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttFailedError, RyanMqttLog_e, { goto __exit; });
+	for (int32_t i = 0;; i++)
+	{
+		int32_t subscribeTotal = 0;
 
-	exportQos = qos;
+		result = RyanMqttGetSubscribeTotalCount(client, &subscribeTotal);
+		RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttFailedError, RyanMqttLog_e,
+					  { goto __exit; });
+		if (1 == subscribeTotal)
+		{
+			break;
+		}
+
+		if (i > 3000)
+		{
+			RyanMqttLog_e("订阅主题失败");
+			result = RyanMqttFailedError;
+			goto __exit;
+		}
+
+		delay(1);
+	}
 
 	// 生成随机的数据包大小
 	{
@@ -71,11 +100,7 @@ static RyanMqttError_e RyanMqttPublishTest(RyanMqttQos_e qos, int32_t count, uin
 		time(&timeStampNow);
 
 		pubStr = (char *)malloc(2048);
-		if (NULL == pubStr)
-		{
-			RyanMqttLog_e("内存不足");
-			return RyanMqttNotEnoughMemError;
-		}
+		RyanMqttCheck(NULL != pubStr, RyanMqttNotEnoughMemError, RyanMqttLog_e);
 		memset(pubStr, 0, 2048);
 
 		// NOLINTNEXTLINE(cert-msc32-c,cert-msc51-cpp)
@@ -89,18 +114,14 @@ static RyanMqttError_e RyanMqttPublishTest(RyanMqttQos_e qos, int32_t count, uin
 		pubStrLen = (int32_t)strlen(pubStr);
 	}
 
+	// 开始测试发送数据
 	pubTestPublishedEventCount = 0;
 	pubTestDataEventCount = 0;
 	for (int32_t i = 0; i < count; i++)
 	{
-		RyanMqttError_e pubResult =
-			RyanMqttPublish(client, "testlinux/pub", pubStr, pubStrLen, qos, RyanMqttFalse);
-		if (RyanMqttSuccessError != pubResult)
-		{
-			RyanMqttLog_e("QOS发布错误 Qos: %d, result: %d", qos, pubResult);
-			result = RyanMqttFailedError;
-			goto __exit;
-		}
+		result = RyanMqttPublish(client, "testlinux/pub", pubStr, pubStrLen, qos, RyanMqttFalse);
+		RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttFailedError, RyanMqttLog_e,
+					  { goto __exit; });
 
 		if (delayms)
 		{
@@ -118,6 +139,7 @@ static RyanMqttError_e RyanMqttPublishTest(RyanMqttQos_e qos, int32_t count, uin
 				break;
 			}
 		}
+		// qos1和qos2的发送成功数和接收数应该相等,因为是本机回环测试，理论上应该一致
 		else if (pubTestPublishedEventCount == count && pubTestPublishedEventCount == pubTestDataEventCount)
 		{
 			break;
@@ -126,7 +148,7 @@ static RyanMqttError_e RyanMqttPublishTest(RyanMqttQos_e qos, int32_t count, uin
 		if (i > 300)
 		{
 			RyanMqttLog_e("QOS测试失败 Qos: %d, PublishedEventCount: %d, dataEventCount: %d", qos,
-			       pubTestPublishedEventCount, pubTestDataEventCount);
+				      pubTestPublishedEventCount, pubTestDataEventCount);
 			result = RyanMqttFailedError;
 			goto __exit;
 		}
@@ -134,10 +156,12 @@ static RyanMqttError_e RyanMqttPublishTest(RyanMqttQos_e qos, int32_t count, uin
 		delay(100);
 	}
 
-	RyanMqttUnSubscribe(client, "testlinux/pub");
+	result = RyanMqttUnSubscribe(client, "testlinux/pub");
+	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttFailedError, RyanMqttLog_e, { goto __exit; });
 
 	result = checkAckList(client);
 	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttFailedError, RyanMqttLog_e, { goto __exit; });
+
 __exit:
 	free(pubStr);
 	pubStr = NULL;
@@ -146,6 +170,13 @@ __exit:
 	return result;
 }
 
+/**
+ * @brief 混乱随机的qos消息测试
+ *
+ * @param count
+ * @param delayms
+ * @return RyanMqttError_e
+ */
 static RyanMqttError_e RyanMqttPublishHybridTest(int32_t count, uint32_t delayms)
 {
 	RyanMqttError_e result = RyanMqttSuccessError;
@@ -154,9 +185,30 @@ static RyanMqttError_e RyanMqttPublishHybridTest(int32_t count, uint32_t delayms
 	int32_t sendNeedAckCount = 0;
 
 	RyanMqttInitSync(&client, RyanMqttTrue, RyanMqttTrue, 120, RyanMqttPublishEventHandle);
+	// 等待订阅主题成功
+	result = RyanMqttSubscribe(client, "testlinux/pub", RyanMqttQos2);
+	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttFailedError, RyanMqttLog_e, { goto __exit; });
+	for (int32_t i = 0;; i++)
+	{
+		int32_t subscribeTotal = 0;
 
-	RyanMqttSubscribe(client, "testlinux/pub", RyanMqttQos2);
-	delay(100);
+		result = RyanMqttGetSubscribeTotalCount(client, &subscribeTotal);
+		RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttFailedError, RyanMqttLog_e,
+					  { goto __exit; });
+		if (1 == subscribeTotal)
+		{
+			break;
+		}
+
+		if (i > 3000)
+		{
+			RyanMqttLog_e("订阅主题失败");
+			result = RyanMqttFailedError;
+			goto __exit;
+		}
+
+		delay(1);
+	}
 
 	exportQos = RyanMqttSubFail;
 
@@ -166,11 +218,7 @@ static RyanMqttError_e RyanMqttPublishHybridTest(int32_t count, uint32_t delayms
 		time(&timeStampNow);
 
 		pubStr = (char *)malloc(2048);
-		if (NULL == pubStr)
-		{
-			RyanMqttLog_e("内存不足");
-			return RyanMqttNotEnoughMemError;
-		}
+		RyanMqttCheck(NULL != pubStr, RyanMqttNotEnoughMemError, RyanMqttLog_e);
 		memset(pubStr, 0, 2048);
 
 		// NOLINTNEXTLINE(cert-msc32-c,cert-msc51-cpp)
@@ -189,14 +237,9 @@ static RyanMqttError_e RyanMqttPublishHybridTest(int32_t count, uint32_t delayms
 	pubTestDataEventCountNotQos0 = 0;
 	for (int32_t i = 0; i < count; i++)
 	{
-		RyanMqttError_e pubResult =
-			RyanMqttPublish(client, "testlinux/pub", pubStr, pubStrLen, i % 3, RyanMqttFalse);
-		if (RyanMqttSuccessError != pubResult)
-		{
-			RyanMqttLog_e("QOS发布错误 Qos: %d, result: %d", i % 3, pubResult);
-			result = RyanMqttFailedError;
-			goto __exit;
-		}
+		result = RyanMqttPublish(client, "testlinux/pub", pubStr, pubStrLen, i % 3, RyanMqttFalse);
+		RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttFailedError, RyanMqttLog_e,
+					  { goto __exit; });
 
 		if (RyanMqttQos0 != i % 3)
 		{
@@ -212,7 +255,7 @@ static RyanMqttError_e RyanMqttPublishHybridTest(int32_t count, uint32_t delayms
 	// 检查收到的数据是否正确
 	for (int32_t i = 0;; i++)
 	{
-
+		// 发送成功数等于需要ack数，同时也等于接收到非qos0的数
 		if (pubTestPublishedEventCount == sendNeedAckCount &&
 		    pubTestPublishedEventCount == pubTestDataEventCountNotQos0)
 		{
@@ -222,7 +265,7 @@ static RyanMqttError_e RyanMqttPublishHybridTest(int32_t count, uint32_t delayms
 		if (i > 300)
 		{
 			RyanMqttLog_e("QOS测试失败, PublishedEventCount: %d, pubTestDataEventCountNotQos0: %d",
-			       pubTestPublishedEventCount, pubTestDataEventCountNotQos0);
+				      pubTestPublishedEventCount, pubTestDataEventCountNotQos0);
 			result = RyanMqttFailedError;
 			goto __exit;
 		}
@@ -230,10 +273,12 @@ static RyanMqttError_e RyanMqttPublishHybridTest(int32_t count, uint32_t delayms
 		delay(100);
 	}
 
-	RyanMqttUnSubscribe(client, "testlinux/pub");
+	result = RyanMqttUnSubscribe(client, "testlinux/pub");
+	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttFailedError, RyanMqttLog_e, { goto __exit; });
 
 	result = checkAckList(client);
 	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttFailedError, RyanMqttLog_e, { goto __exit; });
+
 __exit:
 	free(pubStr);
 	pubStr = NULL;
@@ -251,11 +296,11 @@ RyanMqttError_e RyanMqttPubTest(void)
 	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttFailedError, RyanMqttLog_e, { goto __exit; });
 	checkMemory;
 
-	result = RyanMqttPublishTest(RyanMqttQos1, 1000, 2);
+	result = RyanMqttPublishTest(RyanMqttQos1, 1000, 1);
 	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttFailedError, RyanMqttLog_e, { goto __exit; });
 	checkMemory;
 
-	result = RyanMqttPublishTest(RyanMqttQos2, 1000, 5);
+	result = RyanMqttPublishTest(RyanMqttQos2, 1000, 1);
 	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttFailedError, RyanMqttLog_e, { goto __exit; });
 	checkMemory;
 

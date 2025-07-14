@@ -22,6 +22,10 @@
     ],
     "files.associations": {
         "*.c": "c",
-        "errno.h": "c"
+        "errno.h": "c",
+        "algorithm": "c",
+        "functional": "c",
+        "random": "c",
+        "core_mqtt_serializer.h": "c"
     },
 }

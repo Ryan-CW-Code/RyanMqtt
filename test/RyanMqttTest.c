@@ -56,8 +56,8 @@ void mqttEventBaseHandle(void *pclient, RyanMqttEventId_e event, const void *eve
 
 	case RyanMqttEventData: {
 		RyanMqttMsgData_t *msgData = (RyanMqttMsgData_t *)eventData;
-		RyanMqttLog_i("接收到mqtt消息事件回调 topic: %.*s, packetId: %d, payload len: %d, qos: %d", msgData->topicLen,
-		       msgData->topic, msgData->packetId, msgData->payloadLen, msgData->qos);
+		RyanMqttLog_i("接收到mqtt消息事件回调 topic: %.*s, packetId: %d, payload len: %d, qos: %d",
+			      msgData->topicLen, msgData->topic, msgData->packetId, msgData->payloadLen, msgData->qos);
 
 		RyanMqttLog_i("%.*s", msgData->payloadLen, msgData->payload);
 		break;
@@ -66,8 +66,9 @@ void mqttEventBaseHandle(void *pclient, RyanMqttEventId_e event, const void *eve
 	case RyanMqttEventRepeatPublishPacket: // qos2 / qos1重发事件回调
 	{
 		RyanMqttAckHandler_t *ackHandler = (RyanMqttAckHandler_t *)eventData;
-		RyanMqttLog_w("发布消息进行重发了，packetType: %d, packetId: %d, topic: %s, qos: %d", ackHandler->packetType,
-		       ackHandler->packetId, ackHandler->msgHandler->topic, ackHandler->msgHandler->qos);
+		RyanMqttLog_w("发布消息进行重发了，packetType: %d, packetId: %d, topic: %s, qos: %d",
+			      ackHandler->packetType, ackHandler->packetId, ackHandler->msgHandler->topic,
+			      ackHandler->msgHandler->qos);
 
 		printfArrStr(ackHandler->packet, ackHandler->packetLen, "重发数据: ");
 		break;
@@ -92,8 +93,8 @@ void mqttEventBaseHandle(void *pclient, RyanMqttEventId_e event, const void *eve
 		// 这里选择直接丢弃该消息
 		RyanMqttAckHandler_t *ackHandler = (RyanMqttAckHandler_t *)eventData;
 		RyanMqttLog_w("ack重发次数超过警戒值回调 packetType: %d, packetId: %d, topic: %s, qos: %d",
-		       ackHandler->packetType, ackHandler->packetId, ackHandler->msgHandler->topic,
-		       ackHandler->msgHandler->qos);
+			      ackHandler->packetType, ackHandler->packetId, ackHandler->msgHandler->topic,
+			      ackHandler->msgHandler->qos);
 		RyanMqttDiscardAckHandler(client, ackHandler->packetType, ackHandler->packetId);
 		break;
 	}
@@ -101,7 +102,7 @@ void mqttEventBaseHandle(void *pclient, RyanMqttEventId_e event, const void *eve
 	case RyanMqttEventAckHandlerdiscard: {
 		RyanMqttAckHandler_t *ackHandler = (RyanMqttAckHandler_t *)eventData;
 		RyanMqttLog_i("ack丢弃回调: packetType: %d, packetId: %d, topic: %s, qos: %d", ackHandler->packetType,
-		       ackHandler->packetId, ackHandler->msgHandler->topic, ackHandler->msgHandler->qos);
+			      ackHandler->packetId, ackHandler->msgHandler->topic, ackHandler->msgHandler->qos);
 		break;
 	}
 
@@ -294,7 +295,7 @@ __exit:
 	for (uint32_t i = 0; i < 5; i++)
 	{
 		displayMem();
-		delay(10 * 1000);
+		delay(2 * 1000);
 	}
 	return 0;
 }

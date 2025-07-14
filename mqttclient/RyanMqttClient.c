@@ -188,7 +188,6 @@ RyanMqttError_e RyanMqttDisconnect(RyanMqttClient_t *client, RyanMqttBool_e send
 /**
  * @brief 手动重连mqtt客户端
  * ! 仅在未使能自动连接时，客户端断开连接时用户手动调用
- * ! 否则可能会造成内存泄漏
  *
  * @param client
  * @return RyanMqttError_e
@@ -239,10 +238,14 @@ static void RyanMqttClearSubSession(RyanMqttClient_t *client, uint16_t packetId,
 	}
 
 	// 清除msg链表
+	RyanMqttMsgHandler_t tempMsgHandler = {0};
 	for (int32_t i = 0; i < count; i++)
 	{
-		RyanMqttMsgHandlerFindByPackId(client, subscriptionList[i].pTopicFilter,
-					       subscriptionList[i].topicFilterLength, packetId, RyanMqttFalse);
+		tempMsgHandler.topic = (char *)subscriptionList[i].pTopicFilter;
+		tempMsgHandler.topicLen = subscriptionList[i].topicFilterLength;
+		tempMsgHandler.packetId = packetId;
+
+		RyanMqttMsgHandlerFindAndDestoryByPackId(client, &tempMsgHandler, RyanMqttFalse);
 	}
 }
 
@@ -478,8 +481,9 @@ RyanMqttError_e RyanMqttUnSubscribeMany(RyanMqttClient_t *client, int32_t count,
 	for (int32_t i = 0; i < count; i++)
 	{
 		// ?不判断是否订阅，统一都发送取消
-		result = RyanMqttMsgHandlerFind(client, subscriptionList[i].pTopicFilter,
-						subscriptionList[i].topicFilterLength, RyanMqttFalse, &subMsgHandler);
+		RyanMqttMsgHandler_t tempMsgHandler = {.topic = (char *)subscriptionList[i].pTopicFilter,
+						       .topicLen = subscriptionList[i].topicFilterLength};
+		result = RyanMqttMsgHandlerFind(client, &tempMsgHandler, RyanMqttFalse, &subMsgHandler);
 		if (RyanMqttSuccessError == result)
 		{
 			subscriptionList[i].qos = (MQTTQoS_t)subMsgHandler->qos;
@@ -562,8 +566,9 @@ RyanMqttError_e RyanMqttPublish(RyanMqttClient_t *client, char *topic, char *pay
 	RyanMqttCheck(RyanMqttTrue == retain || RyanMqttFalse == retain, RyanMqttParamInvalidError, RyanMqttLog_d);
 	RyanMqttCheck(RyanMqttConnectState == RyanMqttGetClientState(client), RyanMqttNotConnectError, RyanMqttLog_d);
 
+	// 报文支持有效载荷长度为0
 	if (payloadLen > 0 && NULL == payload)
-	{ // 报文支持有效载荷长度为0
+	{
 		return RyanMqttParamInvalidError;
 	}
 
@@ -659,6 +664,7 @@ RyanMqttState_e RyanMqttGetState(RyanMqttClient_t *client)
 /**
  * @brief 获取已订阅主题
  * !此函数是非线程安全的，已不推荐使用
+ * !请使用 RyanMqttGetSubscribeSafe 代替
  * !如果另一个线程在这个调用返回后立即取消订阅，topic将指向非法内存
  *
  * @param client
@@ -702,29 +708,6 @@ RyanMqttError_e RyanMqttGetSubscribe(RyanMqttClient_t *client, RyanMqttMsgHandle
 }
 
 /**
- * @brief 安全释放订阅主题列表
- *
- * @param msgHandles
- * @param subscribeNum
- * @return RyanMqttError_e
- */
-RyanMqttError_e RyanMqttSafeFreeSubscribeResources(RyanMqttMsgHandler_t *msgHandles, int32_t subscribeNum)
-{
-	RyanMqttError_e result = RyanMqttSuccessError;
-	RyanMqttCheck(NULL != msgHandles, RyanMqttParamInvalidError, RyanMqttLog_d);
-	RyanMqttCheck(subscribeNum > 0, RyanMqttParamInvalidError, RyanMqttLog_d);
-
-	for (int32_t i = 0; i < subscribeNum; i++)
-	{
-		platformMemoryFree(msgHandles[i].topic);
-	}
-
-	platformMemoryFree(msgHandles);
-
-	return result;
-}
-
-/**
  * @brief 安全的获取已订阅主题列表
  *
  * @param client
@@ -743,16 +726,16 @@ RyanMqttError_e RyanMqttGetSubscribeSafe(RyanMqttClient_t *client, RyanMqttMsgHa
 	RyanMqttCheck(NULL != msgHandles, RyanMqttParamInvalidError, RyanMqttLog_d);
 	RyanMqttCheck(NULL != subscribeNum, RyanMqttParamInvalidError, RyanMqttLog_d);
 
-	int32_t ackMsgCount = 0;
-	RyanMqttGetSubscribeTotalCount(client, &ackMsgCount);
-	if (0 == ackMsgCount)
+	int32_t subscribeTotal = 0;
+	RyanMqttGetSubscribeTotalCount(client, &subscribeTotal);
+	if (0 == subscribeTotal)
 	{
 		*msgHandles = NULL;
 		*subscribeNum = 0;
 		return RyanMqttNoRescourceError;
 	}
 
-	RyanMqttMsgHandler_t *msgHandlerArr = platformMemoryMalloc(sizeof(RyanMqttMsgHandler_t) * ackMsgCount);
+	RyanMqttMsgHandler_t *msgHandlerArr = platformMemoryMalloc(sizeof(RyanMqttMsgHandler_t) * subscribeTotal);
 	if (NULL == msgHandlerArr)
 	{
 		result = RyanMqttNotEnoughMemError;
@@ -763,7 +746,7 @@ RyanMqttError_e RyanMqttGetSubscribeSafe(RyanMqttClient_t *client, RyanMqttMsgHa
 	platformMutexLock(client->config.userData, &client->msgHandleLock);
 	RyanListForEachSafe(curr, next, &client->msgHandlerList)
 	{
-		if (subscribeCount >= ackMsgCount)
+		if (subscribeCount >= subscribeTotal)
 		{
 			break;
 		}
@@ -788,6 +771,29 @@ RyanMqttError_e RyanMqttGetSubscribeSafe(RyanMqttClient_t *client, RyanMqttMsgHa
 	*subscribeNum = subscribeCount;
 
 __exit:
+	return result;
+}
+
+/**
+ * @brief 安全释放订阅主题列表
+ *
+ * @param msgHandles
+ * @param subscribeNum
+ * @return RyanMqttError_e
+ */
+RyanMqttError_e RyanMqttSafeFreeSubscribeResources(RyanMqttMsgHandler_t *msgHandles, int32_t subscribeNum)
+{
+	RyanMqttError_e result = RyanMqttSuccessError;
+	RyanMqttCheck(NULL != msgHandles, RyanMqttParamInvalidError, RyanMqttLog_d);
+	RyanMqttCheck(subscribeNum > 0, RyanMqttParamInvalidError, RyanMqttLog_d);
+
+	for (int32_t i = 0; i < subscribeNum; i++)
+	{
+		platformMemoryFree(msgHandles[i].topic);
+	}
+
+	platformMemoryFree(msgHandles);
+
 	return result;
 }
 

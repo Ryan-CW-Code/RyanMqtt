@@ -4,7 +4,7 @@ CC = gcc
 # 设置包含路径
 CFLAGS += -I common \
           -I pahoMqtt \
-          -I mqttclient \
+          -I mqttclient/include \
           -I coreMqtt \
           -I platform/linux \
           -I platform/linux/valloc
