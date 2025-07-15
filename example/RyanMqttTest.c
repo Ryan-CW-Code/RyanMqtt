@@ -422,10 +422,7 @@ static int MqttListSubscribe(int argc, char *argv[])
 	result = RyanMqttGetSubscribeSafe(client, &msgHandles, &subscribeNum);
 	if (RyanMqttSuccessError != result)
 	{
-		if (RyanMqttNoRescourceError != result)
-		{
-			RyanMqttLog_e("获取订阅主题数失败可能是内存不足");
-		}
+		RyanMqttLog_e("获取订阅主题数失败可能是内存不足");
 	}
 
 	RyanMqttLog_i("mqtt客户端已订阅的主题数: %d", subscribeNum);
@@ -435,7 +432,10 @@ static int MqttListSubscribe(int argc, char *argv[])
 		RyanMqttLog_i("已经订阅主题: %d, topic: %s, QOS: %d", i, msgHandles[i].topic, msgHandles[i].qos);
 	}
 
-	RyanMqttSafeFreeSubscribeResources(msgHandles, subscribeNum);
+	if (subscribeNum > 0)
+	{
+		RyanMqttSafeFreeSubscribeResources(msgHandles, subscribeNum);
+	}
 
 	return 0;
 }

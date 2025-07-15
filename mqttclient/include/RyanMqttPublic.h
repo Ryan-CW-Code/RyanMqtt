@@ -163,7 +163,7 @@ typedef enum
 	 * @eventData NULL
 	 */
 	RyanMqttEventDestroyBefore = RyanMqttBit13,
-	// 拼写错误的兼容性措施
+	// !弃用: 请使用 RyanMqttEventDestroyBefore
 	RyanMqttEventDestoryBefore = RyanMqttEventDestroyBefore,
 
 	/**

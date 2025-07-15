@@ -76,7 +76,6 @@ RyanMqttError_e RyanMqttInit(RyanMqttClient_t **pClient)
 	client->clientState = RyanMqttInitState;
 	client->eventFlag = 0;
 	client->ackHandlerCount = 0;
-	client->lwtFlag = RyanMqttFalse;
 
 	platformMutexInit(client->config.userData, &client->sendLock); // 初始化发送缓冲区互斥锁
 
@@ -676,7 +675,7 @@ RyanMqttError_e RyanMqttGetSubscribeSafe(RyanMqttClient_t *client, RyanMqttMsgHa
 	{
 		*msgHandles = NULL;
 		*subscribeNum = 0;
-		return RyanMqttNoRescourceError;
+		return RyanMqttSuccessError;
 	}
 
 	RyanMqttMsgHandler_t *msgHandlerArr = platformMemoryMalloc(sizeof(RyanMqttMsgHandler_t) * subscribeTotal);
@@ -901,7 +900,6 @@ __exit:
  * @brief 设置遗嘱的配置信息
  * 此函数必须在发送connect报文前调用，因为遗嘱消息包含在connect报文中
  * !此函数是非线程安全的，推荐在RyanMqttStart前 / RyanMqttEventReconnectBefore事件中
- * todo 这里需要考虑加锁
  *
  * @param client
  * @param topicName
@@ -923,6 +921,7 @@ RyanMqttError_e RyanMqttSetLwt(RyanMqttClient_t *client, char *topicName, char *
 	RyanMqttCheck(RyanMqttMaxPayloadLen >= payloadLen, RyanMqttParamInvalidError, RyanMqttLog_d);
 	RyanMqttCheck(RyanMqttQos0 <= qos && RyanMqttQos2 >= qos, RyanMqttParamInvalidError, RyanMqttLog_d);
 	RyanMqttCheck(RyanMqttTrue == retain || RyanMqttFalse == retain, RyanMqttParamInvalidError, RyanMqttLog_d);
+	RyanMqttCheck(RyanMqttTrue == retain || RyanMqttFalse == retain, RyanMqttParamInvalidError, RyanMqttLog_d);
 
 	// 报文支持有效载荷长度为0
 	if (payloadLen > 0 && NULL == payload)
@@ -930,17 +929,25 @@ RyanMqttError_e RyanMqttSetLwt(RyanMqttClient_t *client, char *topicName, char *
 		return RyanMqttParamInvalidError;
 	}
 
-	if (NULL != client->lwtOptions.topic)
+	if (NULL == client->lwtOptions)
 	{
-		platformMemoryFree(client->lwtOptions.topic);
+		client->lwtOptions = (lwtOptions_t *)platformMemoryMalloc(sizeof(lwtOptions_t));
+		RyanMqttCheck(NULL != client->lwtOptions, RyanMqttNotEnoughMemError, RyanMqttLog_d);
+		memset(client->lwtOptions, 0, sizeof(lwtOptions_t));
 	}
 
-	if (NULL != client->lwtOptions.payload)
+	if (NULL != client->lwtOptions->topic)
 	{
-		platformMemoryFree(client->lwtOptions.payload);
+		platformMemoryFree(client->lwtOptions->topic);
 	}
-	client->lwtFlag = RyanMqttFalse;
-	memset(&client->lwtOptions, 0, sizeof(lwtOptions_t));
+
+	if (NULL != client->lwtOptions->payload)
+	{
+		platformMemoryFree(client->lwtOptions->payload);
+	}
+
+	client->lwtOptions->lwtFlag = RyanMqttFalse;
+	memset(client->lwtOptions, 0, sizeof(lwtOptions_t));
 
 	result = RyanMqttStringCopy(&lwtNewPayload, payload, payloadLen);
 	RyanMqttCheck(RyanMqttSuccessError == result, result, RyanMqttLog_d);
@@ -949,12 +956,12 @@ RyanMqttError_e RyanMqttSetLwt(RyanMqttClient_t *client, char *topicName, char *
 	RyanMqttCheckCode(RyanMqttSuccessError == result, result, RyanMqttLog_d,
 			  { platformMemoryFree(lwtNewPayload); });
 
-	client->lwtFlag = RyanMqttTrue;
-	client->lwtOptions.qos = qos;
-	client->lwtOptions.retain = retain;
-	client->lwtOptions.topic = lwtNewTopic;
-	client->lwtOptions.payload = lwtNewPayload;
-	client->lwtOptions.payloadLen = payloadLen;
+	client->lwtOptions->lwtFlag = RyanMqttTrue;
+	client->lwtOptions->qos = qos;
+	client->lwtOptions->retain = retain;
+	client->lwtOptions->topic = lwtNewTopic;
+	client->lwtOptions->payload = lwtNewPayload;
+	client->lwtOptions->payloadLen = payloadLen;
 
 	return RyanMqttSuccessError;
 }

@@ -82,8 +82,9 @@ static RyanMqttError_e manualReconnectTest(uint32_t count, uint32_t delayms)
 		RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttFailedError, RyanMqttLog_e,
 					  { goto __exit; });
 
+		// todo 这里可能还没有调度mqtt线程就更新状态了,目前通过延时也不太对
 		delay(20);
-		// todo 这里可能还没有调度mqtt线程就更新状态了
+
 		// 应该成功
 		result = RyanMqttReconnect(client);
 		RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttFailedError, RyanMqttLog_e,
@@ -112,9 +113,8 @@ RyanMqttError_e RyanMqttReconnectTest(void)
 {
 	RyanMqttError_e result = RyanMqttSuccessError;
 
-	// result = autoReconnectTest(3, 2);
-	// RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttFailedError, RyanMqttLog_e, { goto __exit;
-	// });
+	result = autoReconnectTest(3, 2);
+	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttFailedError, RyanMqttLog_e, { goto __exit; });
 
 	result = manualReconnectTest(10, 0);
 	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttFailedError, RyanMqttLog_e, { goto __exit; });

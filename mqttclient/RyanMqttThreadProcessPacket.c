@@ -328,7 +328,7 @@ static RyanMqttError_e RyanMqttSubackHandler(RyanMqttClient_t *client, MQTTPacke
 		// 查找同名订阅并删除,保证订阅主题列表只有一个最新的
 		RyanMqttMsgHandlerFindAndDestroyByPackId(client, ackHandler->msgHandler, RyanMqttTrue);
 
-		// 到这里说明找到重复订阅的msg了,需要清除
+		// 到这里就可以保证没有同名订阅了
 		// 查找之前记录的topic句柄，根据服务器授权Qos进行更新
 		RyanMqttError_e result =
 			RyanMqttMsgHandlerFind(client, ackHandler->msgHandler, RyanMqttFalse, &msgHandler);
@@ -451,7 +451,7 @@ RyanMqttError_e RyanMqttGetPacketInfo(RyanMqttClient_t *client, MQTTPacketInfo_t
 	RyanMqttAssert(NULL != client);
 
 	NetworkContext_t pNetworkContext = {.client = client};
-	// todo 可以考虑增加包大小限制，目前不准备加，因为意义不大
+	// todo 可以考虑增加包大小限制，目前不准备加
 	MQTTStatus_t status =
 		MQTT_GetIncomingPacketTypeAndLength(coreMqttTransportRecv, &pNetworkContext, pIncomingPacket);
 

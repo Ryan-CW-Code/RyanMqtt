@@ -181,10 +181,16 @@ RyanMqttError_e RyanMqttInitSync(RyanMqttClient_t **client, RyanMqttBool_e syncF
 	// 设置mqtt客户端config
 	result = RyanMqttSetConfig(*client, &mqttConfig);
 	RyanMqttCheck(RyanMqttSuccessError == result, result, RyanMqttLog_e);
+    // 重复设定一次测试
+	result = RyanMqttSetConfig(*client, &mqttConfig);
+	RyanMqttCheck(RyanMqttSuccessError == result, result, RyanMqttLog_e);
 
-	// // 设置遗嘱消息
-	// result = RyanMqttSetLwt(*client, "pub/test", "this is will", strlen("this is will"), RyanMqttQos0, 0);
-	// RyanMqttCheck(RyanMqttSuccessError == result, result, RyanMqttLog_e);
+	// 设置遗嘱消息
+	result = RyanMqttSetLwt(*client, "pub/lwt/test", "this is will", strlen("this is will"), RyanMqttQos2, 0);
+	RyanMqttCheck(RyanMqttSuccessError == result, result, RyanMqttLog_e);
+	// 重复设定一次测试
+	result = RyanMqttSetLwt(*client, "pub/lwt/test", "this is will", strlen("this is will"), RyanMqttQos2, 0);
+	RyanMqttCheck(RyanMqttSuccessError == result, result, RyanMqttLog_e);
 
 	// 启动mqtt客户端线程
 	result = RyanMqttStart(*client);

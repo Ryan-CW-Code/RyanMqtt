@@ -85,7 +85,8 @@ static RyanMqttError_e RyanMqttKeepalive(RyanMqttClient_t *client)
 	return RyanMqttSuccessError;
 }
 
-// 也可以考虑有ack链表的时候recvTime可以短一些，有坑点
+// todo 也可以考虑有ack链表的时候recvTime可以短一些，有坑点
+// todo 考虑将发送操作独立出去，异步发送
 /**
  * @brief 遍历ack链表，进行相应的处理
  *
@@ -99,6 +100,7 @@ static void RyanMqttAckListScan(RyanMqttClient_t *client, RyanMqttBool_e waitFla
 	RyanList_t *curr, *next;
 	RyanMqttAckHandler_t *ackHandler = NULL;
 	RyanMqttTimer_t ackScanRemainTimer = {0};
+	uint32_t ackScanThrottleTime = 1000; // 最长一秒
 	RyanMqttAssert(NULL != client);
 
 	// mqtt没有连接就退出
@@ -135,9 +137,18 @@ static void RyanMqttAckListScan(RyanMqttClient_t *client, RyanMqttBool_e waitFla
 		ackHandler = RyanListEntry(curr, RyanMqttAckHandler_t, list);
 
 		// ack响应没有超时就不进行处理
-		if (RyanMqttTrue == waitFlag && 0 != RyanMqttTimerRemain(&ackHandler->timer))
+		uint32_t ackRemainTime = RyanMqttTimerRemain(&ackHandler->timer);
+		if (0 != ackRemainTime)
 		{
-			continue;
+			if (ackRemainTime < ackScanThrottleTime)
+			{
+				ackScanThrottleTime = ackRemainTime;
+			}
+
+			if (RyanMqttTrue == waitFlag)
+			{
+				continue;
+			}
 		}
 
 		switch (ackHandler->packetType)
@@ -200,7 +211,8 @@ static void RyanMqttAckListScan(RyanMqttClient_t *client, RyanMqttBool_e waitFla
 	// 扫描链表没有超时时，才设置scan节流定时器
 	if (RyanMqttTimerRemain(&ackScanRemainTimer))
 	{
-		RyanMqttTimerCutdown(&client->ackScanThrottleTimer, 1000); // 启动ack scan节流定时器
+		// 启动ack scan节流定时器
+		RyanMqttTimerCutdown(&client->ackScanThrottleTimer, ackScanThrottleTime);
 	}
 }
 
@@ -218,6 +230,7 @@ static RyanMqttError_e RyanMqttConnect(RyanMqttClient_t *client, RyanMqttConnect
 	MQTTPublishInfo_t willInfo = {0};
 	MQTTFixedBuffer_t fixedBuffer = {0};
 	size_t remainingLength = {0};
+	RyanMqttBool_e lwtFlag = RyanMqttFalse;
 	RyanMqttAssert(NULL != client);
 	RyanMqttAssert(NULL != connectState);
 
@@ -243,20 +256,25 @@ static RyanMqttError_e RyanMqttConnect(RyanMqttClient_t *client, RyanMqttConnect
 		connectInfo.keepAliveSeconds = client->config.keepaliveTimeoutS;
 		connectInfo.cleanSession = client->config.cleanSessionFlag;
 
-		if (RyanMqttTrue == client->lwtFlag)
+		// 验证lwt信息
+		if (NULL != client->lwtOptions)
 		{
-			willInfo.qos = (MQTTQoS_t)client->lwtOptions.qos;
-			willInfo.retain = client->lwtOptions.retain;
-			willInfo.pPayload = client->lwtOptions.payload;
-			willInfo.payloadLength = client->lwtOptions.payloadLen;
-			willInfo.pTopicName = client->lwtOptions.topic;
-			willInfo.topicNameLength = strlen(client->lwtOptions.topic);
+			lwtFlag = client->lwtOptions->lwtFlag;
+			if (lwtFlag)
+			{
+				willInfo.qos = (MQTTQoS_t)client->lwtOptions->qos;
+				willInfo.retain = client->lwtOptions->retain;
+				willInfo.pPayload = client->lwtOptions->payload;
+				willInfo.payloadLength = client->lwtOptions->payloadLen;
+				willInfo.pTopicName = client->lwtOptions->topic;
+				willInfo.topicNameLength = strlen(client->lwtOptions->topic);
+			}
 		}
 	}
 
 	// 获取数据包大小
-	status = MQTT_GetConnectPacketSize(&connectInfo, RyanMqttTrue == client->lwtFlag ? &willInfo : NULL,
-					   &remainingLength, &fixedBuffer.size);
+	status = MQTT_GetConnectPacketSize(&connectInfo, RyanMqttTrue == lwtFlag ? &willInfo : NULL, &remainingLength,
+					   &fixedBuffer.size);
 	RyanMqttAssert(MQTTSuccess == status);
 
 	// 申请数据包的空间
@@ -264,8 +282,8 @@ static RyanMqttError_e RyanMqttConnect(RyanMqttClient_t *client, RyanMqttConnect
 	RyanMqttCheck(NULL != fixedBuffer.pBuffer, RyanMqttNoRescourceError, RyanMqttLog_d);
 
 	// 序列化数据包
-	status = MQTT_SerializeConnect(&connectInfo, RyanMqttTrue == client->lwtFlag ? &willInfo : NULL,
-				       remainingLength, &fixedBuffer);
+	status = MQTT_SerializeConnect(&connectInfo, RyanMqttTrue == lwtFlag ? &willInfo : NULL, remainingLength,
+				       &fixedBuffer);
 	RyanMqttCheckCode(MQTTSuccess == status, RyanMqttSerializePacketError, RyanMqttLog_d, { goto __exit; });
 
 	// 调用底层的连接函数连接上服务器
@@ -377,7 +395,6 @@ void RyanMqttEventMachine(RyanMqttClient_t *client, RyanMqttEventId_e eventId, v
 	}
 }
 
-// todo 考虑将发送操作独立出去，异步发送
 /**
  * @brief mqtt运行线程
  *
@@ -425,14 +442,19 @@ void RyanMqttThread(void *argument)
 			}
 
 			// 清除遗嘱相关配置
-			if (NULL != client->lwtOptions.payload)
+			if (NULL != client->lwtOptions)
 			{
-				platformMemoryFree(client->lwtOptions.payload);
-			}
+				if (NULL != client->lwtOptions->payload)
+				{
+					platformMemoryFree(client->lwtOptions->payload);
+				}
 
-			if (NULL != client->lwtOptions.topic)
-			{
-				platformMemoryFree(client->lwtOptions.topic);
+				if (NULL != client->lwtOptions->topic)
+				{
+					platformMemoryFree(client->lwtOptions->topic);
+				}
+
+				platformMemoryFree(client->lwtOptions);
 			}
 
 			// 清除session  ack链表和msg链表

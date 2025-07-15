@@ -184,7 +184,6 @@ RyanMqttError_e RyanMqttMsgHandlerCreate(RyanMqttClient_t *client, const char *t
 	RyanMqttAssert(NULL != pMsgHandler);
 	RyanMqttAssert(RyanMqttQos0 == qos || RyanMqttQos1 == qos || RyanMqttQos2 == qos);
 
-    // todo 可以考虑增加maxTopic限制
 	msgHandler = (RyanMqttMsgHandler_t *)platformMemoryMalloc(sizeof(RyanMqttMsgHandler_t) + topicLen + 1);
 	RyanMqttCheck(NULL != msgHandler, RyanMqttNotEnoughMemError, RyanMqttLog_d);
 	memset(msgHandler, 0, sizeof(RyanMqttMsgHandler_t) + topicLen + 1);
@@ -328,6 +327,8 @@ void RyanMqttMsgHandlerFindAndDestroyByPackId(RyanMqttClient_t *client, RyanMqtt
 		// 到这里就是同名订阅了，直接删除
 		RyanMqttMsgHandlerRemoveToMsgList(client, msgHandler);
 		RyanMqttMsgHandlerDestroy(client, msgHandler);
+
+        // ?理论上最多只会有一个同名订阅，或许也不好说？ 比如订阅的时侯数组内部有同名的？场景太少，可以不考虑
 		break;
 	}
 	platformMutexUnLock(client->config.userData, &client->msgHandleLock);

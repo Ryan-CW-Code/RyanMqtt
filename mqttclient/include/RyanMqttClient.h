@@ -53,11 +53,12 @@ typedef struct
 
 typedef struct
 {
-	uint8_t retain;      // 遗嘱保留标志位
-	RyanMqttQos_e qos;   // 遗嘱qos等级
-	uint32_t payloadLen; // 消息长度
-	char *topic;         // 遗嘱主题
-	char *payload;       // 遗嘱消息
+	RyanMqttBool_e lwtFlag; // 遗嘱标志位
+	uint8_t retain;         // 遗嘱保留标志位
+	RyanMqttQos_e qos;      // 遗嘱qos等级
+	uint32_t payloadLen;    // 消息长度
+	char *topic;            // 遗嘱主题
+	char *payload;          // 遗嘱消息
 } lwtOptions_t;
 
 typedef struct
@@ -107,7 +108,6 @@ typedef struct
 
 typedef struct
 {
-	RyanMqttBool_e lwtFlag;      // 遗嘱标志位
 	RyanMqttBool_e destroyFlag;  // 销毁标志位
 	uint16_t ackHandlerCount;    // 等待ack的记录个数
 	uint16_t packetId;           // mqtt报文标识符,控制报文必须包含一个非零的 16 位报文标识符
@@ -129,7 +129,7 @@ typedef struct
 	platformMutex_t ackHandleLock;          // ack链表锁
 	platformMutex_t userAckHandleLock;      // 用户接口的ack链表锁
 	platformCritical_t criticalLock;        // 临界区锁
-	lwtOptions_t lwtOptions;                // 遗嘱相关配置
+	lwtOptions_t *lwtOptions;               // 遗嘱相关配置
 } RyanMqttClient_t;
 
 /* extern variables-----------------------------------------------------------*/

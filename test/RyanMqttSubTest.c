@@ -88,14 +88,7 @@ static RyanMqttError_e RyanMqttSubscribeCheckMsgHandle(RyanMqttClient_t *client)
 		result = RyanMqttGetSubscribeSafe(client, &msgHandles, &subscribeNum);
 		if (RyanMqttSuccessError != result)
 		{
-			if (RyanMqttNoRescourceError == result)
-			{
-				RyanMqttLog_w("没有订阅的主题");
-			}
-			else
-			{
-				RyanMqttLog_e("获取订阅主题数失败！！！");
-			}
+			RyanMqttLog_e("获取订阅主题数失败！！！");
 		}
 		else
 		{
@@ -118,8 +111,12 @@ static RyanMqttError_e RyanMqttSubscribeCheckMsgHandle(RyanMqttClient_t *client)
 			goto __exit;
 		}
 
-		RyanMqttSafeFreeSubscribeResources(msgHandles, subscribeNum);
-		msgHandles = NULL;
+		if (subscribeNum > 0)
+		{
+			RyanMqttSafeFreeSubscribeResources(msgHandles, subscribeNum);
+			msgHandles = NULL;
+		}
+
 		delay(100);
 	}
 
@@ -143,7 +140,7 @@ __exit:
 	return result;
 }
 
-static RyanMqttError_e RyanMqttSubscribeTest(int32_t count)
+static RyanMqttError_e RyanMqttSubscribeHybridTest(int32_t count)
 {
 	RyanMqttError_e result = RyanMqttSuccessError;
 	RyanMqttClient_t *client;
@@ -237,16 +234,13 @@ static RyanMqttError_e RyanMqttSubscribeTest(int32_t count)
 		result = RyanMqttGetSubscribeSafe(client, &msgHandles, &subscribeNum);
 		if (RyanMqttSuccessError != result)
 		{
-			if (RyanMqttNoRescourceError == result)
-			{
-				RyanMqttLog_w("没有订阅的主题");
-			}
-			else
-			{
-				RyanMqttLog_e("获取订阅主题数失败！！！");
-			}
+			RyanMqttLog_e("获取订阅主题数失败！！！");
 		}
-		RyanMqttSafeFreeSubscribeResources(msgHandles, subscribeNum);
+
+		if (subscribeNum > 0)
+		{
+			RyanMqttSafeFreeSubscribeResources(msgHandles, subscribeNum);
+		}
 
 		// result = RyanMqttGetSubscribe(client, msgHandles, count, &subscribeNum);
 		// if (RyanMqttNoRescourceError == result)
@@ -280,15 +274,18 @@ __exit:
 		{
 			free(subscribeManyData[i].topic);
 		}
+
 		if (NULL != unSubscribeManyData)
 		{
 			free(unSubscribeManyData[i].topic);
 		}
 	}
+
 	if (NULL != subscribeManyData)
 	{
 		free(subscribeManyData);
 	}
+
 	if (NULL != unSubscribeManyData)
 	{
 		free(unSubscribeManyData);
@@ -302,7 +299,7 @@ __exit:
 RyanMqttError_e RyanMqttSubTest(void)
 {
 	RyanMqttError_e result = RyanMqttSuccessError;
-	result = RyanMqttSubscribeTest(1000);
+	result = RyanMqttSubscribeHybridTest(1000);
 	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttFailedError, RyanMqttLog_e, { goto __exit; });
 	checkMemory;
 
