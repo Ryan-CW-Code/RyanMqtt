@@ -13,7 +13,7 @@ target("RyanMqtt",function()
     -- set_optimize("fastest") -- -O3
 
     add_defines("PKG_USING_RYANMQTT_IS_ENABLE_ASSERT") -- 开启assert
-
+    add_ldflags("-Wl,-Map=$(buildir)/RyanMqtt.map") 
     add_cxflags(
                 "-pedantic",  
                 "-Wall",
@@ -38,5 +38,5 @@ target("RyanMqtt",function()
     add_files('./platform/linux/*.c', {public = true})
     add_files('./platform/linux/valloc/*.c', {public = true})
 
-          add_ldflags("-Wl,-Map=$(buildir)/RyanMqtt.map") 
+
 end)

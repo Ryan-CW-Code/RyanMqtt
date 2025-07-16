@@ -26,6 +26,7 @@ extern "C" {
 #define RyanMqttPassword ("test")      // 填写你的密码,没有填NULL
 
 #define delay(ms)         usleep((ms) * 1000)
+#define delay_us(us)      usleep((us))
 #define getArraySize(arr) ((int32_t)(sizeof(arr) / sizeof((arr)[0])))
 #define checkMemory                                                                                                    \
 	do                                                                                                             \
@@ -34,12 +35,12 @@ extern "C" {
 		v_mcheck(&area, &use);                                                                                 \
 		if (area != 0 || use != 0)                                                                             \
 		{                                                                                                      \
-			RyanMqttLog_e("内存泄漏");                                                                            \
+			RyanMqttLog_e("内存泄漏");                                                                     \
 			while (1)                                                                                      \
 			{                                                                                              \
 				int area = 0, use = 0;                                                                 \
 				v_mcheck(&area, &use);                                                                 \
-				RyanMqttLog_w("|||----------->>> area = %d, size = %d", area, use);                           \
+				RyanMqttLog_w("|||----------->>> area = %d, size = %d", area, use);                    \
 				delay(3000);                                                                           \
 			}                                                                                              \
 		}                                                                                                      \
@@ -48,13 +49,20 @@ extern "C" {
 // 定义枚举类型
 
 // 定义结构体类型
-
+struct RyanMqttTestEventUserData
+{
+	RyanMqttBool_e syncFlag;
+	sem_t sem;
+	void *userData;
+};
 /* extern variables-----------------------------------------------------------*/
 
-extern RyanMqttError_e RyanMqttInitSync(RyanMqttClient_t **client, RyanMqttBool_e syncFlag,
+extern void RyanMqttTestEnableCritical();
+extern void RyanMqttTestExitCritical();
+extern RyanMqttError_e RyanMqttTestInit(RyanMqttClient_t **client, RyanMqttBool_e syncFlag,
 					RyanMqttBool_e autoReconnectFlag, uint16_t keepaliveTimeoutS,
-					RyanMqttEventHandle mqttEventCallback);
-extern RyanMqttError_e RyanMqttDestroySync(RyanMqttClient_t *client);
+					RyanMqttEventHandle mqttEventCallback, void *userData);
+extern RyanMqttError_e RyanMqttTestDestroyClient(RyanMqttClient_t *client);
 extern void mqttEventBaseHandle(void *pclient, RyanMqttEventId_e event, const void *eventData);
 extern RyanMqttError_e checkAckList(RyanMqttClient_t *client);
 extern void printfArrStr(uint8_t *buf, uint32_t len, char *userData);
@@ -64,6 +72,9 @@ extern RyanMqttError_e RyanMqttKeepAliveTest(void);
 extern RyanMqttError_e RyanMqttPubTest(void);
 extern RyanMqttError_e RyanMqttReconnectTest(void);
 extern RyanMqttError_e RyanMqttSubTest(void);
+extern RyanMqttError_e RyanMqttWildcardTest(void);
+extern RyanMqttError_e RyanMqttMultiThreadMultiClientTest(void);
+extern RyanMqttError_e RyanMqttMultiThreadSafetyTest(void);
 
 #ifdef __cplusplus
 }

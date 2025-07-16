@@ -27,7 +27,7 @@ static void RyanMqttPublishEventHandle(void *pclient, RyanMqttEventId_e event, c
 		if (RyanMqttSubFail != exportQos && exportQos != msgData->qos)
 		{
 			RyanMqttLog_e("pub测试收到qos等级不一致 exportQos: %d, msgQos: %d", exportQos, msgData->qos);
-			RyanMqttDestroy(client);
+			RyanMqttTestDestroyClient(client);
 		}
 
 		if (0 == strncmp(msgData->payload, pubStr, pubStrLen))
@@ -42,7 +42,7 @@ static void RyanMqttPublishEventHandle(void *pclient, RyanMqttEventId_e event, c
 		else
 		{
 			RyanMqttLog_e("pub测试收到数据不一致 %.*s", msgData->payloadLen, msgData->payload);
-			RyanMqttDestroy(client);
+			RyanMqttTestDestroyClient(client);
 		}
 
 		break;
@@ -67,7 +67,7 @@ static RyanMqttError_e RyanMqttPublishTest(RyanMqttQos_e qos, int32_t count, uin
 	time_t timeStampNow = 0;
 
 	exportQos = qos;
-	RyanMqttInitSync(&client, RyanMqttTrue, RyanMqttTrue, 120, RyanMqttPublishEventHandle);
+	RyanMqttTestInit(&client, RyanMqttTrue, RyanMqttTrue, 120, RyanMqttPublishEventHandle, NULL);
 
 	// 等待订阅主题成功
 	result = RyanMqttSubscribe(client, "testlinux/pub", qos);
@@ -166,7 +166,7 @@ __exit:
 	free(pubStr);
 	pubStr = NULL;
 	RyanMqttLog_i("mqtt 发布测试，销毁mqtt客户端");
-	RyanMqttDestroySync(client);
+	RyanMqttTestDestroyClient(client);
 	return result;
 }
 
@@ -184,7 +184,7 @@ static RyanMqttError_e RyanMqttPublishHybridTest(int32_t count, uint32_t delayms
 	time_t timeStampNow = 0;
 	int32_t sendNeedAckCount = 0;
 
-	RyanMqttInitSync(&client, RyanMqttTrue, RyanMqttTrue, 120, RyanMqttPublishEventHandle);
+	RyanMqttTestInit(&client, RyanMqttTrue, RyanMqttTrue, 120, RyanMqttPublishEventHandle, NULL);
 	// 等待订阅主题成功
 	result = RyanMqttSubscribe(client, "testlinux/pub", RyanMqttQos2);
 	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttFailedError, RyanMqttLog_e, { goto __exit; });
@@ -283,7 +283,7 @@ __exit:
 	free(pubStr);
 	pubStr = NULL;
 	RyanMqttLog_i("mqtt 发布测试，销毁mqtt客户端");
-	RyanMqttDestroySync(client);
+	RyanMqttTestDestroyClient(client);
 	return result;
 }
 

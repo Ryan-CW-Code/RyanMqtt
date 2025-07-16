@@ -5,7 +5,7 @@ static RyanMqttError_e keepAliveTest(void)
 	RyanMqttClient_t *client;
 	RyanMqttError_e result = RyanMqttSuccessError;
 
-	RyanMqttInitSync(&client, RyanMqttTrue, RyanMqttTrue, 20, NULL);
+	RyanMqttTestInit(&client, RyanMqttTrue, RyanMqttTrue, 20, NULL, NULL);
 
 	while (RyanMqttConnectState != RyanMqttGetState(client))
 	{
@@ -27,7 +27,7 @@ static RyanMqttError_e keepAliveTest(void)
 		delay(1000);
 	}
 
-	RyanMqttDestroySync(client);
+	RyanMqttTestDestroyClient(client);
 
 	return result;
 }

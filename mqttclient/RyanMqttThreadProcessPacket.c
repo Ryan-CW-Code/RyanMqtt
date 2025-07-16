@@ -1,5 +1,5 @@
 #define RyanMqttLogLevel (RyanMqttLogLevelAssert) // 日志打印等级
-// #define RyanMqttLogLevel (RyanMqttLogLevelDebug) // 日志打印等级
+// #define RyanMqttLogLevel (RyanMqttLogLevelDebug)  // 日志打印等级
 
 #include "RyanMqttThread.h"
 #include "RyanMqttLog.h"
@@ -185,7 +185,8 @@ static RyanMqttError_e RyanMqttPublishPacketHandler(RyanMqttClient_t *client, MQ
 	// 查看订阅列表是否包含此消息主题,进行通配符匹配。不包含就直接退出在一定程度上可以防止恶意攻击
 	RyanMqttMsgHandler_t tempMsgHandler = {.topic = msgData.topic, .topicLen = msgData.topicLen};
 	result = RyanMqttMsgHandlerFind(client, &tempMsgHandler, RyanMqttTrue, &msgHandler);
-	RyanMqttCheck(RyanMqttSuccessError == result, result, RyanMqttLog_d);
+	RyanMqttCheckCode(RyanMqttSuccessError == result, result, RyanMqttLog_d,
+			  { RyanMqttLog_w("主题不匹配: %.*s", msgData.topicLen, msgData.topic); });
 
 	switch (msgData.qos)
 	{
@@ -510,6 +511,11 @@ RyanMqttError_e RyanMqttProcessPacketHandler(RyanMqttClient_t *client)
 	RyanMqttAssert(NULL != client);
 
 	result = RyanMqttGetPacketInfo(client, &pIncomingPacket);
+	if (RyanMqttRecvPacketTimeOutError == result)
+	{
+		RyanMqttLog_d("没有待处理的数据包");
+		goto __exit;
+	}
 	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttSerializePacketError, RyanMqttLog_d,
 				  { goto __exit; });
 

@@ -29,14 +29,14 @@ static void RyanMqttSubEventHandle(void *pclient, RyanMqttEventId_e event, const
 		if (NULL == subscribeData)
 		{
 			RyanMqttLog_e("mqtt 订阅主题非法 topic: %s", msgHandler->topic);
-			RyanMqttDestroy(client);
+			RyanMqttTestDestroyClient(client);
 		}
 
 		if (subscribeData->qos != msgHandler->qos)
 		{
 			RyanMqttLog_e("mqtt 订阅主题降级 topic: %s, exportQos: %d, qos: %d", msgHandler->topic,
 				      subscribeData->qos, msgHandler->qos);
-			RyanMqttDestroy(client);
+			RyanMqttTestDestroyClient(client);
 		}
 
 		break;
@@ -60,7 +60,7 @@ static void RyanMqttSubEventHandle(void *pclient, RyanMqttEventId_e event, const
 		{
 			RyanMqttLog_e("mqtt 取消订阅主题信息不对 topic: %s, exportQos: %d, qos: %d", msgHandler->topic,
 				      subscribeData->qos, msgHandler->qos);
-			RyanMqttDestroy(client);
+			RyanMqttTestDestroyClient(client);
 		}
 
 		break;
@@ -147,7 +147,7 @@ static RyanMqttError_e RyanMqttSubscribeHybridTest(int32_t count)
 	RyanMqttUnSubscribeData_t *unSubscribeManyData = NULL;
 	subTestCount = count;
 
-	RyanMqttInitSync(&client, RyanMqttTrue, RyanMqttTrue, 120, RyanMqttSubEventHandle);
+	RyanMqttTestInit(&client, RyanMqttTrue, RyanMqttTrue, 120, RyanMqttSubEventHandle, NULL);
 
 	// 生成需要订阅的主题数据
 	{
@@ -292,7 +292,7 @@ __exit:
 	}
 
 	RyanMqttLog_i("mqtt 订阅测试，销毁mqtt客户端");
-	RyanMqttDestroySync(client);
+	RyanMqttTestDestroyClient(client);
 	return result;
 }
 

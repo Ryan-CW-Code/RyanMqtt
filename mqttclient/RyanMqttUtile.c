@@ -82,7 +82,7 @@ RyanMqttError_e RyanMqttRecvPacket(RyanMqttClient_t *client, uint8_t *recvBuf, u
 	timeOut = client->config.recvTimeout;
 	RyanMqttTimerCutdown(&timer, timeOut);
 
-	while ((offset < recvLen) && (0 != timeOut))
+	while ((offset < recvLen) && (timeOut > 0))
 	{
 		recvResult =
 			platformNetworkRecvAsync(client->config.userData, &client->network, (char *)(recvBuf + offset),
@@ -139,7 +139,7 @@ RyanMqttError_e RyanMqttSendPacket(RyanMqttClient_t *client, uint8_t *sendBuf, u
 	RyanMqttTimerCutdown(&timer, timeOut);
 
 	platformMutexLock(client->config.userData, &client->sendLock); // 获取互斥锁
-	while ((offset < sendLen) && (0 != timeOut))
+	while ((offset < sendLen) && (timeOut > 0))
 	{
 		sendResult =
 			platformNetworkSendAsync(client->config.userData, &client->network, (char *)(sendBuf + offset),

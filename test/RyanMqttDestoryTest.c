@@ -7,7 +7,7 @@ static RyanMqttError_e RyanMqttConnectDestroy(uint32_t count, uint32_t delayms)
 
 		RyanMqttClient_t *client;
 
-		RyanMqttInitSync(&client, i == count - 1 ? RyanMqttTrue : RyanMqttFalse, RyanMqttTrue, 120, NULL);
+		RyanMqttTestInit(&client, i == count - 1 ? RyanMqttTrue : RyanMqttFalse, RyanMqttTrue, 120, NULL, NULL);
 
 		// 增加一些测试量
 		RyanMqttSubscribe(client, "testlinux/pub3", RyanMqttQos2);
@@ -25,14 +25,11 @@ static RyanMqttError_e RyanMqttConnectDestroy(uint32_t count, uint32_t delayms)
 			delay(delayms);
 		}
 
+		RyanMqttTestDestroyClient(client);
+
 		if (i == count - 1) // 最后一次同步释放
 		{
-			RyanMqttDestroySync(client);
 			delay(100);
-		}
-		else
-		{
-			RyanMqttDestroy(client);
 		}
 	}
 

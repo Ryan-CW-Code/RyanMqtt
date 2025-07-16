@@ -25,7 +25,7 @@ static RyanMqttError_e autoReconnectTest(uint32_t count, uint32_t delayms)
 {
 	RyanMqttError_e result = RyanMqttSuccessError;
 	RyanMqttClient_t *client;
-	RyanMqttInitSync(&client, RyanMqttTrue, RyanMqttTrue, 120, NULL);
+	RyanMqttTestInit(&client, RyanMqttTrue, RyanMqttTrue, 120, NULL, NULL);
 	for (uint32_t i = 0; i < count; i++)
 	{
 		// 应该失败
@@ -62,7 +62,7 @@ static RyanMqttError_e autoReconnectTest(uint32_t count, uint32_t delayms)
 
 __exit:
 	RyanMqttLog_i("mqtt 重连，销毁mqtt客户端");
-	RyanMqttDestroySync(client);
+	RyanMqttTestDestroyClient(client);
 	return result;
 }
 
@@ -70,7 +70,7 @@ static RyanMqttError_e manualReconnectTest(uint32_t count, uint32_t delayms)
 {
 	RyanMqttError_e result = RyanMqttSuccessError;
 	RyanMqttClient_t *client;
-	RyanMqttInitSync(&client, RyanMqttTrue, RyanMqttFalse, 120, NULL);
+	RyanMqttTestInit(&client, RyanMqttTrue, RyanMqttFalse, 120, NULL, NULL);
 	for (uint32_t i = 0; i < count; i++)
 	{
 		// 应该失败
@@ -105,7 +105,7 @@ static RyanMqttError_e manualReconnectTest(uint32_t count, uint32_t delayms)
 	result = RyanMqttSuccessError;
 __exit:
 	RyanMqttLog_i("mqtt 重连，销毁mqtt客户端");
-	RyanMqttDestroySync(client);
+	RyanMqttTestDestroyClient(client);
 	return result;
 }
 

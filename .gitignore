@@ -14,6 +14,7 @@ null
 *.o
 *.out
 *.exe
+*.map
 
 # 忽略
 core
@@ -23,5 +24,6 @@ build
 todo.h
 .vscode-ctags
 *.dump
+*.ignore
 
 

@@ -46,7 +46,6 @@ static RyanMqttBool_e RyanMqttMatchTopic(const char *topic, const uint16_t topic
 			// -当主题过滤器以"/#"字符结尾时，主题名称以父级别结尾。
 			if (topicIndex == (topicLength - 1U))
 			{
-
 				// 检查主题筛选器是否有2个剩余字符，并且以"/#"结尾。
 				// 此检查处理将筛选器"sport/#"与主题"sport"匹配的情况。
 				// 原因是"#"通配符表示主题名称中的父级和任意数量的子级。
@@ -328,7 +327,7 @@ void RyanMqttMsgHandlerFindAndDestroyByPackId(RyanMqttClient_t *client, RyanMqtt
 		RyanMqttMsgHandlerRemoveToMsgList(client, msgHandler);
 		RyanMqttMsgHandlerDestroy(client, msgHandler);
 
-        // ?理论上最多只会有一个同名订阅，或许也不好说？ 比如订阅的时侯数组内部有同名的？场景太少，可以不考虑
+		// ?理论上最多只会有一个同名订阅，或许也不好说？ 比如订阅的时侯数组内部有同名的？场景太少，可以不考虑
 		break;
 	}
 	platformMutexUnLock(client->config.userData, &client->msgHandleLock);
