@@ -239,7 +239,7 @@ void RyanMqttPurgeSession(RyanMqttClient_t *client)
 	platformMutexUnLock(client->config.userData, &client->ackHandleLock);
 
 	// 释放所有userAckHandler_list内存
-	platformMutexLock(client->config.userData, &client->userAckHandleLock);
+	platformMutexLock(client->config.userData, &client->userSessionLock);
 	RyanListForEachSafe(curr, next, &client->userAckHandlerList)
 	{
 		userAckHandler = RyanListEntry(curr, RyanMqttAckHandler_t, list);
@@ -247,7 +247,7 @@ void RyanMqttPurgeSession(RyanMqttClient_t *client)
 		RyanMqttAckHandlerDestroy(client, userAckHandler);
 	}
 	RyanListDelInit(&client->userAckHandlerList);
-	platformMutexUnLock(client->config.userData, &client->userAckHandleLock);
+	platformMutexUnLock(client->config.userData, &client->userSessionLock);
 }
 
 /**

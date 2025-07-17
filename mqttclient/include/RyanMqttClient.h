@@ -127,7 +127,7 @@ typedef struct
 	platformMutex_t sendLock;               // 写缓冲区锁
 	platformMutex_t msgHandleLock;          // msg链表锁
 	platformMutex_t ackHandleLock;          // ack链表锁
-	platformMutex_t userAckHandleLock;      // 用户接口的ack链表锁
+	platformMutex_t userSessionLock;        // 用户接口的锁
 	platformCritical_t criticalLock;        // 临界区锁
 	lwtOptions_t *lwtOptions;               // 遗嘱相关配置
 } RyanMqttClient_t;
@@ -157,6 +157,7 @@ extern RyanMqttError_e RyanMqttSetLwt(RyanMqttClient_t *client, char *topicName,
 				      RyanMqttQos_e qos, RyanMqttBool_e retain);
 
 extern RyanMqttError_e RyanMqttGetSubscribeTotalCount(RyanMqttClient_t *client, int32_t *subscribeTotalCount);
+// !此函数是非线程安全的，已不推荐. 请使用 RyanMqttGetSubscribeSafe 代替
 extern RyanMqttError_e RyanMqttGetSubscribe(RyanMqttClient_t *client, RyanMqttMsgHandler_t *msgHandles,
 					    int32_t msgHandleSize, int32_t *subscribeNum);
 extern RyanMqttError_e RyanMqttSafeFreeSubscribeResources(RyanMqttMsgHandler_t *msgHandles, int32_t subscribeNum);

@@ -63,37 +63,54 @@ static RyanMqttError_e setConfigValue(char **dest, char const *const rest)
  */
 RyanMqttError_e RyanMqttInit(RyanMqttClient_t **pClient)
 {
+	RyanMqttError_e result = RyanMqttSuccessError;
 	RyanMqttClient_t *client = NULL;
 	RyanMqttCheck(NULL != pClient, RyanMqttParamInvalidError, RyanMqttLog_d);
 
 	client = (RyanMqttClient_t *)platformMemoryMalloc(sizeof(RyanMqttClient_t));
 	RyanMqttCheck(NULL != client, RyanMqttNotEnoughMemError, RyanMqttLog_d);
 	memset(client, 0, sizeof(RyanMqttClient_t));
-	platformCriticalInit(client->config.userData,
-			     &client->criticalLock); // 初始化临界区
+
+	result = platformCriticalInit(client->config.userData, &client->criticalLock); // 初始化临界区
+	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttNoRescourceError, RyanMqttLog_d,
+				  { goto __exit; });
 
 	client->packetId = 1; // 控制报文必须包含一个非零的 16 位报文标识符
 	client->clientState = RyanMqttInitState;
 	client->eventFlag = 0;
 	client->ackHandlerCount = 0;
 
-	platformMutexInit(client->config.userData, &client->sendLock); // 初始化发送缓冲区互斥锁
+	result = platformMutexInit(client->config.userData, &client->sendLock); // 初始化发送缓冲区互斥锁
+	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttNoRescourceError, RyanMqttLog_d,
+				  { goto __exit; });
 
 	RyanListInit(&client->msgHandlerList);
-	platformMutexInit(client->config.userData, &client->msgHandleLock);
+	result = platformMutexInit(client->config.userData, &client->msgHandleLock);
+	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttNoRescourceError, RyanMqttLog_d,
+				  { goto __exit; });
 
 	RyanListInit(&client->ackHandlerList);
-	platformMutexInit(client->config.userData, &client->ackHandleLock);
+	result = platformMutexInit(client->config.userData, &client->ackHandleLock);
+	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttNoRescourceError, RyanMqttLog_d,
+				  { goto __exit; });
 
 	RyanListInit(&client->userAckHandlerList);
-	platformMutexInit(client->config.userData, &client->userAckHandleLock);
+	result = platformMutexInit(client->config.userData, &client->userSessionLock);
+	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttNoRescourceError, RyanMqttLog_d,
+				  { goto __exit; });
 
 	RyanMqttSetClientState(client, RyanMqttInitState);
 
-	platformNetworkInit(client->config.userData, &client->network); // 网络接口初始化
+	result = platformNetworkInit(client->config.userData, &client->network); // 网络接口初始化
+	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttNoRescourceError, RyanMqttLog_d,
+				  { goto __exit; });
 
 	*pClient = client;
 	return RyanMqttSuccessError;
+
+__exit:
+	RyanMqttDestroy(client);
+	return result;
 }
 
 /**
@@ -134,7 +151,7 @@ RyanMqttError_e RyanMqttStart(RyanMqttClient_t *client)
 	// 连接成功，需要初始化 MQTT 线程
 	result = platformThreadInit(client->config.userData, &client->mqttThread, client->config.taskName,
 				    RyanMqttThread, client, client->config.taskStack, client->config.taskPrio);
-	RyanMqttCheckCode(RyanMqttSuccessError == result, RyanMqttNotEnoughMemError, RyanMqttLog_d,
+	RyanMqttCheckCode(RyanMqttSuccessError == result, RyanMqttNoRescourceError, RyanMqttLog_d,
 			  { RyanMqttSetClientState(client, RyanMqttInitState); });
 
 	return RyanMqttSuccessError;
@@ -370,7 +387,7 @@ RyanMqttError_e RyanMqttSubscribe(RyanMqttClient_t *client, char *topic, RyanMqt
 RyanMqttError_e RyanMqttUnSubscribeMany(RyanMqttClient_t *client, int32_t count,
 					RyanMqttUnSubscribeData_t unSubscribeManyData[])
 {
-	RyanMqttError_e result = RyanMqttFailedError;
+	RyanMqttError_e result = RyanMqttSuccessError;
 	uint16_t packetId;
 	RyanMqttMsgHandler_t *subMsgHandler = NULL;
 	RyanMqttMsgHandler_t *msgHandler = NULL;
@@ -893,13 +910,12 @@ RyanMqttError_e RyanMqttSetConfig(RyanMqttClient_t *client, RyanMqttClientConfig
 
 __exit:
 	RyanMqttDestroy(client);
-	return RyanMqttFailedError;
+	return result;
 }
 
 /**
  * @brief 设置遗嘱的配置信息
  * 此函数必须在发送connect报文前调用，因为遗嘱消息包含在connect报文中
- * !此函数是非线程安全的，推荐在RyanMqttStart前 / RyanMqttEventReconnectBefore事件中
  *
  * @param client
  * @param topicName
@@ -912,8 +928,6 @@ RyanMqttError_e RyanMqttSetLwt(RyanMqttClient_t *client, char *topicName, char *
 			       RyanMqttQos_e qos, RyanMqttBool_e retain)
 {
 	RyanMqttError_e result = RyanMqttSuccessError;
-	char *lwtNewTopic = NULL;
-	char *lwtNewPayload = NULL;
 
 	RyanMqttCheck(NULL != client, RyanMqttParamInvalidError, RyanMqttLog_d);
 	RyanMqttCheck(NULL != topicName, RyanMqttParamInvalidError, RyanMqttLog_d);
@@ -928,41 +942,59 @@ RyanMqttError_e RyanMqttSetLwt(RyanMqttClient_t *client, char *topicName, char *
 		return RyanMqttParamInvalidError;
 	}
 
+	platformMutexLock(client->config.userData, &client->userSessionLock);
 	if (NULL == client->lwtOptions)
 	{
 		client->lwtOptions = (lwtOptions_t *)platformMemoryMalloc(sizeof(lwtOptions_t));
-		RyanMqttCheck(NULL != client->lwtOptions, RyanMqttNotEnoughMemError, RyanMqttLog_d);
-		memset(client->lwtOptions, 0, sizeof(lwtOptions_t));
+		RyanMqttCheckCode(NULL != client->lwtOptions, RyanMqttNotEnoughMemError, RyanMqttLog_d,
+				  { goto __exit; });
 	}
-
-	if (NULL != client->lwtOptions->topic)
+	else
 	{
-		platformMemoryFree(client->lwtOptions->topic);
+		if (NULL != client->lwtOptions->topic)
+		{
+			platformMemoryFree(client->lwtOptions->topic);
+		}
+
+		if (NULL != client->lwtOptions->payload)
+		{
+			platformMemoryFree(client->lwtOptions->payload);
+		}
 	}
 
-	if (NULL != client->lwtOptions->payload)
-	{
-		platformMemoryFree(client->lwtOptions->payload);
-	}
-
-	client->lwtOptions->lwtFlag = RyanMqttFalse;
 	memset(client->lwtOptions, 0, sizeof(lwtOptions_t));
 
-	result = RyanMqttStringCopy(&lwtNewPayload, payload, payloadLen);
-	RyanMqttCheck(RyanMqttSuccessError == result, result, RyanMqttLog_d);
+	result = RyanMqttStringCopy(&client->lwtOptions->payload, payload, payloadLen);
+	RyanMqttCheckCode(RyanMqttSuccessError == result, result, RyanMqttLog_d, { goto __exit; });
 
-	result = RyanMqttStringCopy(&lwtNewTopic, topicName, strlen(topicName));
-	RyanMqttCheckCode(RyanMqttSuccessError == result, result, RyanMqttLog_d,
-			  { platformMemoryFree(lwtNewPayload); });
+	result = RyanMqttStringCopy(&client->lwtOptions->topic, topicName, strlen(topicName));
+	RyanMqttCheckCode(RyanMqttSuccessError == result, result, RyanMqttLog_d, { goto __exit; });
 
 	client->lwtOptions->lwtFlag = RyanMqttTrue;
 	client->lwtOptions->qos = qos;
 	client->lwtOptions->retain = retain;
-	client->lwtOptions->topic = lwtNewTopic;
-	client->lwtOptions->payload = lwtNewPayload;
 	client->lwtOptions->payloadLen = payloadLen;
-
+	platformMutexUnLock(client->config.userData, &client->userSessionLock);
 	return RyanMqttSuccessError;
+
+__exit:
+	if (NULL != client->lwtOptions)
+	{
+		if (NULL != client->lwtOptions->topic)
+		{
+			platformMemoryFree(client->lwtOptions->topic);
+		}
+
+		if (NULL != client->lwtOptions->payload)
+		{
+			platformMemoryFree(client->lwtOptions->payload);
+		}
+
+		platformMemoryFree(client->lwtOptions);
+		client->lwtOptions = NULL;
+	}
+	platformMutexUnLock(client->config.userData, &client->userSessionLock);
+	return result;
 }
 
 /**

@@ -199,7 +199,7 @@ RyanMqttError_e RyanMqttAckListNodeFindByUserAckList(RyanMqttClient_t *client, u
 	RyanMqttAssert(NULL != client);
 	RyanMqttAssert(NULL != pAckHandler);
 
-	platformMutexLock(client->config.userData, &client->userAckHandleLock);
+	platformMutexLock(client->config.userData, &client->userSessionLock);
 	RyanListForEachSafe(curr, next, &client->userAckHandlerList)
 	{
 		ackHandler = RyanListEntry(curr, RyanMqttAckHandler_t, list);
@@ -216,7 +216,7 @@ RyanMqttError_e RyanMqttAckListNodeFindByUserAckList(RyanMqttClient_t *client, u
 	result = RyanMqttNoRescourceError;
 
 __exit:
-	platformMutexUnLock(client->config.userData, &client->userAckHandleLock);
+	platformMutexUnLock(client->config.userData, &client->userSessionLock);
 	return result;
 }
 
@@ -232,9 +232,9 @@ RyanMqttError_e RyanMqttAckListAddToUserAckList(RyanMqttClient_t *client, RyanMq
 	RyanMqttAssert(NULL != client);
 	RyanMqttAssert(NULL != ackHandler);
 
-	platformMutexLock(client->config.userData, &client->userAckHandleLock);
+	platformMutexLock(client->config.userData, &client->userSessionLock);
 	RyanListAddTail(&ackHandler->list, &client->userAckHandlerList); // 将ack节点添加到链表尾部
-	platformMutexUnLock(client->config.userData, &client->userAckHandleLock);
+	platformMutexUnLock(client->config.userData, &client->userSessionLock);
 
 	return RyanMqttSuccessError;
 }
@@ -251,9 +251,9 @@ RyanMqttError_e RyanMqttAckListRemoveToUserAckList(RyanMqttClient_t *client, Rya
 	RyanMqttAssert(NULL != client);
 	RyanMqttAssert(NULL != ackHandler);
 
-	platformMutexLock(client->config.userData, &client->userAckHandleLock);
+	platformMutexLock(client->config.userData, &client->userSessionLock);
 	RyanListDel(&ackHandler->list);
-	platformMutexUnLock(client->config.userData, &client->userAckHandleLock);
+	platformMutexUnLock(client->config.userData, &client->userSessionLock);
 
 	return RyanMqttSuccessError;
 }

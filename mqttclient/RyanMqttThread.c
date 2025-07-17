@@ -23,7 +23,6 @@ void RyanMqttRefreshKeepaliveTime(RyanMqttClient_t *client)
  */
 static RyanMqttError_e RyanMqttKeepalive(RyanMqttClient_t *client)
 {
-	RyanMqttError_e result = RyanMqttFailedError;
 	uint32_t timeRemain = 0;
 	RyanMqttAssert(NULL != client);
 
@@ -64,6 +63,7 @@ static RyanMqttError_e RyanMqttKeepalive(RyanMqttClient_t *client)
 	// 发送mqtt心跳包
 	{
 		// MQTT_PACKET_PINGREQ_SIZE
+		RyanMqttError_e result = RyanMqttSuccessError;
 		MQTTStatus_t status = MQTTSuccess;
 		uint8_t buffer[2] = {0};
 		MQTTFixedBuffer_t fixedBuffer = {
@@ -257,6 +257,7 @@ static RyanMqttError_e RyanMqttConnect(RyanMqttClient_t *client, RyanMqttConnect
 		connectInfo.cleanSession = client->config.cleanSessionFlag;
 
 		// 验证lwt信息
+		platformMutexLock(client->config.userData, &client->userSessionLock);
 		if (NULL != client->lwtOptions)
 		{
 			lwtFlag = client->lwtOptions->lwtFlag;
@@ -270,6 +271,7 @@ static RyanMqttError_e RyanMqttConnect(RyanMqttClient_t *client, RyanMqttConnect
 				willInfo.topicNameLength = strlen(client->lwtOptions->topic);
 			}
 		}
+		platformMutexUnLock(client->config.userData, &client->userSessionLock);
 	}
 
 	// 获取数据包大小
@@ -464,7 +466,7 @@ void RyanMqttThread(void *argument)
 			platformMutexDestroy(client->config.userData, &client->sendLock);
 			platformMutexDestroy(client->config.userData, &client->msgHandleLock);
 			platformMutexDestroy(client->config.userData, &client->ackHandleLock);
-			platformMutexDestroy(client->config.userData, &client->userAckHandleLock);
+			platformMutexDestroy(client->config.userData, &client->userSessionLock);
 
 			// 清除临界区
 			platformCriticalDestroy(client->config.userData, &client->criticalLock);

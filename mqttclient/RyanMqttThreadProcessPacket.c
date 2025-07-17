@@ -45,7 +45,7 @@ static RyanMqttError_e RyanMqttPubackAndPubcompPacketHandler(RyanMqttClient_t *c
  */
 static RyanMqttError_e RyanMqttPubrelPacketHandler(RyanMqttClient_t *client, MQTTPacketInfo_t *pIncomingPacket)
 {
-	RyanMqttError_e result = RyanMqttFailedError;
+	RyanMqttError_e result = RyanMqttSuccessError;
 	uint16_t packetId = 0;
 	RyanMqttAckHandler_t *ackHandler = NULL;
 	MQTTStatus_t status = MQTTSuccess;
@@ -89,7 +89,7 @@ static RyanMqttError_e RyanMqttPubrelPacketHandler(RyanMqttClient_t *client, MQT
  */
 static RyanMqttError_e RyanMqttPubrecPacketHandler(RyanMqttClient_t *client, MQTTPacketInfo_t *pIncomingPacket)
 {
-	RyanMqttError_e result = RyanMqttFailedError;
+	RyanMqttError_e result = RyanMqttSuccessError;
 	uint16_t packetId = 0;
 	RyanMqttMsgHandler_t *msgHandler = NULL;
 	RyanMqttAckHandler_t *ackHandler = NULL;
@@ -380,7 +380,7 @@ static RyanMqttError_e RyanMqttSubackHandler(RyanMqttClient_t *client, MQTTPacke
  */
 static RyanMqttError_e RyanMqttUnSubackHandler(RyanMqttClient_t *client, MQTTPacketInfo_t *pIncomingPacket)
 {
-	RyanMqttError_e result = RyanMqttFailedError;
+	RyanMqttError_e result = RyanMqttSuccessError;
 	RyanMqttMsgHandler_t *subMsgHandler = NULL;
 	RyanMqttAckHandler_t *ackHandler = NULL;
 	RyanList_t *curr, *next;
@@ -434,7 +434,7 @@ static void RyanMqttSyncUserAckHandle(RyanMqttClient_t *client)
 	RyanMqttAckHandler_t *userAckHandler = NULL;
 	RyanList_t *curr, *next;
 
-	platformMutexLock(client->config.userData, &client->userAckHandleLock);
+	platformMutexLock(client->config.userData, &client->userSessionLock);
 	RyanListForEachSafe(curr, next, &client->userAckHandlerList)
 	{
 		// 获取此节点的结构体
@@ -442,7 +442,7 @@ static void RyanMqttSyncUserAckHandle(RyanMqttClient_t *client)
 		RyanMqttAckListRemoveToUserAckList(client, userAckHandler);
 		RyanMqttAckListAddToAckList(client, userAckHandler);
 	}
-	platformMutexUnLock(client->config.userData, &client->userAckHandleLock);
+	platformMutexUnLock(client->config.userData, &client->userSessionLock);
 }
 
 RyanMqttError_e RyanMqttGetPacketInfo(RyanMqttClient_t *client, MQTTPacketInfo_t *pIncomingPacket)
@@ -584,7 +584,10 @@ RyanMqttError_e RyanMqttProcessPacketHandler(RyanMqttClient_t *client)
 		result = RyanMqttSuccessError;
 		break;
 
-	default: RyanMqttLog_w("Unhandled packet type: 0x%02X", pIncomingPacket.type & 0xF0U); break;
+	default:
+		RyanMqttLog_w("Unhandled packet type: 0x%02X", pIncomingPacket.type & 0xF0U);
+		result = RyanMqttDeserializePacketError;
+		break;
 	}
 
 __exit:
