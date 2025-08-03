@@ -98,7 +98,7 @@ RyanMqttError_e platformNetworkConnect(void *userData, platformNetwork_t *platfo
 	}
 
 	// 绑定套接字到主机地址和端口号
-	if (connect(platformNetwork->socket, (struct sockaddr *)&server_addr, sizeof(server_addr)) != 0)
+	if (0 != connect(platformNetwork->socket, (struct sockaddr *)&server_addr, sizeof(server_addr)))
 	{
 		platformNetworkClose(userData, platformNetwork);
 		result = RyanMqttSocketConnectFailError;

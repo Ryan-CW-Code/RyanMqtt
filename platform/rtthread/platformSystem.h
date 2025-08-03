@@ -9,13 +9,9 @@ extern "C" {
 #include <stdint.h>
 #include <assert.h>
 #include "RyanMqttPublic.h"
-
 #include <rtthread.h>
-#ifdef RT_ASSERT
+
 #define platformAssert(EX) RT_ASSERT(EX)
-#else
-#define platformAssert(EX) assert(EX)
-#endif
 
 typedef struct
 {
@@ -24,7 +20,7 @@ typedef struct
 
 typedef struct
 {
-	rt_mutex_t mutex;
+	struct rt_mutex mutex;
 } platformMutex_t;
 
 typedef struct

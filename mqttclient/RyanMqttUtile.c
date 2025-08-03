@@ -15,22 +15,20 @@
  */
 RyanMqttError_e RyanMqttStringCopy(char **dest, char *rest, uint32_t strLen)
 {
-	char *str2 = NULL;
 	RyanMqttAssert(NULL != dest);
 	RyanMqttAssert(NULL != rest);
 	// RyanMqttCheck(0 != strLen, RyanMqttFailedError, RyanMqttLog_d);
 
-	str2 = (char *)platformMemoryMalloc(strLen + 1);
-	if (NULL == str2)
+	char *s = (char *)platformMemoryMalloc(strLen + 1);
+	if (NULL == s)
 	{
 		return RyanMqttNotEnoughMemError;
 	}
 
-	memcpy(str2, rest, strLen);
-	str2[strLen] = '\0';
+	memcpy(s, rest, strLen);
+	s[strLen] = '\0';
 
-	*dest = str2;
-
+	*dest = s;
 	return RyanMqttSuccessError;
 }
 
@@ -48,8 +46,7 @@ int32_t coreMqttTransportRecv(NetworkContext_t *pNetworkContext, void *pBuffer, 
 	RyanMqttAssert(NULL != pBuffer);
 	RyanMqttAssert(bytesToRecv > 0);
 
-	RyanMqttError_e result = RyanMqttSuccessError;
-	result = RyanMqttRecvPacket(pNetworkContext->client, pBuffer, bytesToRecv);
+	RyanMqttError_e result = RyanMqttRecvPacket(pNetworkContext->client, pBuffer, bytesToRecv);
 
 	switch (result)
 	{
@@ -73,13 +70,12 @@ RyanMqttError_e RyanMqttRecvPacket(RyanMqttClient_t *client, uint8_t *recvBuf, u
 {
 	uint32_t offset = 0;
 	int32_t recvResult = 0;
-	uint32_t timeOut = 0;
-	RyanMqttTimer_t timer = {0};
+	uint32_t timeOut = client->config.recvTimeout;
+	RyanMqttTimer_t timer;
 	RyanMqttAssert(NULL != client);
 	RyanMqttAssert(NULL != recvBuf);
 	RyanMqttAssert(0 != recvLen);
 
-	timeOut = client->config.recvTimeout;
 	RyanMqttTimerCutdown(&timer, timeOut);
 
 	while ((offset < recvLen) && (timeOut > 0))
@@ -129,13 +125,12 @@ RyanMqttError_e RyanMqttSendPacket(RyanMqttClient_t *client, uint8_t *sendBuf, u
 {
 	uint32_t offset = 0;
 	int32_t sendResult = 0;
-	uint32_t timeOut = 0;
-	RyanMqttTimer_t timer = {0};
+	uint32_t timeOut = client->config.sendTimeout;
+	RyanMqttTimer_t timer;
 	RyanMqttAssert(NULL != client);
 	RyanMqttAssert(NULL != sendBuf);
 	RyanMqttAssert(0 != sendLen);
 
-	timeOut = client->config.sendTimeout;
 	RyanMqttTimerCutdown(&timer, timeOut);
 
 	platformMutexLock(client->config.userData, &client->sendLock); // 获取互斥锁
@@ -210,16 +205,13 @@ RyanMqttState_e RyanMqttGetClientState(RyanMqttClient_t *client)
 void RyanMqttPurgeSession(RyanMqttClient_t *client)
 {
 	RyanList_t *curr, *next;
-	RyanMqttAckHandler_t *ackHandler = NULL;
-	RyanMqttAckHandler_t *userAckHandler = NULL;
-	RyanMqttMsgHandler_t *msgHandler = NULL;
 	RyanMqttAssert(NULL != client);
 
 	// 释放所有msg_handler_list内存
 	platformMutexLock(client->config.userData, &client->msgHandleLock);
 	RyanListForEachSafe(curr, next, &client->msgHandlerList)
 	{
-		msgHandler = RyanListEntry(curr, RyanMqttMsgHandler_t, list);
+		RyanMqttMsgHandler_t *msgHandler = RyanListEntry(curr, RyanMqttMsgHandler_t, list);
 		RyanMqttMsgHandlerRemoveToMsgList(client, msgHandler);
 		RyanMqttMsgHandlerDestroy(client, msgHandler);
 	}
@@ -230,7 +222,7 @@ void RyanMqttPurgeSession(RyanMqttClient_t *client)
 	platformMutexLock(client->config.userData, &client->ackHandleLock);
 	RyanListForEachSafe(curr, next, &client->ackHandlerList)
 	{
-		ackHandler = RyanListEntry(curr, RyanMqttAckHandler_t, list);
+		RyanMqttAckHandler_t *ackHandler = RyanListEntry(curr, RyanMqttAckHandler_t, list);
 		RyanMqttAckListRemoveToAckList(client, ackHandler);
 		RyanMqttAckHandlerDestroy(client, ackHandler);
 	}
@@ -242,7 +234,7 @@ void RyanMqttPurgeSession(RyanMqttClient_t *client)
 	platformMutexLock(client->config.userData, &client->userSessionLock);
 	RyanListForEachSafe(curr, next, &client->userAckHandlerList)
 	{
-		userAckHandler = RyanListEntry(curr, RyanMqttAckHandler_t, list);
+		RyanMqttAckHandler_t *userAckHandler = RyanListEntry(curr, RyanMqttAckHandler_t, list);
 		RyanMqttAckListRemoveToUserAckList(client, userAckHandler);
 		RyanMqttAckHandlerDestroy(client, userAckHandler);
 	}
@@ -281,37 +273,21 @@ void RyanMqttTimerCutdown(RyanMqttTimer_t *platformTimer, uint32_t timeout)
  */
 uint32_t RyanMqttTimerRemain(RyanMqttTimer_t *platformTimer)
 {
+	uint32_t elapsed = platformUptimeMs() - platformTimer->time; // 计算内部自动绕回
 
-	uint32_t tnow = platformUptimeMs();
-	uint32_t overTime = platformTimer->time + platformTimer->timeOut;
-	// uint32_t 没有溢出
-	if (overTime >= platformTimer->time)
+	// 如果已过超时时间，返回 0
+	if (elapsed >= platformTimer->timeOut)
 	{
-		// tnow溢出,时间必然已经超时
-		if (tnow < platformTimer->time)
-		{
-			// return (UINT32_MAX - overTime + tnow + 1);
-			return 0;
-		}
-
-		// tnow没有溢出
-		return tnow >= overTime ? 0 : (overTime - tnow);
+		return 0;
 	}
 
-	// uint32_t 溢出了
-	// tnow 溢出了
-	if (tnow < platformTimer->time)
-	{
-		return tnow >= overTime ? 0 : (overTime - tnow + 1);
-	}
-
-	// tnow 没有溢出
-	return UINT32_MAX - tnow + overTime + 1;
+	// 否则返回剩余时间
+	return platformTimer->timeOut - elapsed;
 }
 
 const char *RyanMqttStrError(int32_t state)
 {
-	const char *str = NULL;
+	const char *str;
 
 	switch (state)
 	{

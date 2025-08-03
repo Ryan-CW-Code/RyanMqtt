@@ -20,20 +20,17 @@ RyanMqttError_e RyanMqttAckHandlerCreate(RyanMqttClient_t *client, uint8_t packe
 					 uint16_t packetLen, uint8_t *packet, RyanMqttMsgHandler_t *msgHandler,
 					 RyanMqttAckHandler_t **pAckHandler, RyanMqttBool_e isPreallocatedPacket)
 {
-	RyanMqttAckHandler_t *ackHandler = NULL;
-	uint32_t mallocLen = 0;
 	RyanMqttAssert(NULL != client);
 	RyanMqttAssert(NULL != pAckHandler);
 
-	mallocLen = sizeof(RyanMqttAckHandler_t);
-
+	uint32_t mallocLen = sizeof(RyanMqttAckHandler_t);
 	if (RyanMqttTrue != isPreallocatedPacket)
 	{
 		mallocLen += packetLen + 1;
 	}
 
 	// 给消息主题添加空格
-	ackHandler = (RyanMqttAckHandler_t *)platformMemoryMalloc(mallocLen);
+	RyanMqttAckHandler_t *ackHandler = (RyanMqttAckHandler_t *)platformMemoryMalloc(mallocLen);
 	RyanMqttCheck(NULL != ackHandler, RyanMqttNotEnoughMemError, RyanMqttLog_d);
 	memset(ackHandler, 0, mallocLen);
 
@@ -42,7 +39,6 @@ RyanMqttError_e RyanMqttAckHandlerCreate(RyanMqttClient_t *client, uint8_t packe
 	RyanMqttTimerCutdown(&ackHandler->timer, client->config.ackTimeout);
 
 	ackHandler->isPreallocatedPacket = isPreallocatedPacket;
-	ackHandler->repeatCount = 0;
 	ackHandler->packetId = packetId;
 	ackHandler->packetLen = packetLen;
 	ackHandler->packetType = packetType;
@@ -54,10 +50,6 @@ RyanMqttError_e RyanMqttAckHandlerCreate(RyanMqttClient_t *client, uint8_t packe
 		{
 			ackHandler->packet = (uint8_t *)ackHandler + sizeof(RyanMqttAckHandler_t);
 			memcpy(ackHandler->packet, packet, packetLen); // 将packet数据保存到ack中
-		}
-		else
-		{
-			ackHandler->packet = NULL;
 		}
 	}
 	else
@@ -261,7 +253,7 @@ RyanMqttError_e RyanMqttAckListRemoveToUserAckList(RyanMqttClient_t *client, Rya
 void RyanMqttClearAckSession(RyanMqttClient_t *client, uint8_t packetType, uint16_t packetId)
 {
 	RyanMqttError_e result = RyanMqttSuccessError;
-	RyanMqttAckHandler_t *ackHandler = NULL;
+	RyanMqttAckHandler_t *ackHandler;
 
 	// 清除所有ack链表
 	while (1)

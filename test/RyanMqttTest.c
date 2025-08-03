@@ -124,7 +124,6 @@ void RyanMqttTestUserDataEvent(void *pclient, RyanMqttEventId_e event, const voi
 {
 }
 
-// todo 增加多线程测试用例
 RyanMqttError_e RyanMqttTestInit(RyanMqttClient_t **client, RyanMqttBool_e syncFlag, RyanMqttBool_e autoReconnectFlag,
 				 uint16_t keepaliveTimeoutS, RyanMqttEventHandle mqttEventCallback, void *userData)
 {
@@ -301,20 +300,21 @@ int main(void)
 	result = RyanMqttDestroyTest();
 	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttFailedError, RyanMqttLog_e, { goto __exit; });
 
-	result = RyanMqttReconnectTest();
+	result = RyanMqttMultiThreadMultiClientTest();
 	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttFailedError, RyanMqttLog_e, { goto __exit; });
 
 	result = RyanMqttMultiThreadSafetyTest();
 	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttFailedError, RyanMqttLog_e, { goto __exit; });
 
-	result = RyanMqttMultiThreadMultiClientTest();
+	result = RyanMqttReconnectTest();
 	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttFailedError, RyanMqttLog_e, { goto __exit; });
 
 	result = RyanMqttKeepAliveTest();
 	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttFailedError, RyanMqttLog_e, { goto __exit; });
 
 	// result = RyanMqttWildcardTest();
-	// RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttFailedError, RyanMqttLog_e, { goto __exit; });
+	// RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttFailedError, RyanMqttLog_e, { goto __exit;
+	// });
 
 __exit:
 	pthread_spin_destroy(&spin);

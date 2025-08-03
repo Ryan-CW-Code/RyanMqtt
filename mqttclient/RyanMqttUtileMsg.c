@@ -175,15 +175,16 @@ static RyanMqttBool_e RyanMqttMatchTopic(const char *topic, const uint16_t topic
  * @return RyanMqttError_e
  */
 RyanMqttError_e RyanMqttMsgHandlerCreate(RyanMqttClient_t *client, const char *topic, uint16_t topicLen,
-					 uint16_t packetId, RyanMqttQos_e qos, RyanMqttMsgHandler_t **pMsgHandler)
+					 uint16_t packetId, RyanMqttQos_e qos, void *userData,
+					 RyanMqttMsgHandler_t **pMsgHandler)
 {
-	RyanMqttMsgHandler_t *msgHandler = NULL;
 	RyanMqttAssert(NULL != client);
 	RyanMqttAssert(NULL != topic);
 	RyanMqttAssert(NULL != pMsgHandler);
 	RyanMqttAssert(RyanMqttQos0 == qos || RyanMqttQos1 == qos || RyanMqttQos2 == qos);
 
-	msgHandler = (RyanMqttMsgHandler_t *)platformMemoryMalloc(sizeof(RyanMqttMsgHandler_t) + topicLen + 1);
+	RyanMqttMsgHandler_t *msgHandler =
+		(RyanMqttMsgHandler_t *)platformMemoryMalloc(sizeof(RyanMqttMsgHandler_t) + topicLen + 1);
 	RyanMqttCheck(NULL != msgHandler, RyanMqttNotEnoughMemError, RyanMqttLog_d);
 	memset(msgHandler, 0, sizeof(RyanMqttMsgHandler_t) + topicLen + 1);
 
@@ -192,6 +193,7 @@ RyanMqttError_e RyanMqttMsgHandlerCreate(RyanMqttClient_t *client, const char *t
 	msgHandler->packetId = packetId;
 	msgHandler->qos = qos;
 	msgHandler->topicLen = topicLen;
+	msgHandler->userData = userData;
 	msgHandler->topic = (char *)msgHandler + sizeof(RyanMqttMsgHandler_t);
 	memcpy(msgHandler->topic, topic, topicLen); // 将packet数据保存到ack中
 
@@ -256,7 +258,7 @@ RyanMqttError_e RyanMqttMsgHandlerFind(RyanMqttClient_t *client, RyanMqttMsgHand
 {
 	RyanMqttError_e result = RyanMqttSuccessError;
 	RyanList_t *curr, *next;
-	RyanMqttMsgHandler_t *msgHandler = NULL;
+	RyanMqttMsgHandler_t *msgHandler;
 
 	RyanMqttAssert(NULL != client);
 	RyanMqttAssert(NULL != findMsgHandler);
@@ -291,7 +293,7 @@ void RyanMqttMsgHandlerFindAndDestroyByPackId(RyanMqttClient_t *client, RyanMqtt
 					      RyanMqttBool_e isSkipMatchingId)
 {
 	RyanList_t *curr, *next;
-	RyanMqttMsgHandler_t *msgHandler = NULL;
+	RyanMqttMsgHandler_t *msgHandler;
 
 	RyanMqttAssert(NULL != client);
 	RyanMqttAssert(NULL != findMsgHandler);

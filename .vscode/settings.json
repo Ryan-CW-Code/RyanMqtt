@@ -34,6 +34,7 @@
         "type_traits": "c",
         "utility": "c",
         "pthread.h": "c",
-        "ryanmqtttest.h": "c"
+        "ryanmqtttest.h": "c",
+        "core_mqtt_config_defaults.h": "c"
     },
 }

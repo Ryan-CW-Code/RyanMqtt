@@ -136,7 +136,7 @@ RyanMqttError_e platformThreadStop(void *userData, platformThread_t *platformThr
  */
 RyanMqttError_e platformMutexInit(void *userData, platformMutex_t *platformMutex)
 {
-	platformMutex->mutex = rt_mutex_create("mqttMutex", RT_IPC_FLAG_PRIO);
+	rt_mutex_init(&platformMutex->mutex, "mqttMutex", RT_IPC_FLAG_PRIO);
 	return RyanMqttSuccessError;
 }
 
@@ -149,7 +149,7 @@ RyanMqttError_e platformMutexInit(void *userData, platformMutex_t *platformMutex
  */
 RyanMqttError_e platformMutexDestroy(void *userData, platformMutex_t *platformMutex)
 {
-	rt_mutex_delete(platformMutex->mutex);
+	rt_mutex_detach(&platformMutex->mutex);
 	return RyanMqttSuccessError;
 }
 
@@ -162,7 +162,7 @@ RyanMqttError_e platformMutexDestroy(void *userData, platformMutex_t *platformMu
  */
 RyanMqttError_e platformMutexLock(void *userData, platformMutex_t *platformMutex)
 {
-	rt_mutex_take(platformMutex->mutex, RT_WAITING_FOREVER);
+	rt_mutex_take(&platformMutex->mutex, RT_WAITING_FOREVER);
 	return RyanMqttSuccessError;
 }
 
@@ -175,7 +175,7 @@ RyanMqttError_e platformMutexLock(void *userData, platformMutex_t *platformMutex
  */
 RyanMqttError_e platformMutexUnLock(void *userData, platformMutex_t *platformMutex)
 {
-	rt_mutex_release(platformMutex->mutex);
+	rt_mutex_release(&platformMutex->mutex);
 	return RyanMqttSuccessError;
 }
 

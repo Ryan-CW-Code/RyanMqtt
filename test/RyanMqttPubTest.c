@@ -16,7 +16,17 @@ static void RyanMqttPublishEventHandle(void *pclient, RyanMqttEventId_e event, c
 	case RyanMqttEventPublished: {
 		RyanMqttMsgHandler_t *msgHandler = ((RyanMqttAckHandler_t *)eventData)->msgHandler;
 		RyanMqttLog_w("qos1 / qos2发送成功事件回调 topic: %s, qos: %d", msgHandler->topic, msgHandler->qos);
-		pubTestPublishedEventCount++;
+		// NOLINTNEXTLINE(clang-diagnostic-void-pointer-to-enum-cast)
+		RyanMqttQos_e qos = (RyanMqttQos_e)msgHandler->userData;
+		if (qos == msgHandler->qos)
+		{
+			pubTestPublishedEventCount++;
+		}
+		else
+		{
+			RyanMqttLog_e("pub测试发送的qos不一致 msgQos: %d, userDataQos: %d", msgHandler->qos, qos);
+			RyanMqttTestDestroyClient(client);
+		}
 		break;
 	}
 
@@ -119,7 +129,10 @@ static RyanMqttError_e RyanMqttPublishTest(RyanMqttQos_e qos, int32_t count, uin
 	pubTestDataEventCount = 0;
 	for (int32_t i = 0; i < count; i++)
 	{
-		result = RyanMqttPublish(client, "testlinux/pub", pubStr, pubStrLen, qos, RyanMqttFalse);
+		char *pubTopic = "testlinux/pub";
+		RyanMqttPublishAndUserData(client, pubTopic, strlen(pubTopic), pubStr, pubStrLen, qos, RyanMqttFalse,
+					   // NOLINTNEXTLINE(performance-no-int-to-ptr)
+					   (void *)qos);
 		RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttFailedError, RyanMqttLog_e,
 					  { goto __exit; });
 
@@ -237,7 +250,11 @@ static RyanMqttError_e RyanMqttPublishHybridTest(int32_t count, uint32_t delayms
 	pubTestDataEventCountNotQos0 = 0;
 	for (int32_t i = 0; i < count; i++)
 	{
-		result = RyanMqttPublish(client, "testlinux/pub", pubStr, pubStrLen, i % 3, RyanMqttFalse);
+		char *pubTopic = "testlinux/pub";
+		RyanMqttPublishAndUserData(
+			client, pubTopic, strlen(pubTopic), pubStr, pubStrLen, i % 3, RyanMqttFalse,
+			// NOLINTNEXTLINE(clang-diagnostic-int-to-void-pointer-cast,performance-no-int-to-ptr)
+			(void *)(i % 3));
 		RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttFailedError, RyanMqttLog_e,
 					  { goto __exit; });
 

@@ -23,7 +23,6 @@ void RyanMqttRefreshKeepaliveTime(RyanMqttClient_t *client)
  */
 static RyanMqttError_e RyanMqttKeepalive(RyanMqttClient_t *client)
 {
-	uint32_t timeRemain = 0;
 	RyanMqttAssert(NULL != client);
 
 	// mqtt没有连接就退出
@@ -32,7 +31,7 @@ static RyanMqttError_e RyanMqttKeepalive(RyanMqttClient_t *client)
 		return RyanMqttNotConnectError;
 	}
 
-	timeRemain = RyanMqttTimerRemain(&client->keepaliveTimer);
+	uint32_t timeRemain = RyanMqttTimerRemain(&client->keepaliveTimer);
 
 	// 超过设置的 1.4 倍心跳周期，主动通知用户断开连接
 	if (0 == timeRemain)
@@ -63,19 +62,14 @@ static RyanMqttError_e RyanMqttKeepalive(RyanMqttClient_t *client)
 	// 发送mqtt心跳包
 	{
 		// MQTT_PACKET_PINGREQ_SIZE
-		RyanMqttError_e result = RyanMqttSuccessError;
-		MQTTStatus_t status = MQTTSuccess;
-		uint8_t buffer[2] = {0};
-		MQTTFixedBuffer_t fixedBuffer = {
-			.pBuffer = buffer,
-			.size = 2,
-		};
+		uint8_t buffer[2];
+		MQTTFixedBuffer_t fixedBuffer = {.pBuffer = buffer, .size = sizeof(buffer)};
 
 		// 序列化数据包
-		status = MQTT_SerializePingreq(&fixedBuffer);
+		MQTTStatus_t status = MQTT_SerializePingreq(&fixedBuffer);
 		RyanMqttCheck(MQTTSuccess == status, RyanMqttSerializePacketError, RyanMqttLog_d);
 
-		result = RyanMqttSendPacket(client, fixedBuffer.pBuffer, fixedBuffer.size);
+		RyanMqttError_e result = RyanMqttSendPacket(client, fixedBuffer.pBuffer, fixedBuffer.size);
 		RyanMqttCheck(RyanMqttSuccessError == result, result, RyanMqttLog_d);
 
 		RyanMqttTimerCutdown(&client->keepaliveThrottleTimer,
@@ -98,8 +92,8 @@ static RyanMqttError_e RyanMqttKeepalive(RyanMqttClient_t *client)
 static void RyanMqttAckListScan(RyanMqttClient_t *client, RyanMqttBool_e waitFlag)
 {
 	RyanList_t *curr, *next;
-	RyanMqttAckHandler_t *ackHandler = NULL;
-	RyanMqttTimer_t ackScanRemainTimer = {0};
+	RyanMqttAckHandler_t *ackHandler;
+	RyanMqttTimer_t ackScanRemainTimer;
 	uint32_t ackScanThrottleTime = 1000; // 最长一秒
 	RyanMqttAssert(NULL != client);
 
@@ -225,12 +219,12 @@ static void RyanMqttAckListScan(RyanMqttClient_t *client, RyanMqttBool_e waitFla
 static RyanMqttError_e RyanMqttConnect(RyanMqttClient_t *client, RyanMqttConnectStatus_e *connectState)
 {
 	RyanMqttError_e result = RyanMqttSuccessError;
-	MQTTStatus_t status = MQTTSuccess;
-	MQTTConnectInfo_t connectInfo = {0};
-	MQTTPublishInfo_t willInfo = {0};
-	MQTTFixedBuffer_t fixedBuffer = {0};
-	size_t remainingLength = {0};
-	RyanMqttBool_e lwtFlag = RyanMqttFalse;
+	MQTTStatus_t status;
+	MQTTConnectInfo_t connectInfo;
+	MQTTPublishInfo_t willInfo;
+	MQTTFixedBuffer_t fixedBuffer;
+	size_t remainingLength;
+	RyanMqttBool_e lwtFlag;
 	RyanMqttAssert(NULL != client);
 	RyanMqttAssert(NULL != connectState);
 
@@ -247,11 +241,19 @@ static RyanMqttError_e RyanMqttConnect(RyanMqttClient_t *client, RyanMqttConnect
 		{
 			connectInfo.userNameLength = strlen(client->config.userName);
 		}
+		else
+		{
+			connectInfo.userNameLength = 0;
+		}
 
 		connectInfo.pPassword = client->config.password;
 		if (connectInfo.pPassword)
 		{
 			connectInfo.passwordLength = strlen(client->config.password);
+		}
+		else
+		{
+			connectInfo.passwordLength = 0;
 		}
 		connectInfo.keepAliveSeconds = client->config.keepaliveTimeoutS;
 		connectInfo.cleanSession = client->config.cleanSessionFlag;
@@ -269,7 +271,12 @@ static RyanMqttError_e RyanMqttConnect(RyanMqttClient_t *client, RyanMqttConnect
 				willInfo.payloadLength = client->lwtOptions->payloadLen;
 				willInfo.pTopicName = client->lwtOptions->topic;
 				willInfo.topicNameLength = strlen(client->lwtOptions->topic);
+				willInfo.dup = RyanMqttFalse;
 			}
+		}
+		else
+		{
+			lwtFlag = RyanMqttFalse;
 		}
 		platformMutexUnLock(client->config.userData, &client->userSessionLock);
 	}
@@ -302,7 +309,7 @@ static RyanMqttError_e RyanMqttConnect(RyanMqttClient_t *client, RyanMqttConnect
 
 	// 等待报文
 	// mqtt规范 服务端接收到connect报文后，服务端发送给客户端的第一个报文必须是 CONNACK
-	MQTTPacketInfo_t pIncomingPacket = {0};
+	MQTTPacketInfo_t pIncomingPacket;
 	result = RyanMqttGetPacketInfo(client, &pIncomingPacket);
 	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttSerializePacketError, RyanMqttLog_d, {
 		platformNetworkClose(client->config.userData, &client->network);
@@ -313,7 +320,6 @@ static RyanMqttError_e RyanMqttConnect(RyanMqttClient_t *client, RyanMqttConnect
 	{
 		uint16_t packetId;
 		bool sessionPresent; // 会话位
-		MQTTStatus_t status;
 
 		// 反序列化ack包
 		status = MQTT_DeserializeAck(&pIncomingPacket, &packetId, &sessionPresent);
@@ -382,7 +388,7 @@ void RyanMqttEventMachine(RyanMqttClient_t *client, RyanMqttEventId_e eventId, v
 	default: break;
 	}
 
-	if (client->config.mqttEventHandle == NULL)
+	if (NULL == client->config.mqttEventHandle)
 	{
 		return;
 	}
@@ -404,7 +410,6 @@ void RyanMqttEventMachine(RyanMqttClient_t *client, RyanMqttEventId_e eventId, v
  */
 void RyanMqttThread(void *argument)
 {
-	int32_t result = 0;
 	RyanMqttClient_t *client = (RyanMqttClient_t *)argument;
 	RyanMqttAssert(NULL != client); // RyanMqttStart前没有调用RyanMqttInit
 
@@ -491,7 +496,7 @@ void RyanMqttThread(void *argument)
 		case RyanMqttReconnectState: {
 			RyanMqttLog_d("开始连接");
 			RyanMqttConnectStatus_e connectState;
-			result = RyanMqttConnect(client, &connectState);
+			RyanMqttError_e result = RyanMqttConnect(client, &connectState);
 			RyanMqttEventMachine(client,
 					     RyanMqttSuccessError == result ? RyanMqttEventConnected
 									    : RyanMqttEventDisconnected,
