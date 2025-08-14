@@ -7,7 +7,6 @@ extern "C" {
 
 #include <stdio.h>
 #include <stdint.h>
-#include <assert.h>
 #include "RyanMqttPublic.h"
 #include <rtthread.h>
 

@@ -236,7 +236,8 @@ extern const char *RyanMqttStrError(int32_t state);
 
 #define RyanMqttCheckNoReturn(EX, ErrorCode, level) RyanMqttCheckCodeNoReturn(EX, ErrorCode, level, {})
 #define RyanMqttCheck(EX, ErrorCode, level)         RyanMqttCheckCode(EX, ErrorCode, level, {})
-#define RyanMqttCheckAssert(EX, ErrorCode, level)   RyanMqttCheckCodeNoReturn(EX, ErrorCode, level, { assert(NULL); })
+#define RyanMqttCheckAssert(EX, ErrorCode, level)                                                                      \
+	RyanMqttCheckCodeNoReturn(EX, ErrorCode, level, { RyanMqttAssert(NULL && "RyanMqttCheckAssert"); })
 
 // 定义结构体类型
 
