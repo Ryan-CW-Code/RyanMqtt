@@ -12,8 +12,10 @@
  * @param packetType
  * @param packetId
  * @param packetLen
+ * @param packet
  * @param msgHandler
  * @param pAckHandler
+ * @param isPreallocatedPacket
  * @return RyanMqttError_e
  */
 RyanMqttError_e RyanMqttAckHandlerCreate(RyanMqttClient_t *client, uint8_t packetType, uint16_t packetId,
@@ -46,7 +48,7 @@ RyanMqttError_e RyanMqttAckHandlerCreate(RyanMqttClient_t *client, uint8_t packe
 
 	if (RyanMqttTrue != isPreallocatedPacket)
 	{
-		if (packetLen > 0)
+		if (NULL != packet && packetLen > 0)
 		{
 			ackHandler->packet = (uint8_t *)ackHandler + sizeof(RyanMqttAckHandler_t);
 			memcpy(ackHandler->packet, packet, packetLen); // 将packet数据保存到ack中

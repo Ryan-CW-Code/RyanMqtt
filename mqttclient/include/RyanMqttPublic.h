@@ -250,6 +250,7 @@ typedef struct
 
 extern void RyanMqttTimerInit(RyanMqttTimer_t *platformTimer);
 extern void RyanMqttTimerCutdown(RyanMqttTimer_t *platformTimer, uint32_t timeout);
+extern uint32_t RyanMqttTimerGetConfigTimeout(RyanMqttTimer_t *platformTimer);
 extern uint32_t RyanMqttTimerRemain(RyanMqttTimer_t *platformTimer);
 
 #ifdef __cplusplus

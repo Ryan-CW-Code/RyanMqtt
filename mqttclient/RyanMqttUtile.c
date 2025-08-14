@@ -262,8 +262,18 @@ void RyanMqttTimerInit(RyanMqttTimer_t *platformTimer)
  */
 void RyanMqttTimerCutdown(RyanMqttTimer_t *platformTimer, uint32_t timeout)
 {
-	platformTimer->timeOut = timeout;
 	platformTimer->time = platformUptimeMs();
+	platformTimer->timeOut = timeout;
+}
+
+/**
+ * @brief 获取设置的超时时间
+ *
+ * @param platformTimer
+ */
+uint32_t RyanMqttTimerGetConfigTimeout(RyanMqttTimer_t *platformTimer)
+{
+	return platformTimer->timeOut;
 }
 
 /**
