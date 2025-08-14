@@ -82,7 +82,7 @@ static RyanMqttError_e manualReconnectTest(uint32_t count, uint32_t delayms)
 		RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttFailedError, RyanMqttLog_e,
 					  { goto __exit; });
 
-		// todo 这里可能还没有调度mqtt线程就更新状态了,目前通过延时也不太对
+		// todo 这里可能还没有调度mqtt线程就更新状态了,目前通过延时强制等待mqtt线程调度完成，这里可以使用信号量也通知应用层，但又要增加plarform移植难度和内存占用
 		delay(20);
 
 		// 应该成功

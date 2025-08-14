@@ -43,6 +43,7 @@ RyanMqttError_e RyanMqttStringCopy(char **dest, char *rest, uint32_t strLen)
 int32_t coreMqttTransportRecv(NetworkContext_t *pNetworkContext, void *pBuffer, size_t bytesToRecv)
 {
 	RyanMqttAssert(NULL != pNetworkContext);
+	RyanMqttAssert(NULL != pNetworkContext->client);
 	RyanMqttAssert(NULL != pBuffer);
 	RyanMqttAssert(bytesToRecv > 0);
 

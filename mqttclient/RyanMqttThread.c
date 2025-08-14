@@ -9,8 +9,8 @@ void RyanMqttRefreshKeepaliveTime(RyanMqttClient_t *client)
 {
 	// 服务器在心跳时间的1.5倍内没有收到keeplive消息则会断开连接
 	// 这里算 1.4 b倍时间内没有收到心跳就断开连接
-	uint32_t timeout = (uint32_t)(client->config.keepaliveTimeoutS * 1000 * 1.4);
 	platformCriticalEnter(client->config.userData, &client->criticalLock);
+	uint32_t timeout = (uint32_t)(client->config.keepaliveTimeoutS * 1000 * 1.4);
 	RyanMqttTimerCutdown(&client->keepaliveTimer, timeout); // 启动心跳定时器
 	platformCriticalExit(client->config.userData, &client->criticalLock);
 }
@@ -80,7 +80,7 @@ static RyanMqttError_e RyanMqttKeepalive(RyanMqttClient_t *client)
 }
 
 // todo 也可以考虑有ack链表的时候recvTime可以短一些，有坑点
-// todo 考虑将发送操作独立出去，异步发送
+// todo 也可以考虑将发送操作独立出去，异步发送,目前没有遇到性能瓶颈，需要超高性能的时候再考虑吧
 /**
  * @brief 遍历ack链表，进行相应的处理
  *

@@ -162,7 +162,6 @@ RyanMqttError_e RyanMqttAckListRemoveToAckList(RyanMqttClient_t *client, RyanMqt
 	RyanMqttAssert(NULL != ackHandler);
 
 	platformMutexLock(client->config.userData, &client->ackHandleLock);
-	// 将ack节点添加到链表尾部
 	RyanListDel(&ackHandler->list);
 	if (client->ackHandlerCount > 0)
 	{

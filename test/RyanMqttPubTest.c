@@ -254,7 +254,7 @@ static RyanMqttError_e RyanMqttPublishHybridTest(int32_t count, uint32_t delayms
 		RyanMqttPublishAndUserData(
 			client, pubTopic, strlen(pubTopic), pubStr, pubStrLen, i % 3, RyanMqttFalse,
 			// NOLINTNEXTLINE(clang-diagnostic-int-to-void-pointer-cast,performance-no-int-to-ptr)
-			(void *)(i % 3));
+			(void *)(uintptr_t)(i % 3));
 		RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttFailedError, RyanMqttLog_e,
 					  { goto __exit; });
 

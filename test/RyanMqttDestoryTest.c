@@ -4,7 +4,6 @@ static RyanMqttError_e RyanMqttConnectDestroy(uint32_t count, uint32_t delayms)
 {
 	for (uint32_t i = 0; i < count; i++)
 	{
-
 		RyanMqttClient_t *client;
 
 		RyanMqttTestInit(&client, i == count - 1 ? RyanMqttTrue : RyanMqttFalse, RyanMqttTrue, 120, NULL, NULL);
