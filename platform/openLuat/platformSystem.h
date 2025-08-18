@@ -7,6 +7,7 @@ extern "C" {
 
 #include <stdio.h>
 #include <stdint.h>
+#include <string.h>
 #include "RyanMqttPublic.h"
 #include "luat_debug.h"
 #include "luat_malloc.h"
@@ -14,6 +15,10 @@ extern "C" {
 #include "luat_mcu.h"
 
 #define platformAssert(EX) LUAT_DEBUG_ASSERT(EX)
+#define RyanMqttMemset     memset
+#define RyanMqttStrlen     strlen
+#define RyanMqttMemcpy     memcpy
+#define RyanMqttStrcmp     strcmp
 
 typedef struct
 {

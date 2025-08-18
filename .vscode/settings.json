@@ -22,6 +22,19 @@
     ],
     "files.associations": {
         "*.c": "c",
-        "errno.h": "c"
+        "errno.h": "c",
+        "algorithm": "c",
+        "functional": "c",
+        "random": "c",
+        "core_mqtt_serializer.h": "c",
+        "array": "c",
+        "istream": "c",
+        "ostream": "c",
+        "tuple": "c",
+        "type_traits": "c",
+        "utility": "c",
+        "pthread.h": "c",
+        "ryanmqtttest.h": "c",
+        "core_mqtt_config_defaults.h": "c"
     },
 }

@@ -36,6 +36,7 @@ typedef struct
 	RyanMqttQos_e qos; // qos等级
 	RyanList_t list;   // 链表节点，用户勿动
 	char *topic;       // 主题
+	void *userData;    // 用户自定义数据
 } RyanMqttMsgHandler_t;
 
 typedef struct
@@ -53,11 +54,12 @@ typedef struct
 
 typedef struct
 {
-	uint8_t retain;      // 遗嘱保留标志位
-	RyanMqttQos_e qos;   // 遗嘱qos等级
-	uint32_t payloadLen; // 消息长度
-	char *topic;         // 遗嘱主题
-	char *payload;       // 遗嘱消息
+	RyanMqttBool_e lwtFlag; // 遗嘱标志位
+	uint8_t retain;         // 遗嘱保留标志位
+	RyanMqttQos_e qos;      // 遗嘱qos等级
+	uint32_t payloadLen;    // 消息长度
+	char *topic;            // 遗嘱主题
+	char *payload;          // 遗嘱消息
 } lwtOptions_t;
 
 typedef struct
@@ -107,8 +109,7 @@ typedef struct
 
 typedef struct
 {
-	RyanMqttBool_e lwtFlag;      // 遗嘱标志位
-	RyanMqttBool_e destoryFlag;  // 销毁标志位
+	RyanMqttBool_e destroyFlag;  // 销毁标志位
 	uint16_t ackHandlerCount;    // 等待ack的记录个数
 	uint16_t packetId;           // mqtt报文标识符,控制报文必须包含一个非零的 16 位报文标识符
 	uint32_t eventFlag;          // 事件标志位
@@ -127,9 +128,9 @@ typedef struct
 	platformMutex_t sendLock;               // 写缓冲区锁
 	platformMutex_t msgHandleLock;          // msg链表锁
 	platformMutex_t ackHandleLock;          // ack链表锁
-	platformMutex_t userAckHandleLock;      // 用户接口的ack链表锁
+	platformMutex_t userSessionLock;        // 用户接口的锁
 	platformCritical_t criticalLock;        // 临界区锁
-	lwtOptions_t lwtOptions;                // 遗嘱相关配置
+	lwtOptions_t *lwtOptions;               // 遗嘱相关配置
 } RyanMqttClient_t;
 
 /* extern variables-----------------------------------------------------------*/
@@ -140,28 +141,31 @@ extern RyanMqttError_e RyanMqttStart(RyanMqttClient_t *client);
 extern RyanMqttError_e RyanMqttDisconnect(RyanMqttClient_t *client, RyanMqttBool_e sendDiscFlag);
 extern RyanMqttError_e RyanMqttReconnect(RyanMqttClient_t *client);
 
+extern RyanMqttError_e RyanMqttPublishAndUserData(RyanMqttClient_t *client, char *topic, uint16_t topicLen,
+						  char *payload, uint32_t payloadLen, RyanMqttQos_e qos,
+						  RyanMqttBool_e retain, void *userData);
 extern RyanMqttError_e RyanMqttPublish(RyanMqttClient_t *client, char *topic, char *payload, uint32_t payloadLen,
 				       RyanMqttQos_e qos, RyanMqttBool_e retain);
 
+extern RyanMqttError_e RyanMqttSubscribe(RyanMqttClient_t *client, char *topic, RyanMqttQos_e qos);
 extern RyanMqttError_e RyanMqttSubscribeMany(RyanMqttClient_t *client, int32_t count,
 					     RyanMqttSubscribeData_t subscribeManyData[]);
-extern RyanMqttError_e RyanMqttSubscribe(RyanMqttClient_t *client, char *topic, RyanMqttQos_e qos);
+extern RyanMqttError_e RyanMqttUnSubscribe(RyanMqttClient_t *client, char *topic);
 extern RyanMqttError_e RyanMqttUnSubscribeMany(RyanMqttClient_t *client, int32_t count,
 					       RyanMqttUnSubscribeData_t unSubscribeManyData[]);
-extern RyanMqttError_e RyanMqttUnSubscribe(RyanMqttClient_t *client, char *topic);
+extern RyanMqttError_e RyanMqttGetSubscribeSafe(RyanMqttClient_t *client, RyanMqttMsgHandler_t **msgHandles,
+						int32_t *subscribeNum);
+extern RyanMqttError_e RyanMqttSafeFreeSubscribeResources(RyanMqttMsgHandler_t *msgHandles, int32_t subscribeNum);
+// !此函数是非线程安全的，已不推荐！ 请使用 RyanMqttGetSubscribeSafe 代替
+extern RyanMqttError_e RyanMqttGetSubscribe(RyanMqttClient_t *client, RyanMqttMsgHandler_t *msgHandles,
+					    int32_t msgHandleSize, int32_t *subscribeNum);
+extern RyanMqttError_e RyanMqttGetSubscribeTotalCount(RyanMqttClient_t *client, int32_t *subscribeTotalCount);
 
 extern RyanMqttState_e RyanMqttGetState(RyanMqttClient_t *client);
 extern RyanMqttError_e RyanMqttGetKeepAliveRemain(RyanMqttClient_t *client, uint32_t *keepAliveRemain);
 extern RyanMqttError_e RyanMqttSetConfig(RyanMqttClient_t *client, RyanMqttClientConfig_t *clientConfig);
 extern RyanMqttError_e RyanMqttSetLwt(RyanMqttClient_t *client, char *topicName, char *payload, uint32_t payloadLen,
 				      RyanMqttQos_e qos, RyanMqttBool_e retain);
-
-extern RyanMqttError_e RyanMqttGetSubscribeTotalCount(RyanMqttClient_t *client, int32_t *subscribeTotalCount);
-extern RyanMqttError_e RyanMqttGetSubscribe(RyanMqttClient_t *client, RyanMqttMsgHandler_t *msgHandles,
-					    int32_t msgHandleSize, int32_t *subscribeNum);
-extern RyanMqttError_e RyanMqttSafeFreeSubscribeResources(RyanMqttMsgHandler_t *msgHandles, int32_t subscribeNum);
-extern RyanMqttError_e RyanMqttGetSubscribeSafe(RyanMqttClient_t *client, RyanMqttMsgHandler_t **msgHandles,
-						int32_t *subscribeNum);
 
 extern RyanMqttError_e RyanMqttDiscardAckHandler(RyanMqttClient_t *client, uint8_t packetType, uint16_t packetId);
 extern RyanMqttError_e RyanMqttRegisterEventId(RyanMqttClient_t *client, RyanMqttEventId_e eventId);

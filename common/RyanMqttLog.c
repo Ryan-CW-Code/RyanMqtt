@@ -1,5 +1,6 @@
 #include "RyanMqttLog.h"
 #include "platformSystem.h"
+#include <inttypes.h>
 
 void RyanMqttLogOutPut(char *lvl, uint8_t color, char *fileStr, uint32_t lineNum, char *const fmt, ...)
 {
@@ -29,11 +30,10 @@ void RyanMqttLogOutPut(char *lvl, uint8_t color, char *fileStr, uint32_t lineNum
 void RyanMqttLogOutPutRaw(char *const fmt, ...)
 {
 	char dbgBuffer[256];
-	uint16_t len;
 
 	va_list args;
 	va_start(args, fmt);
-	len = vsnprintf(dbgBuffer, sizeof(dbgBuffer), fmt, args);
+	uint16_t len = vsnprintf(dbgBuffer, sizeof(dbgBuffer), fmt, args);
 	va_end(args);
 
 	platformPrint(dbgBuffer, len);

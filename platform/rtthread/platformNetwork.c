@@ -50,11 +50,20 @@ RyanMqttError_e platformNetworkConnect(void *userData, platformNetwork_t *platfo
 	};
 
 	// 传递的是ip地址，不用进行dns解析，某些情况下调用dns解析反而会错误
+	// RT-Thread平台下lwip和netdev都是通过宏定义方式定义 inet_pton 和 inet_addr,所以这里没有问题
+#ifdef inet_pton
+	if (inet_pton(server_addr.sin_family, host, &server_addr.sin_addr) == 1)
+	{
+	}
+#elif defined(inet_addr)
 	if (INADDR_NONE != inet_addr(host))
 	{
 		// RyanMqttLog_d("host: %s, 不用dns解析", host);
 		server_addr.sin_addr.s_addr = inet_addr(host);
 	}
+#else
+#error "RyanMqtt: 平台不支持inet_pton或inet_addr函数，请检查网络接口层实现"
+#endif
 	// 解析域名信息
 	else
 	{
@@ -86,6 +95,15 @@ RyanMqttError_e platformNetworkConnect(void *userData, platformNetwork_t *platfo
 
 			hostinfo = *phostinfo;
 		}
+		else
+		{
+			// 成功时也需要校验返回内容有效
+			if (NULL == hostinfo.h_addr_list || NULL == hostinfo.h_addr_list[0])
+			{
+				result = RyanMqttNoRescourceError;
+				goto __exit;
+			}
+		}
 
 		server_addr.sin_addr = *((struct in_addr *)hostinfo.h_addr_list[0]);
 	}
@@ -98,7 +116,7 @@ RyanMqttError_e platformNetworkConnect(void *userData, platformNetwork_t *platfo
 	}
 
 	// 绑定套接字到主机地址和端口号
-	if (connect(platformNetwork->socket, (struct sockaddr *)&server_addr, sizeof(server_addr)) != 0)
+	if (0 != connect(platformNetwork->socket, (struct sockaddr *)&server_addr, sizeof(server_addr)))
 	{
 		platformNetworkClose(userData, platformNetwork);
 		result = RyanMqttSocketConnectFailError;
@@ -126,10 +144,7 @@ __exit:
  * @param recvBuf
  * @param recvLen
  * @param timeout
- * @return RyanMqttError_e
- * socket错误返回 RyanSocketFailedError
- * 接收超时或者接收数据长度不等于期待数据接受长度 RyanMqttRecvPacketTimeOutError
- * 接收成功 RyanMqttSuccessError
+ * @return int32_t 成功返回接收字节数，错误返回 -1
  */
 int32_t platformNetworkRecvAsync(void *userData, platformNetwork_t *platformNetwork, char *recvBuf, size_t recvLen,
 				 int32_t timeout)
@@ -137,7 +152,7 @@ int32_t platformNetworkRecvAsync(void *userData, platformNetwork_t *platformNetw
 	ssize_t recvResult = 0;
 	struct timeval tv = {
 		.tv_sec = timeout / 1000,
-		.tv_usec = 1000 * timeout % 1000,
+		.tv_usec = (uint32_t)((timeout % 1000) * 1000),
 	};
 
 	if (platformNetwork->socket < 0)
@@ -168,7 +183,8 @@ int32_t platformNetworkRecvAsync(void *userData, platformNetwork_t *platformNetw
 		if (EAGAIN == rt_errno ||      // 套接字已标记为非阻塞，而接收操作被阻塞或者接收超时
 		    EWOULDBLOCK == rt_errno || // 发送时套接字发送缓冲区已满，或接收时套接字接收缓冲区为空
 		    EINTR == rt_errno ||       // 操作被信号中断
-		    ETIME == rt_errno)         // 计时器过期
+		    ETIME == rt_errno ||       // 计时器过期（部分平台）
+		    ETIMEDOUT == rt_errno)     // 超时（通用）
 		{
 			return 0;
 		}
@@ -189,10 +205,7 @@ int32_t platformNetworkRecvAsync(void *userData, platformNetwork_t *platformNetw
  * @param sendBuf
  * @param sendLen
  * @param timeout
- * @return RyanMqttError_e
- * socket错误返回 RyanSocketFailedError
- * 接收超时或者接收数据长度不等于期待数据接受长度 RyanMqttRecvPacketTimeOutError
- * 接收成功 RyanMqttSuccessError
+ * @return int32_t 成功返回发送字节数，错误返回 -1
  */
 int32_t platformNetworkSendAsync(void *userData, platformNetwork_t *platformNetwork, char *sendBuf, size_t sendLen,
 				 int32_t timeout)
@@ -200,7 +213,7 @@ int32_t platformNetworkSendAsync(void *userData, platformNetwork_t *platformNetw
 	ssize_t sendResult = 0;
 	struct timeval tv = {
 		.tv_sec = timeout / 1000,
-		.tv_usec = 1000 * timeout % 1000,
+		.tv_usec = (uint32_t)((timeout % 1000) * 1000),
 	};
 
 	if (platformNetwork->socket < 0)
@@ -231,7 +244,8 @@ int32_t platformNetworkSendAsync(void *userData, platformNetwork_t *platformNetw
 		if (EAGAIN == rt_errno ||      // 套接字已标记为非阻塞，而接收操作被阻塞或者接收超时
 		    EWOULDBLOCK == rt_errno || // 发送时套接字发送缓冲区已满，或接收时套接字接收缓冲区为空
 		    EINTR == rt_errno ||       // 操作被信号中断
-		    ETIME == rt_errno)         // 计时器过期
+		    ETIME == rt_errno ||       // 计时器过期（部分平台）
+		    ETIMEDOUT == rt_errno)     // 超时（通用）
 		{
 			return 0;
 		}

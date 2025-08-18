@@ -544,7 +544,7 @@ static uint8_t * encodeString( uint8_t * pDestination,
     /* Copy the string into pBuffer. */
     if( pSource != NULL )
     {
-        ( void ) memcpy( ( void * ) pBuffer, ( const void * ) pSource, sourceLength );
+        ( void ) RyanMqttMemcpy( ( void * ) pBuffer, ( const void * ) pSource, sourceLength );
     }
 
     /* Return the pointer to the end of the encoded string. */
@@ -782,7 +782,7 @@ static void serializePublishCommon( const MQTTPublishInfo_t * pPublishInfo,
         LogDebug( ( "Copying PUBLISH payload of length =%lu to buffer",
                     ( unsigned long ) pPublishInfo->payloadLength ) );
 
-        ( void ) memcpy( ( void * ) pIndex, ( const void * ) pPublishInfo->pPayload, pPublishInfo->payloadLength );
+        ( void ) RyanMqttMemcpy( ( void * ) pIndex, ( const void * ) pPublishInfo->pPayload, pPublishInfo->payloadLength );
         /* Move the index to after the payload. */
         pIndex = &pIndex[ pPublishInfo->payloadLength ];
     }

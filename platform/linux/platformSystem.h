@@ -7,6 +7,7 @@ extern "C" {
 
 #include <stdio.h>
 #include <stdint.h>
+#include <string.h>
 #include <assert.h>
 #include <pthread.h>
 #include <unistd.h>
@@ -16,6 +17,10 @@ extern "C" {
 #include "valloc.h"
 
 #define platformAssert(EX) assert(EX)
+#define RyanMqttMemset     memset
+#define RyanMqttStrlen     strlen
+#define RyanMqttMemcpy     memcpy
+#define RyanMqttStrcmp     strcmp
 
 typedef struct
 {

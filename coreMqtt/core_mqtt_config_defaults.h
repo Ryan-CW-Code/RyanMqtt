@@ -44,6 +44,8 @@ extern "C"
 #endif
 /* *INDENT-ON* */
 
+#include "platformSystem.h"
+
 /* The macro definition for MQTT_DO_NOT_USE_CUSTOM_CONFIG is for Doxygen
  * documentation only. */
 

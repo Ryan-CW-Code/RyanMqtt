@@ -5,7 +5,7 @@ static RyanMqttError_e keepAliveTest(void)
 	RyanMqttClient_t *client;
 	RyanMqttError_e result = RyanMqttSuccessError;
 
-	RyanMqttInitSync(&client, RyanMqttTrue, RyanMqttTrue, 20, NULL);
+	RyanMqttTestInit(&client, RyanMqttTrue, RyanMqttTrue, 20, NULL, NULL);
 
 	while (RyanMqttConnectState != RyanMqttGetState(client))
 	{
@@ -22,17 +22,12 @@ static RyanMqttError_e keepAliveTest(void)
 		}
 
 		RyanMqttGetKeepAliveRemain(client, &keepAliveRemain);
-
 		RyanMqttLog_w("心跳倒计时: %d", keepAliveRemain);
-		if (0 == keepAliveRemain)
-		{
-			result = RyanMqttFailedError;
-			break;
-		}
+		RyanMqttCheckCodeNoReturn(0 != keepAliveRemain, RyanMqttFailedError, RyanMqttLog_e, { break; });
 		delay(1000);
 	}
 
-	RyanMqttDestorySync(client);
+	RyanMqttTestDestroyClient(client);
 
 	return result;
 }

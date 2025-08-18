@@ -1,4 +1,3 @@
-
 #include "platformSystem.h"
 
 /**
@@ -7,7 +6,7 @@
  * @param size
  * @return void*
  */
-inline void *platformMemoryMalloc(size_t size)
+void *platformMemoryMalloc(size_t size)
 {
 	return rt_malloc(size);
 }
@@ -17,7 +16,7 @@ inline void *platformMemoryMalloc(size_t size)
  *
  * @param ptr
  */
-inline void platformMemoryFree(void *ptr)
+void platformMemoryFree(void *ptr)
 {
 	rt_free(ptr);
 }
@@ -27,7 +26,7 @@ inline void platformMemoryFree(void *ptr)
  *
  * @param ms
  */
-inline void platformDelay(uint32_t ms)
+void platformDelay(uint32_t ms)
 {
 	rt_thread_mdelay(ms);
 }
@@ -39,7 +38,7 @@ uint32_t platformUptimeMs(void)
 #else
 	// 已经不能提供精准的ms了
 	rt_tick_t tick = rt_tick_get();
-	return (uint32_t)((tick * 1000 + RT_TICK_PER_SECOND - 1) / RT_TICK_PER_SECOND);
+	return (uint32_t)(((uint64_t)tick * 1000 + RT_TICK_PER_SECOND - 1) / RT_TICK_PER_SECOND);
 #endif
 }
 
@@ -49,7 +48,7 @@ uint32_t platformUptimeMs(void)
  * @param str
  * @param strLen
  */
-inline void platformPrint(char *str, uint16_t strLen)
+void platformPrint(char *str, uint16_t strLen)
 {
 	rt_kputs(str);
 }
@@ -136,7 +135,7 @@ RyanMqttError_e platformThreadStop(void *userData, platformThread_t *platformThr
  */
 RyanMqttError_e platformMutexInit(void *userData, platformMutex_t *platformMutex)
 {
-	platformMutex->mutex = rt_mutex_create("mqttMutex", RT_IPC_FLAG_PRIO);
+	rt_mutex_init(&platformMutex->mutex, "mqttMutex", RT_IPC_FLAG_PRIO);
 	return RyanMqttSuccessError;
 }
 
@@ -149,7 +148,7 @@ RyanMqttError_e platformMutexInit(void *userData, platformMutex_t *platformMutex
  */
 RyanMqttError_e platformMutexDestroy(void *userData, platformMutex_t *platformMutex)
 {
-	rt_mutex_delete(platformMutex->mutex);
+	rt_mutex_detach(&platformMutex->mutex);
 	return RyanMqttSuccessError;
 }
 
@@ -162,7 +161,7 @@ RyanMqttError_e platformMutexDestroy(void *userData, platformMutex_t *platformMu
  */
 RyanMqttError_e platformMutexLock(void *userData, platformMutex_t *platformMutex)
 {
-	rt_mutex_take(platformMutex->mutex, RT_WAITING_FOREVER);
+	rt_mutex_take(&platformMutex->mutex, RT_WAITING_FOREVER);
 	return RyanMqttSuccessError;
 }
 
@@ -175,7 +174,7 @@ RyanMqttError_e platformMutexLock(void *userData, platformMutex_t *platformMutex
  */
 RyanMqttError_e platformMutexUnLock(void *userData, platformMutex_t *platformMutex)
 {
-	rt_mutex_release(platformMutex->mutex);
+	rt_mutex_release(&platformMutex->mutex);
 	return RyanMqttSuccessError;
 }
 
@@ -210,7 +209,7 @@ RyanMqttError_e platformCriticalDestroy(void *userData, platformCritical_t *plat
  * @param platformCritical
  * @return RyanMqttError_e
  */
-inline RyanMqttError_e platformCriticalEnter(void *userData, platformCritical_t *platformCritical)
+RyanMqttError_e platformCriticalEnter(void *userData, platformCritical_t *platformCritical)
 {
 	platformCritical->level = rt_hw_interrupt_disable();
 	return RyanMqttSuccessError;
@@ -223,7 +222,7 @@ inline RyanMqttError_e platformCriticalEnter(void *userData, platformCritical_t 
  * @param platformCritical
  * @return RyanMqttError_e
  */
-inline RyanMqttError_e platformCriticalExit(void *userData, platformCritical_t *platformCritical)
+RyanMqttError_e platformCriticalExit(void *userData, platformCritical_t *platformCritical)
 {
 	rt_hw_interrupt_enable(platformCritical->level);
 	return RyanMqttSuccessError;

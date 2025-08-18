@@ -99,9 +99,9 @@ int v_mcheck(int *_count, int *_use)
 
 void displayMem(void)
 {
-	int area = 0, use = 0;
-	v_mcheck(&area, &use);
-	printf("|||----------->>> area = %d, size = %d\r\n", area, use);
+	int32_t area2 = 0, use2 = 0;
+	v_mcheck(&area2, &use2);
+	printf("|||----------->>> area = %d, size = %d\r\n", area2, use2);
 }
 
 void vallocInit(void)

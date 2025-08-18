@@ -123,9 +123,7 @@ RyanMqttError_e platformThreadStart(void *userData, platformThread_t *platformTh
  */
 RyanMqttError_e platformThreadStop(void *userData, platformThread_t *platformThread)
 {
-	pthread_mutex_lock(&platformThread->mutex);
 	pthread_cond_wait(&platformThread->cond, &platformThread->mutex);
-	pthread_mutex_unlock(&platformThread->mutex);
 	return RyanMqttSuccessError;
 }
 

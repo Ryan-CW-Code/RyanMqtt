@@ -2,34 +2,36 @@
 
 **使用遇到问题可以提 issue / RT-Thread 社区提问，谢谢。**
 
-[]([RT-Thread-RyanMqtt使用介绍和示例代码（一）RT-Thread问答社区 - RT-Thread](https://club.rt-thread.org/ask/article/51a25ba90fc5e1b5.html))
+[RT-Thread-RyanMqtt使用介绍和示例代码（一）RT-Thread问答社区 - RT-Thread](https://club.rt-thread.org/ask/article/51a25ba90fc5e1b5.html)
 
-[]([RT-Thread-RyanMqtt QOS质量测试（二）RT-Thread问答社区 - RT-Thread](https://club.rt-thread.org/ask/article/e95c5b9390c53cf3.html))
+[RT-Thread-RyanMqtt QOS质量测试（二）RT-Thread问答社区 - RT-Thread](https://club.rt-thread.org/ask/article/e95c5b9390c53cf3.html)
 
-[]([RT-Thread-RyanMqtt 移植指南（三）RT-Thread问答社区 - RT-Thread](https://club.rt-thread.org/ask/article/611b7a947f7221cf.html))
+[RT-Thread-RyanMqtt 移植指南（三）RT-Thread问答社区 - RT-Thread](https://club.rt-thread.org/ask/article/611b7a947f7221cf.html)
 
-[]([keil使用RyanMQTT编译错误（中文编码问题）RT-Thread问答社区 - RT-Thread](https://club.rt-thread.org/ask/question/7269a82662b6cf31.html))
+[keil使用RyanMQTT编译错误（中文编码问题）RT-Thread问答社区 - RT-Thread](https://club.rt-thread.org/ask/question/7269a82662b6cf31.html)
 
 
 ### 1、介绍
 
-RyanMqtt 实现了 MQTT3.1.1 协议的客户端。此库针对资源受限的嵌入式设备进行了优化。
+RyanMqtt 实现了 [MQTT 3.1.1](https://docs.oasis-open.org/mqtt/mqtt/v3.1.1/mqtt-v3.1.1.html) 协议的客户端。此库针对资源受限的嵌入式设备进行了优化。
 
 初衷：在使用[RT-Thread](https://github.com/RT-Thread/rt-thread)时，没有非常合适的 mqtt 客户端。项目中 mqtt 又是非常核心的功能。参考 MQTT3.1.1 标准和项目需求设计的 mqtt 客户端，它拥有以下特点。
 
-- **严格遵循 MQTT3.1.1 协议标准实现**
-- **稳定的全 QOS 等级实现消息实现**。**用户可控的消息丢弃机制**，避免 RyanMqttQos2 / RyanMqttQos1 消息无限堆积重发消耗的内存空间
+- **严格遵循 [MQTT 3.1.1](https://docs.oasis-open.org/mqtt/mqtt/v3.1.1/mqtt-v3.1.1.html) 协议标准实现**
+- **代码规范**  引入 **[clang-tidy](https://clang.llvm.org/extra/clang-tidy/#clang-tidy)** 和 **[Cppcheck](https://cppcheck.sourceforge.io/)** 静态代码分析， 接近语法级“零缺陷”，提升可维护性
+- 使用  **[coderabbitai](https://www.coderabbit.ai)** 和 **[Copilot](https://github.com/features/copilot)** 进行代码审查，持续提升代码质量，构筑安全防线
 - 支持多客户端
-- 弱网环境依然可以稳定运行
+- **稳定的全 QOS 等级实现消息实现**。**用户可控的消息丢弃机制**，避免 Qos2 / Qos1 消息无限堆积重发消耗的内存空间
 - **完整的 MQTT 主题通配符支持，“/”、“#”、“+”、“$”**
+- 支持批量订阅 / 取消订阅
 - 可选择的 keepalive、reconnet、lwt、session 等
-- 客户端多功能参数配置，丰富的用户可选的事件回调，满足实际项目的绝大部分需求
+- 客户端多功能参数配置，丰富的用户可选的事件回调，满足实际项目的绝大部分需求（欢迎提需求）
 - 优化过的并发能力，**无等待的连续 20000 条 RyanMqttQos2 消息稳定发送和接收无一丢包**(测试环境为linux，实际情况会收到单片机内存大小和网络硬件的收发能力的影响)
-- 资源占用少，依赖少
+- **复杂线程环境下稳定运行**，已在公司多个项目使用
 - 跨平台，只需实现少量的平台接口即可
-- 复杂线程环境下稳定运行，已在公司多个项目使用
+- 资源占用少，依赖少
 - 没有内置 TLS 支持，用户可以在platform层实现 TLS（使用 TLS 的项目也不会只有 mqtt 使用，用户自己实现可以防止 TLS 模块间冲突）
-- 不支持裸机平台，裸机想要稳定的 MQTT3.1.1 实现可以参考[coreMQTT](https://github.com/FreeRTOS/coreMQTT)
+- **不支持裸机平台**，裸机想要稳定的 [MQTT 3.1.1](https://docs.oasis-open.org/mqtt/mqtt/v3.1.1/mqtt-v3.1.1.html) 实现可以参考[coreMQTT](https://github.com/FreeRTOS/coreMQTT)
 
 ### 2、设计
 
@@ -55,20 +57,20 @@ _RyanMqtt 需要 RTOS 支持，必须实现如下接口才可以保证 mqtt 客�
 | ----------------------- | -------------- |
 | platformMemoryMalloc    | 申请内存       |
 | platformMemoryFree      | 释放已申请内存 |
-| platformPrint           | 打印字符串     |
 | platformDelay           | 毫秒延时       |
+| platformPrint           | 打印字符串     |
 | platformThreadInit      | 初始化线程     |
+| platformThreadDestroy   | 销毁线程       |
 | platformThreadStart     | 开启线程       |
 | platformThreadStop      | 挂起线程       |
-| platformThreadDestroy   | 销毁线程       |
 | platformMutexInit       | 初始化互斥锁   |
+| platformMutexDestroy    | 销毁互斥锁     |
 | platformMutexLock       | 获取互斥锁     |
 | platformMutexUnLock     | 释放互斥锁     |
-| platformMutexDestroy    | 销毁互斥锁     |
 | platformCriticalInit    | 初始化临界区   |
+| platformCriticalDestroy | 销毁临界区     |
 | platformCriticalEnter   | 进入临界区     |
 | platformCriticalExit    | 退出临界区     |
-| platformCriticalDestroy | 销毁临界区     |
 
 #### network 接口
 
@@ -78,6 +80,8 @@ _MQTT 协议要求基础传输层能够提供有序的、可靠的、双向传�
 
 | 函数名称                 | 函数简介                 |
 | ------------------------ | ------------------------ |
+| platformNetworkInit      | 网络资源初始化           |
+| platformNetworkDestroy   | 网络资源销毁             |
 | platformNetworkConnect   | 根据 ip 和端口连接服务器 |
 | platformNetworkRecvAsync | 非阻塞接收数据           |
 | platformNetworkSendAsync | 非阻塞发送数据           |
@@ -114,6 +118,10 @@ _RyanMqtt 依靠函数生成毫秒时间戳，用于计算持续时间和超时�
 #### 移远QuecOpen平台
 
 - 接口示例请参考 platform/quecopen 文件夹，请根据平台差异进行修改
+
+#### 中移OpenCPU平台
+
+- 接口示例请参考 platform/openCPU文件夹，请根据平台差异进行修改
 
 #### Linux平台
 

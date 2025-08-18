@@ -6,13 +6,13 @@ cwd = GetCurrentDir()
 
 # The set of source files associated with this SConscript file.
 src = Glob('common/*.c')
-src += Glob('pahoMqtt/*.c')
+src += Glob('coreMqtt/*.c')
 src += Glob('mqttclient/*.c')
 src += Glob('platform/rtthread/*.c')
 
 path = [cwd + '/common']
-path += [cwd + '/pahoMqtt']
-path += [cwd + '/mqttclient']
+path += [cwd + '/coreMqtt']
+path += [cwd + '/mqttclient/include']
 path += [cwd + '/platform/rtthread']
 
 if GetDepend(['PKG_USING_RYANMQTT_EXAMPLE']):

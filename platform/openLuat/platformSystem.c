@@ -41,7 +41,7 @@ uint32_t platformUptimeMs(void)
 
 	// 已经不能提供精准的ms了
 	uint32_t tick = luat_mcu_ticks();
-	return (uint32_t)((tick * 1000 + luat_mcu_hz() - 1) / luat_mcu_hz());
+	return (uint32_t)(((uint64_t)tick * 1000 + luat_mcu_hz() - 1) / luat_mcu_hz());
 }
 
 /**
@@ -77,7 +77,7 @@ RyanMqttError_e platformThreadInit(void *userData, platformThread_t *platformThr
 					       name,                    // 线程name
 					       entry,                   // 线程入口函数
 					       param,                   // 线程入口函数参数
-					       priority);
+					       0);
 
 	if (0 != result)
 	{

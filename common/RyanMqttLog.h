@@ -3,14 +3,13 @@
 
 #include <stdint.h>
 #include <stdarg.h>
-#include <inttypes.h>
 
 // 日志等级
 #define RyanMqttLogLevelAssert  0
 #define RyanMqttLogLevelError   1
 #define RyanMqttLogLevelWarning 2
-#define RyanMqttLogLevelInfo    2
-#define RyanMqttLogLevelDebug   3
+#define RyanMqttLogLevelInfo    3
+#define RyanMqttLogLevelDebug   4
 
 // 日志打印等级
 #ifndef RyanMqttLogLevel
