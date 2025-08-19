@@ -168,13 +168,6 @@ static void RyanMqttAckListScan(RyanMqttClient_t *client, RyanMqttBool_e waitFla
 			// 设置重发标志位
 			MQTT_UpdateDuplicatePublishFlag(ackHandler->packet, true);
 
-			// 重发次数超过警告值回调
-			if (ackHandler->repeatCount >= client->config.ackHandlerRepeatCountWarning)
-			{
-				RyanMqttEventMachine(client, RyanMqttEventAckRepeatCountWarning, (void *)ackHandler);
-				continue;
-			}
-
 			// 重发数据事件回调
 			RyanMqttEventMachine(client, RyanMqttEventRepeatPublishPacket, (void *)ackHandler);
 
@@ -184,16 +177,19 @@ static void RyanMqttAckListScan(RyanMqttClient_t *client, RyanMqttBool_e waitFla
 			// 重置ack超时时间
 			RyanMqttTimerCutdown(&ackHandler->timer, client->config.ackTimeout);
 			ackHandler->repeatCount++;
+
+			// 重发次数超过警告值回调
+			if (ackHandler->repeatCount >= client->config.ackHandlerRepeatCountWarning)
+			{
+				RyanMqttEventMachine(client, RyanMqttEventAckRepeatCountWarning, (void *)ackHandler);
+			}
 			break;
 		}
 
 		// 订阅 / 取消订阅超时就认为失败
 		case MQTT_PACKET_TYPE_SUBACK:
-
 			RyanMqttMsgHandlerFindAndDestroyByPackId(client, ackHandler->msgHandler, RyanMqttFalse);
-
 			RyanMqttEventMachine(client, RyanMqttEventSubscribedFailed, (void *)ackHandler->msgHandler);
-
 			RyanMqttAckListRemoveToAckList(client, ackHandler);
 			RyanMqttAckHandlerDestroy(client, ackHandler); // 清除句柄
 			break;

@@ -99,7 +99,7 @@ RyanMqttError_e RyanMqttRecvPacket(RyanMqttClient_t *client, uint8_t *recvBuf, u
 	// 错误
 	if (recvResult < 0)
 	{
-		RyanMqttConnectStatus_e connectState = RyanMqttConnectAccepted;
+		RyanMqttConnectStatus_e connectState = RyanMqttConnectNetWorkFail;
 		RyanMqttEventMachine(client, RyanMqttEventDisconnected, &connectState);
 		RyanMqttLog_d("recv错误, result: %d", recvResult);
 		return RyanSocketFailedError;
@@ -152,7 +152,7 @@ RyanMqttError_e RyanMqttSendPacket(RyanMqttClient_t *client, uint8_t *sendBuf, u
 
 	if (sendResult < 0)
 	{
-		RyanMqttConnectStatus_e connectState = RyanMqttConnectAccepted;
+		RyanMqttConnectStatus_e connectState = RyanMqttConnectNetWorkFail;
 		RyanMqttEventMachine(client, RyanMqttEventDisconnected, &connectState);
 		return RyanSocketFailedError;
 	}
