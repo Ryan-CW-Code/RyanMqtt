@@ -243,19 +243,19 @@ RyanMqttError_e checkAckList(RyanMqttClient_t *client)
 	RyanMqttLog_w("等待检查ack链表，等待 recvTime: %d", client->config.recvTimeout);
 	delay(client->config.recvTimeout + 500);
 
-	if (!RyanListIsEmpty(&client->ackHandlerList))
+	if (!RyanMqttListIsEmpty(&client->ackHandlerList))
 	{
 		RyanMqttLog_e("mqtt空间 ack链表不为空");
 		return RyanMqttFailedError;
 	}
 
-	if (!RyanListIsEmpty(&client->userAckHandlerList))
+	if (!RyanMqttListIsEmpty(&client->userAckHandlerList))
 	{
 		RyanMqttLog_e("用户空间 ack链表不为空");
 		return RyanMqttFailedError;
 	}
 
-	if (!RyanListIsEmpty(&client->msgHandlerList))
+	if (!RyanMqttListIsEmpty(&client->msgHandlerList))
 	{
 		RyanMqttLog_e("mqtt空间 msg链表不为空");
 		return RyanMqttFailedError;

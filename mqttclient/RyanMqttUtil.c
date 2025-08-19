@@ -205,41 +205,41 @@ RyanMqttState_e RyanMqttGetClientState(RyanMqttClient_t *client)
  */
 void RyanMqttPurgeSession(RyanMqttClient_t *client)
 {
-	RyanList_t *curr, *next;
+	RyanMqttList_t *curr, *next;
 	RyanMqttAssert(NULL != client);
 
 	// 释放所有msg_handler_list内存
 	platformMutexLock(client->config.userData, &client->msgHandleLock);
-	RyanListForEachSafe(curr, next, &client->msgHandlerList)
+	RyanMqttListForEachSafe(curr, next, &client->msgHandlerList)
 	{
-		RyanMqttMsgHandler_t *msgHandler = RyanListEntry(curr, RyanMqttMsgHandler_t, list);
+		RyanMqttMsgHandler_t *msgHandler = RyanMqttListEntry(curr, RyanMqttMsgHandler_t, list);
 		RyanMqttMsgHandlerRemoveToMsgList(client, msgHandler);
 		RyanMqttMsgHandlerDestroy(client, msgHandler);
 	}
-	RyanListDelInit(&client->msgHandlerList);
+	RyanMqttListDelInit(&client->msgHandlerList);
 	platformMutexUnLock(client->config.userData, &client->msgHandleLock);
 
 	// 释放所有ackHandler_list内存
 	platformMutexLock(client->config.userData, &client->ackHandleLock);
-	RyanListForEachSafe(curr, next, &client->ackHandlerList)
+	RyanMqttListForEachSafe(curr, next, &client->ackHandlerList)
 	{
-		RyanMqttAckHandler_t *ackHandler = RyanListEntry(curr, RyanMqttAckHandler_t, list);
+		RyanMqttAckHandler_t *ackHandler = RyanMqttListEntry(curr, RyanMqttAckHandler_t, list);
 		RyanMqttAckListRemoveToAckList(client, ackHandler);
 		RyanMqttAckHandlerDestroy(client, ackHandler);
 	}
-	RyanListDelInit(&client->ackHandlerList);
+	RyanMqttListDelInit(&client->ackHandlerList);
 	client->ackHandlerCount = 0;
 	platformMutexUnLock(client->config.userData, &client->ackHandleLock);
 
 	// 释放所有userAckHandler_list内存
 	platformMutexLock(client->config.userData, &client->userSessionLock);
-	RyanListForEachSafe(curr, next, &client->userAckHandlerList)
+	RyanMqttListForEachSafe(curr, next, &client->userAckHandlerList)
 	{
-		RyanMqttAckHandler_t *userAckHandler = RyanListEntry(curr, RyanMqttAckHandler_t, list);
+		RyanMqttAckHandler_t *userAckHandler = RyanMqttListEntry(curr, RyanMqttAckHandler_t, list);
 		RyanMqttAckListRemoveToUserAckList(client, userAckHandler);
 		RyanMqttAckHandlerDestroy(client, userAckHandler);
 	}
-	RyanListDelInit(&client->userAckHandlerList);
+	RyanMqttListDelInit(&client->userAckHandlerList);
 	platformMutexUnLock(client->config.userData, &client->userSessionLock);
 }
 

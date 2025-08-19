@@ -255,7 +255,7 @@ static RyanMqttError_e RyanMqttSubackHandler(RyanMqttClient_t *client, MQTTPacke
 	uint16_t packetId;
 	RyanMqttMsgHandler_t *msgHandler;
 	RyanMqttAckHandler_t *ackHandler;
-	RyanList_t *curr, *next;
+	RyanMqttList_t *curr, *next;
 	RyanMqttAssert(NULL != client);
 
 	// 反序列化ack包，MQTTSuccess和MQTTServerRefused都是成功的
@@ -271,9 +271,9 @@ static RyanMqttError_e RyanMqttSubackHandler(RyanMqttClient_t *client, MQTTPacke
 
 		// ?使用ack或msg遍历都行，使用msg更容易测试出问题，遍历性能也会更好一些
 		platformMutexLock(client->config.userData, &client->msgHandleLock);
-		RyanListForEachSafe(curr, next, &client->msgHandlerList)
+		RyanMqttListForEachSafe(curr, next, &client->msgHandlerList)
 		{
-			msgHandler = RyanListEntry(curr, RyanMqttMsgHandler_t, list);
+			msgHandler = RyanMqttListEntry(curr, RyanMqttMsgHandler_t, list);
 
 			if (packetId == msgHandler->packetId)
 			{
@@ -286,9 +286,9 @@ static RyanMqttError_e RyanMqttSubackHandler(RyanMqttClient_t *client, MQTTPacke
 		RyanMqttCheckCode(ackMsgCount == statusCount, RyanMqttNoRescourceError, RyanMqttLog_d, {
 			RyanMqttClearAckSession(client, MQTT_PACKET_TYPE_SUBACK, packetId);
 			platformMutexLock(client->config.userData, &client->msgHandleLock);
-			RyanListForEachSafe(curr, next, &client->msgHandlerList)
+			RyanMqttListForEachSafe(curr, next, &client->msgHandlerList)
 			{
-				msgHandler = RyanListEntry(curr, RyanMqttMsgHandler_t, list);
+				msgHandler = RyanMqttListEntry(curr, RyanMqttMsgHandler_t, list);
 
 				if (packetId == msgHandler->packetId)
 				{
@@ -307,9 +307,9 @@ static RyanMqttError_e RyanMqttSubackHandler(RyanMqttClient_t *client, MQTTPacke
 	// todo 这里效率非常低，订阅属于用的少的功能，暂时可以接受
 	// 查找ack句柄
 	platformMutexLock(client->config.userData, &client->ackHandleLock);
-	RyanListForEachSafe(curr, next, &client->ackHandlerList)
+	RyanMqttListForEachSafe(curr, next, &client->ackHandlerList)
 	{
-		ackHandler = RyanListEntry(curr, RyanMqttAckHandler_t, list);
+		ackHandler = RyanMqttListEntry(curr, RyanMqttAckHandler_t, list);
 
 		if (packetId != ackHandler->packetId || MQTT_PACKET_TYPE_SUBACK != ackHandler->packetType)
 		{
@@ -376,7 +376,7 @@ static RyanMqttError_e RyanMqttUnSubackHandler(RyanMqttClient_t *client, MQTTPac
 	RyanMqttError_e result = RyanMqttSuccessError;
 	RyanMqttMsgHandler_t *subMsgHandler;
 	RyanMqttAckHandler_t *ackHandler;
-	RyanList_t *curr, *next;
+	RyanMqttList_t *curr, *next;
 	uint16_t packetId;
 
 	RyanMqttAssert(NULL != client);
@@ -387,9 +387,9 @@ static RyanMqttError_e RyanMqttUnSubackHandler(RyanMqttClient_t *client, MQTTPac
 
 	// todo 这里效率非常低，订阅属于用的少的功能，暂时可以接受
 	platformMutexLock(client->config.userData, &client->ackHandleLock);
-	RyanListForEachSafe(curr, next, &client->ackHandlerList)
+	RyanMqttListForEachSafe(curr, next, &client->ackHandlerList)
 	{
-		ackHandler = RyanListEntry(curr, RyanMqttAckHandler_t, list);
+		ackHandler = RyanMqttListEntry(curr, RyanMqttAckHandler_t, list);
 
 		if ((packetId != ackHandler->packetId) || (MQTT_PACKET_TYPE_UNSUBACK != ackHandler->packetType))
 		{
@@ -425,13 +425,13 @@ static RyanMqttError_e RyanMqttUnSubackHandler(RyanMqttClient_t *client, MQTTPac
 static void RyanMqttSyncUserAckHandle(RyanMqttClient_t *client)
 {
 	RyanMqttAckHandler_t *userAckHandler;
-	RyanList_t *curr, *next;
+	RyanMqttList_t *curr, *next;
 
 	platformMutexLock(client->config.userData, &client->userSessionLock);
-	RyanListForEachSafe(curr, next, &client->userAckHandlerList)
+	RyanMqttListForEachSafe(curr, next, &client->userAckHandlerList)
 	{
 		// 获取此节点的结构体
-		userAckHandler = RyanListEntry(curr, RyanMqttAckHandler_t, list);
+		userAckHandler = RyanMqttListEntry(curr, RyanMqttAckHandler_t, list);
 		RyanMqttAckListRemoveToUserAckList(client, userAckHandler);
 		RyanMqttAckListAddToAckList(client, userAckHandler);
 	}

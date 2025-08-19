@@ -108,9 +108,9 @@ RyanMqttError_e RyanMqttInit(RyanMqttClient_t **pClient)
 	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, result, RyanMqttLog_d, { goto __exit; });
 	// networkIsOk = RyanMqttTrue;
 
-	RyanListInit(&client->msgHandlerList);
-	RyanListInit(&client->ackHandlerList);
-	RyanListInit(&client->userAckHandlerList);
+	RyanMqttListInit(&client->msgHandlerList);
+	RyanMqttListInit(&client->ackHandlerList);
+	RyanMqttListInit(&client->userAckHandlerList);
 
 	RyanMqttSetClientState(client, RyanMqttInitState);
 
@@ -685,7 +685,7 @@ RyanMqttError_e RyanMqttGetSubscribe(RyanMqttClient_t *client, RyanMqttMsgHandle
 				     int32_t *subscribeNum)
 {
 	RyanMqttError_e result = RyanMqttSuccessError;
-	RyanList_t *curr, *next;
+	RyanMqttList_t *curr, *next;
 	RyanMqttMsgHandler_t *msgHandler;
 
 	RyanMqttCheck(NULL != client, RyanMqttParamInvalidError, RyanMqttLog_d);
@@ -696,7 +696,7 @@ RyanMqttError_e RyanMqttGetSubscribe(RyanMqttClient_t *client, RyanMqttMsgHandle
 	*subscribeNum = 0;
 
 	platformMutexLock(client->config.userData, &client->msgHandleLock);
-	RyanListForEachSafe(curr, next, &client->msgHandlerList)
+	RyanMqttListForEachSafe(curr, next, &client->msgHandlerList)
 	{
 		if (*subscribeNum >= msgHandleSize)
 		{
@@ -704,7 +704,7 @@ RyanMqttError_e RyanMqttGetSubscribe(RyanMqttClient_t *client, RyanMqttMsgHandle
 			break;
 		}
 
-		msgHandler = RyanListEntry(curr, RyanMqttMsgHandler_t, list);
+		msgHandler = RyanMqttListEntry(curr, RyanMqttMsgHandler_t, list);
 		msgHandles[*subscribeNum].topic = msgHandler->topic;
 		msgHandles[*subscribeNum].qos = msgHandler->qos;
 
@@ -727,7 +727,7 @@ RyanMqttError_e RyanMqttGetSubscribeSafe(RyanMqttClient_t *client, RyanMqttMsgHa
 					 int32_t *subscribeNum)
 {
 	RyanMqttError_e result = RyanMqttSuccessError;
-	RyanList_t *curr, *next;
+	RyanMqttList_t *curr, *next;
 	RyanMqttMsgHandler_t *msgHandler;
 	int32_t subscribeTotal;
 
@@ -752,14 +752,14 @@ RyanMqttError_e RyanMqttGetSubscribeSafe(RyanMqttClient_t *client, RyanMqttMsgHa
 
 	int32_t subscribeCount = 0;
 	platformMutexLock(client->config.userData, &client->msgHandleLock);
-	RyanListForEachSafe(curr, next, &client->msgHandlerList)
+	RyanMqttListForEachSafe(curr, next, &client->msgHandlerList)
 	{
 		if (subscribeCount >= subscribeTotal)
 		{
 			break;
 		}
 
-		msgHandler = RyanListEntry(curr, RyanMqttMsgHandler_t, list);
+		msgHandler = RyanMqttListEntry(curr, RyanMqttMsgHandler_t, list);
 		msgHandlerArr[subscribeCount].topic = (char *)platformMemoryMalloc(msgHandler->topicLen + 1);
 		if (NULL == msgHandlerArr[subscribeCount].topic)
 		{
@@ -814,14 +814,14 @@ RyanMqttError_e RyanMqttSafeFreeSubscribeResources(RyanMqttMsgHandler_t *msgHand
  */
 RyanMqttError_e RyanMqttGetSubscribeTotalCount(RyanMqttClient_t *client, int32_t *subscribeTotalCount)
 {
-	RyanList_t *curr, *next;
+	RyanMqttList_t *curr, *next;
 	RyanMqttCheck(NULL != client, RyanMqttParamInvalidError, RyanMqttLog_d);
 	RyanMqttCheck(NULL != subscribeTotalCount, RyanMqttParamInvalidError, RyanMqttLog_d);
 
 	*subscribeTotalCount = 0;
 
 	platformMutexLock(client->config.userData, &client->msgHandleLock);
-	RyanListForEachSafe(curr, next, &client->msgHandlerList)
+	RyanMqttListForEachSafe(curr, next, &client->msgHandlerList)
 	{
 		(*subscribeTotalCount)++;
 	}

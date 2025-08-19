@@ -94,7 +94,7 @@ static RyanMqttError_e RyanMqttKeepalive(RyanMqttClient_t *client)
  */
 static void RyanMqttAckListScan(RyanMqttClient_t *client, RyanMqttBool_e waitFlag)
 {
-	RyanList_t *curr, *next;
+	RyanMqttList_t *curr, *next;
 	RyanMqttAckHandler_t *ackHandler;
 	RyanMqttTimer_t ackScanRemainTimer;
 	uint32_t ackScanThrottleTime = 1000; // 最长一秒
@@ -125,7 +125,7 @@ static void RyanMqttAckListScan(RyanMqttClient_t *client, RyanMqttBool_e waitFla
 	RyanMqttTimerCutdown(&ackScanRemainTimer, ackScanWindowMs);
 
 	platformMutexLock(client->config.userData, &client->ackHandleLock);
-	RyanListForEachSafe(curr, next, &client->ackHandlerList)
+	RyanMqttListForEachSafe(curr, next, &client->ackHandlerList)
 	{
 		// 需要再判断一次
 		if (RyanMqttConnectState != RyanMqttGetClientState(client))
@@ -140,7 +140,7 @@ static void RyanMqttAckListScan(RyanMqttClient_t *client, RyanMqttBool_e waitFla
 		}
 
 		// 获取此节点的结构体
-		ackHandler = RyanListEntry(curr, RyanMqttAckHandler_t, list);
+		ackHandler = RyanMqttListEntry(curr, RyanMqttAckHandler_t, list);
 
 		// ack响应没有超时就不进行处理
 		uint32_t ackRemainTime = RyanMqttTimerRemain(&ackHandler->timer);

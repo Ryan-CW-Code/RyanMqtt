@@ -38,7 +38,7 @@ RyanMqttError_e RyanMqttAckHandlerCreate(RyanMqttClient_t *client, uint8_t packe
 	RyanMqttCheck(NULL != ackHandler, RyanMqttNotEnoughMemError, RyanMqttLog_d);
 	RyanMqttMemset(ackHandler, 0, mallocLen);
 
-	RyanListInit(&ackHandler->list);
+	RyanMqttListInit(&ackHandler->list);
 	// 超时内没有响应将被销毁或重新发送
 	RyanMqttTimerCutdown(&ackHandler->timer, client->config.ackTimeout);
 
@@ -102,15 +102,15 @@ RyanMqttError_e RyanMqttAckListNodeFind(RyanMqttClient_t *client, uint8_t packet
 					RyanMqttAckHandler_t **pAckHandler)
 {
 	RyanMqttError_e result = RyanMqttSuccessError;
-	RyanList_t *curr, *next;
+	RyanMqttList_t *curr, *next;
 	RyanMqttAckHandler_t *ackHandler;
 	RyanMqttAssert(NULL != client);
 	RyanMqttAssert(NULL != pAckHandler);
 
 	platformMutexLock(client->config.userData, &client->ackHandleLock);
-	RyanListForEachSafe(curr, next, &client->ackHandlerList)
+	RyanMqttListForEachSafe(curr, next, &client->ackHandlerList)
 	{
-		ackHandler = RyanListEntry(curr, RyanMqttAckHandler_t, list);
+		ackHandler = RyanMqttListEntry(curr, RyanMqttAckHandler_t, list);
 
 		// 对于 qos1 和 qos2 的 mqtt 数据包，使用数据包 ID 和类型作为唯一
 		// 标识符，用于确定节点是否已存在并避免重复。
@@ -142,7 +142,7 @@ RyanMqttError_e RyanMqttAckListAddToAckList(RyanMqttClient_t *client, RyanMqttAc
 
 	platformMutexLock(client->config.userData, &client->ackHandleLock);
 	// 将ack节点添加到链表尾部
-	RyanListAddTail(&ackHandler->list, &client->ackHandlerList);
+	RyanMqttListAddTail(&ackHandler->list, &client->ackHandlerList);
 	client->ackHandlerCount++;
 	platformMutexUnLock(client->config.userData, &client->ackHandleLock);
 
@@ -167,7 +167,7 @@ RyanMqttError_e RyanMqttAckListRemoveToAckList(RyanMqttClient_t *client, RyanMqt
 	RyanMqttAssert(NULL != ackHandler);
 
 	platformMutexLock(client->config.userData, &client->ackHandleLock);
-	RyanListDel(&ackHandler->list);
+	RyanMqttListDel(&ackHandler->list);
 	if (client->ackHandlerCount > 0)
 	{
 		client->ackHandlerCount--;
@@ -190,15 +190,15 @@ RyanMqttError_e RyanMqttAckListNodeFindByUserAckList(RyanMqttClient_t *client, u
 						     RyanMqttAckHandler_t **pAckHandler)
 {
 	RyanMqttError_e result = RyanMqttSuccessError;
-	RyanList_t *curr, *next;
+	RyanMqttList_t *curr, *next;
 	RyanMqttAckHandler_t *ackHandler;
 	RyanMqttAssert(NULL != client);
 	RyanMqttAssert(NULL != pAckHandler);
 
 	platformMutexLock(client->config.userData, &client->userSessionLock);
-	RyanListForEachSafe(curr, next, &client->userAckHandlerList)
+	RyanMqttListForEachSafe(curr, next, &client->userAckHandlerList)
 	{
-		ackHandler = RyanListEntry(curr, RyanMqttAckHandler_t, list);
+		ackHandler = RyanMqttListEntry(curr, RyanMqttAckHandler_t, list);
 
 		// 对于 qos1 和 qos2 的 mqtt 数据包，使用数据包 ID 和类型作为唯一
 		// 标识符，用于确定节点是否已存在并避免重复。
@@ -229,7 +229,7 @@ RyanMqttError_e RyanMqttAckListAddToUserAckList(RyanMqttClient_t *client, RyanMq
 	RyanMqttAssert(NULL != ackHandler);
 
 	platformMutexLock(client->config.userData, &client->userSessionLock);
-	RyanListAddTail(&ackHandler->list, &client->userAckHandlerList); // 将ack节点添加到链表尾部
+	RyanMqttListAddTail(&ackHandler->list, &client->userAckHandlerList); // 将ack节点添加到链表尾部
 	platformMutexUnLock(client->config.userData, &client->userSessionLock);
 
 	return RyanMqttSuccessError;
@@ -248,7 +248,7 @@ RyanMqttError_e RyanMqttAckListRemoveToUserAckList(RyanMqttClient_t *client, Rya
 	RyanMqttAssert(NULL != ackHandler);
 
 	platformMutexLock(client->config.userData, &client->userSessionLock);
-	RyanListDel(&ackHandler->list);
+	RyanMqttListDel(&ackHandler->list);
 	platformMutexUnLock(client->config.userData, &client->userSessionLock);
 
 	return RyanMqttSuccessError;

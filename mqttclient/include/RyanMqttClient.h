@@ -8,7 +8,7 @@ extern "C" {
 #include "platformSystem.h"
 #include "platformNetwork.h"
 #include "RyanMqttLog.h"
-#include "RyanList.h"
+#include "RyanMqttList.h"
 #include "RyanMqttPublic.h"
 
 // 接收到订阅消息回调函数类型，eventData用户不要进行修改否则mqtt客户端可能崩溃
@@ -34,7 +34,7 @@ typedef struct
 	uint16_t packetId; // 关联的packetId
 	uint16_t topicLen; // 主题长度
 	RyanMqttQos_e qos; // qos等级
-	RyanList_t list;   // 链表节点，用户勿动
+	RyanMqttList_t list;   // 链表节点，用户勿动
 	char *topic;       // 主题
 	void *userData;    // 用户自定义数据
 } RyanMqttMsgHandler_t;
@@ -46,7 +46,7 @@ typedef struct
 	uint16_t packetId;                   // 报文标识符 系统生成，用户勿动
 	RyanMqttBool_e isPreallocatedPacket; // 是否是预分配的内存
 	uint32_t packetLen;                  // 报文长度
-	RyanList_t list;                     // 链表节点，用户勿动
+	RyanMqttList_t list;                     // 链表节点，用户勿动
 	RyanMqttTimer_t timer;               // ack超时定时器，用户勿动
 	RyanMqttMsgHandler_t *msgHandler;    // msg信息
 	uint8_t *packet;                     // 没有收到期望ack，重新发送的原始报文
@@ -116,9 +116,9 @@ typedef struct
 	RyanMqttState_e clientState; // mqtt客户端的状态
 
 	// 维护消息处理列表，这是mqtt协议必须实现的内容，所有来自服务器的publish报文都会被处理（前提是订阅了对应的消息，或者设置了拦截器）
-	RyanList_t msgHandlerList;
-	RyanList_t ackHandlerList;              // 维护ack链表
-	RyanList_t userAckHandlerList;          // 用户接口的ack链表,会由mqtt线程移动到ack链表
+	RyanMqttList_t msgHandlerList;
+	RyanMqttList_t ackHandlerList;              // 维护ack链表
+	RyanMqttList_t userAckHandlerList;          // 用户接口的ack链表,会由mqtt线程移动到ack链表
 	RyanMqttTimer_t ackScanThrottleTimer;   // ack链表检查节流定时器
 	RyanMqttTimer_t keepaliveTimer;         // 保活定时器
 	RyanMqttTimer_t keepaliveThrottleTimer; // 保活检查节流定时器

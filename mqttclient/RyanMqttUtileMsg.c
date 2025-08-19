@@ -189,7 +189,7 @@ RyanMqttError_e RyanMqttMsgHandlerCreate(RyanMqttClient_t *client, const char *t
 	RyanMqttMemset(msgHandler, 0, sizeof(RyanMqttMsgHandler_t) + topicLen + 1);
 
 	// 初始化链表
-	RyanListInit(&msgHandler->list);
+	RyanMqttListInit(&msgHandler->list);
 	msgHandler->packetId = packetId;
 	msgHandler->qos = qos;
 	msgHandler->topicLen = topicLen;
@@ -257,7 +257,7 @@ RyanMqttError_e RyanMqttMsgHandlerFind(RyanMqttClient_t *client, RyanMqttMsgHand
 				       RyanMqttBool_e topicMatchedFlag, RyanMqttMsgHandler_t **pMsgHandler)
 {
 	RyanMqttError_e result = RyanMqttSuccessError;
-	RyanList_t *curr, *next;
+	RyanMqttList_t *curr, *next;
 	RyanMqttMsgHandler_t *msgHandler;
 
 	RyanMqttAssert(NULL != client);
@@ -266,9 +266,9 @@ RyanMqttError_e RyanMqttMsgHandlerFind(RyanMqttClient_t *client, RyanMqttMsgHand
 	RyanMqttAssert(NULL != pMsgHandler);
 
 	platformMutexLock(client->config.userData, &client->msgHandleLock);
-	RyanListForEachSafe(curr, next, &client->msgHandlerList)
+	RyanMqttListForEachSafe(curr, next, &client->msgHandlerList)
 	{
-		msgHandler = RyanListEntry(curr, RyanMqttMsgHandler_t, list);
+		msgHandler = RyanMqttListEntry(curr, RyanMqttMsgHandler_t, list);
 
 		if (RyanMqttFalse ==
 		    RyanMqttMsgIsMatch(msgHandler, findMsgHandler->topic, findMsgHandler->topicLen, topicMatchedFlag))
@@ -292,7 +292,7 @@ __exit:
 void RyanMqttMsgHandlerFindAndDestroyByPackId(RyanMqttClient_t *client, RyanMqttMsgHandler_t *findMsgHandler,
 					      RyanMqttBool_e isSkipMatchingId)
 {
-	RyanList_t *curr, *next;
+	RyanMqttList_t *curr, *next;
 	RyanMqttMsgHandler_t *msgHandler;
 
 	RyanMqttAssert(NULL != client);
@@ -300,9 +300,9 @@ void RyanMqttMsgHandlerFindAndDestroyByPackId(RyanMqttClient_t *client, RyanMqtt
 	RyanMqttAssert(NULL != findMsgHandler->topic && 0 != findMsgHandler->topicLen);
 
 	platformMutexLock(client->config.userData, &client->msgHandleLock);
-	RyanListForEachSafe(curr, next, &client->msgHandlerList)
+	RyanMqttListForEachSafe(curr, next, &client->msgHandlerList)
 	{
-		msgHandler = RyanListEntry(curr, RyanMqttMsgHandler_t, list);
+		msgHandler = RyanMqttListEntry(curr, RyanMqttMsgHandler_t, list);
 
 		if (RyanMqttFalse == isSkipMatchingId)
 		{
@@ -348,7 +348,7 @@ RyanMqttError_e RyanMqttMsgHandlerAddToMsgList(RyanMqttClient_t *client, RyanMqt
 	RyanMqttAssert(NULL != msgHandler);
 
 	platformMutexLock(client->config.userData, &client->msgHandleLock);
-	RyanListAddTail(&msgHandler->list,
+	RyanMqttListAddTail(&msgHandler->list,
 			&client->msgHandlerList); // 将msgHandler节点添加到链表尾部
 	platformMutexUnLock(client->config.userData, &client->msgHandleLock);
 
@@ -368,7 +368,7 @@ RyanMqttError_e RyanMqttMsgHandlerRemoveToMsgList(RyanMqttClient_t *client, Ryan
 	RyanMqttAssert(NULL != msgHandler);
 
 	platformMutexLock(client->config.userData, &client->msgHandleLock);
-	RyanListDel(&msgHandler->list);
+	RyanMqttListDel(&msgHandler->list);
 	platformMutexUnLock(client->config.userData, &client->msgHandleLock);
 
 	return RyanMqttSuccessError;
