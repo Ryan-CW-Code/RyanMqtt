@@ -49,7 +49,7 @@ extern RyanMqttError_e RyanMqttPublishAndUserData(RyanMqttClient_t *client, char
 						  char *payload, uint32_t payloadLen, RyanMqttQos_e qos,
 						  RyanMqttBool_e retain, void *userData);
 
-// 线程安全的订阅查询
+// 线程安全的订阅查询,必须仅通过 RyanMqttSafeFreeSubscribeResources 释放。
 extern RyanMqttError_e RyanMqttGetSubscribeSafe(RyanMqttClient_t *client, RyanMqttMsgHandler_t **msgHandles,
 						int32_t *subscribeNum);
 extern RyanMqttError_e RyanMqttSafeFreeSubscribeResources(RyanMqttMsgHandler_t *msgHandles, int32_t subscribeNum);
@@ -64,7 +64,7 @@ extern RyanMqttError_e RyanMqttGetSubscribeTotalCount(RyanMqttClient_t *client, 
 | ------------------------ | --------------------- | -------------------------------------- |
 | `SubscribeMany`          | 批量订阅/取消多个主题 | 减少网络往返，提升吞吐效率             |
 | `PublishAndUserData`     | 发布消息附带上下文    | 回调中可直接读取用户数据，简化状态管理 |
-| `GetSubscribeSafe`       | 安全查询订阅状态      | 多线程环境下无锁访问                   |
+| `GetSubscribeSafe`       | 安全查询订阅状态      | 多线程场景下无需调用方加锁（内部已同步）                  |
 | `GetSubscribeTotalCount` | 获取订阅总数量        | 便于监控与资源调度                     |
 
 ## 🔧 平台抽象层优化
@@ -72,7 +72,7 @@ extern RyanMqttError_e RyanMqttGetSubscribeTotalCount(RyanMqttClient_t *client, 
 ### 1. 统一系统时间接口
 
 ```
-uint32_t platformUptimeMs(void); // 跨平台获取系统启动毫秒数
+uint32_t platformUptimeMs(void); // 跨平台获取系统启动毫秒数（内部已避免 32 位回绕）
 ```
 
 ### 2. 网络收发模型简化

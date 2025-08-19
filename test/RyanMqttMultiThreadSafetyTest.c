@@ -107,7 +107,8 @@ static void *concurrentPublishThread(void *arg)
 		snprintf(payload, sizeof(payload), "M %d %d", i, threadIndex);
 		RyanMqttQos_e qos = (RyanMqttQos_e)(i % 3);
 
-		result = RyanMqttPublish(g_testControl.client, topic, payload, RyanMqttStrlen(payload), qos, RyanMqttFalse);
+		result = RyanMqttPublish(g_testControl.client, topic, payload, RyanMqttStrlen(payload), qos,
+					 RyanMqttFalse);
 		if (RyanMqttSuccessError != result)
 		{
 			RyanMqttLog_e("Thread %d: Failed to publish message %d", threadIndex, i);

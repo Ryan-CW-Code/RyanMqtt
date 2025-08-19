@@ -3,7 +3,7 @@
 
 #include "RyanMqttClient.h"
 #include "RyanMqttThread.h"
-#include "RyanMqttUtile.h"
+#include "RyanMqttUtil.h"
 #include "core_mqtt_serializer.h"
 
 /**

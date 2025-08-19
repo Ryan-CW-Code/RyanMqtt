@@ -1,7 +1,7 @@
 #define RyanMqttLogLevel (RyanMqttLogLevelAssert) // 日志打印等级
 // #define RyanMqttLogLevel (RyanMqttLogLevelDebug) // 日志打印等级
 
-#include "RyanMqttUtile.h"
+#include "RyanMqttUtil.h"
 #include "RyanMqttLog.h"
 #include "RyanMqttThread.h"
 
@@ -80,6 +80,7 @@ void RyanMqttAckHandlerDestroy(RyanMqttClient_t *client, RyanMqttAckHandler_t *a
 
 	RyanMqttMsgHandlerDestroy(client, ackHandler->msgHandler); // 释放msgHandler
 
+	// 释放用户预提供的缓冲区
 	if (RyanMqttTrue == ackHandler->isPreallocatedPacket && NULL != ackHandler->packet)
 	{
 		platformMemoryFree(ackHandler->packet);

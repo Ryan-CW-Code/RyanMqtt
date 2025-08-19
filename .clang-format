@@ -13,7 +13,9 @@
 # 基于 LLVM 的代码风格
 BasedOnStyle: LLVM
 # 连续宏定义的对齐方式：跨注释对齐
-AlignConsecutiveMacros: AcrossComments
+AlignConsecutiveMacros:
+  Enabled: true
+  AcrossComments: true
 # 短代码块不允许单行显示
 AllowShortBlocksOnASingleLine: Never
 # 短 case 标签不允许单行显示

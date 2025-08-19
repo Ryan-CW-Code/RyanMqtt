@@ -55,7 +55,7 @@ typedef struct
 typedef struct
 {
 	RyanMqttBool_e lwtFlag; // 遗嘱标志位
-	uint8_t retain;         // 遗嘱保留标志位
+	RyanMqttBool_e retain;  // 遗嘱保留标志位
 	RyanMqttQos_e qos;      // 遗嘱qos等级
 	uint32_t payloadLen;    // 消息长度
 	char *topic;            // 遗嘱主题

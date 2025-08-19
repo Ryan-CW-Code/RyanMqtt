@@ -1,5 +1,5 @@
-#ifndef __RyanMqttUtile__
-#define __RyanMqttUtile__
+#ifndef __RyanMqttUtil__
+#define __RyanMqttUtil__
 
 #ifdef __cplusplus
 extern "C" {

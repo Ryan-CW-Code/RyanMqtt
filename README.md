@@ -8,7 +8,7 @@
 
 [RT-Thread-RyanMqtt 移植指南（三）RT-Thread问答社区 - RT-Thread](https://club.rt-thread.org/ask/article/611b7a947f7221cf.html)
 
-[keil使用RyanMQTT编译错误（中文编码问题）RT-Thread问答社区 - RT-Thread](https://club.rt-thread.org/ask/question/7269a82662b6cf31.html)
+[keil使用 RyanMQTT 编译错误（中文编码问题）RT-Thread问答社区 - RT-Thread](https://club.rt-thread.org/ask/question/7269a82662b6cf31.html)
 
 
 ### 1、介绍
@@ -24,9 +24,9 @@ RyanMqtt 实现了 [MQTT 3.1.1](https://docs.oasis-open.org/mqtt/mqtt/v3.1.1/mqt
 - **稳定的全 QOS 等级实现消息实现**。**用户可控的消息丢弃机制**，避免 Qos2 / Qos1 消息无限堆积重发消耗的内存空间
 - **完整的 MQTT 主题通配符支持，“/”、“#”、“+”、“$”**
 - 支持批量订阅 / 取消订阅
-- 可选择的 keepalive、reconnet、lwt、session 等
+- 可选择的 keepalive、reconnect、lwt、session 等
 - 客户端多功能参数配置，丰富的用户可选的事件回调，满足实际项目的绝大部分需求（欢迎提需求）
-- 优化过的并发能力，**无等待的连续 20000 条 RyanMqttQos2 消息稳定发送和接收无一丢包**(测试环境为linux，实际情况会收到单片机内存大小和网络硬件的收发能力的影响)
+- 优化过的并发能力，**无等待的连续 20000 条 RyanMqttQos2 消息稳定发送和接收无一丢包**(测试环境为linux，实际情况会受到单片机内存大小和网络硬件的收发能力的影响)
 - **复杂线程环境下稳定运行**，已在公司多个项目使用
 - 跨平台，只需实现少量的平台接口即可
 - 资源占用少，依赖少
@@ -40,7 +40,7 @@ RyanMqtt 设计时参考了[mqttclient](https://github.com/jiejieTop/mqttclient)
 ![组](docs/assert/README.assert/%E7%BB%84.png)
 
 - **平台兼容层**封装不同操作系统内核接口，方便实现跨平台
-- **核心库**使用著名的 paho mqtt 库作为 mqtt 封包库
+- **核心库**基于 [coreMQTT](https://github.com/FreeRTOS/coreMQTT) 实现 MQTT 报文序列化与处理
 - **核心线程**是每个客户端必须创建的线程，统一处理客户端所有的操作，比如 mqtt 状态机、事件回调、心跳保活、消息解析、消息超时处理、消息重发等
 - **系统服务管理模块**提供 RyanMqtt 实现功能的工具，包含 session 状态、事件处理、通配符匹配、消息链表等
 - **用户应用模块**提供给用户调用的丰富的接口，包含 RyanMqtt 客户端申请 / 销毁、mqtt 多参数配置、事件注册 / 注销、QOS 消息丢弃、 mqtt 连接 / 停止 / 重连 / 发布 / 订阅 / 取消订阅等

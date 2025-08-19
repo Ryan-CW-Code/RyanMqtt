@@ -74,6 +74,8 @@ static void RyanMqttPublishEventHandle(void *pclient, RyanMqttEventId_e event, c
  */
 static RyanMqttError_e RyanMqttPublishTest(RyanMqttQos_e qos, int32_t count, uint32_t delayms)
 {
+#define RyanMqttPubTestPubTopic "testlinux/aa/pub"
+#define RyanMqttPubTestSubTopic "testlinux/+/pub"
 	RyanMqttError_e result = RyanMqttSuccessError;
 	RyanMqttClient_t *client;
 	time_t timeStampNow = 0;
@@ -83,7 +85,7 @@ static RyanMqttError_e RyanMqttPublishTest(RyanMqttQos_e qos, int32_t count, uin
 	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttFailedError, RyanMqttLog_e, { goto __exit; });
 
 	// 等待订阅主题成功
-	result = RyanMqttSubscribe(client, "testlinux/pub", qos);
+	result = RyanMqttSubscribe(client, RyanMqttPubTestSubTopic, qos);
 	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttFailedError, RyanMqttLog_e, { goto __exit; });
 	for (int32_t i = 0;; i++)
 	{
@@ -132,7 +134,7 @@ static RyanMqttError_e RyanMqttPublishTest(RyanMqttQos_e qos, int32_t count, uin
 	pubTestDataEventCount = 0;
 	for (int32_t i = 0; i < count; i++)
 	{
-		char *pubTopic = "testlinux/pub";
+		char *pubTopic = RyanMqttPubTestPubTopic;
 		result = RyanMqttPublishAndUserData(client, pubTopic, RyanMqttStrlen(pubTopic), pubStr, pubStrLen, qos,
 						    RyanMqttFalse,
 						    // NOLINTNEXTLINE(performance-no-int-to-ptr)
@@ -173,7 +175,7 @@ static RyanMqttError_e RyanMqttPublishTest(RyanMqttQos_e qos, int32_t count, uin
 		delay(100);
 	}
 
-	result = RyanMqttUnSubscribe(client, "testlinux/pub");
+	result = RyanMqttUnSubscribe(client, RyanMqttPubTestSubTopic);
 	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttFailedError, RyanMqttLog_e, { goto __exit; });
 
 	result = checkAckList(client);
@@ -196,6 +198,10 @@ __exit:
  */
 static RyanMqttError_e RyanMqttPublishHybridTest(int32_t count, uint32_t delayms)
 {
+
+#define RyanMqttPubHybridTestPubTopic "testlinux/aa/pub/adfa/kkk"
+#define RyanMqttPubHybridTestSubTopic "testlinux/aa/+/#"
+
 	RyanMqttError_e result = RyanMqttSuccessError;
 	RyanMqttClient_t *client;
 	time_t timeStampNow = 0;
@@ -205,7 +211,7 @@ static RyanMqttError_e RyanMqttPublishHybridTest(int32_t count, uint32_t delayms
 	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttFailedError, RyanMqttLog_e, { goto __exit; });
 
 	// 等待订阅主题成功
-	result = RyanMqttSubscribe(client, "testlinux/pub", RyanMqttQos2);
+	result = RyanMqttSubscribe(client, RyanMqttPubHybridTestSubTopic, RyanMqttQos2);
 	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttFailedError, RyanMqttLog_e, { goto __exit; });
 	for (int32_t i = 0;; i++)
 	{
@@ -256,7 +262,7 @@ static RyanMqttError_e RyanMqttPublishHybridTest(int32_t count, uint32_t delayms
 	pubTestDataEventCountNotQos0 = 0;
 	for (int32_t i = 0; i < count; i++)
 	{
-		char *pubTopic = "testlinux/pub";
+		char *pubTopic = RyanMqttPubHybridTestPubTopic;
 		result = RyanMqttPublishAndUserData(
 			client, pubTopic, RyanMqttStrlen(pubTopic), pubStr, pubStrLen, i % 3, RyanMqttFalse,
 			// NOLINTNEXTLINE(clang-diagnostic-int-to-void-pointer-cast,performance-no-int-to-ptr)
@@ -296,7 +302,7 @@ static RyanMqttError_e RyanMqttPublishHybridTest(int32_t count, uint32_t delayms
 		delay(100);
 	}
 
-	result = RyanMqttUnSubscribe(client, "testlinux/pub");
+	result = RyanMqttUnSubscribe(client, RyanMqttPubHybridTestSubTopic);
 	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttFailedError, RyanMqttLog_e, { goto __exit; });
 
 	result = checkAckList(client);

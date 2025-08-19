@@ -1,6 +1,6 @@
 #include "RyanMqttTest.h"
 
-static pthread_spinlock_t spin = {0};
+static pthread_spinlock_t spin;
 
 /**
  * @brief mqtt事件回调处理函数
@@ -168,8 +168,8 @@ RyanMqttError_e RyanMqttTestInit(RyanMqttClient_t **client, RyanMqttBool_e syncF
 					     .autoReconnectFlag = autoReconnectFlag,
 					     .cleanSessionFlag = RyanMqttTrue,
 					     .reconnectTimeout = 3000,
-					     .recvTimeout = 3000,
-					     .sendTimeout = 2000,
+					     .recvTimeout = 2000,
+					     .sendTimeout = 1000,
 					     .ackTimeout = 10000,
 					     .keepaliveTimeoutS = keepaliveTimeoutS,
 					     .mqttEventHandle =
@@ -192,10 +192,12 @@ RyanMqttError_e RyanMqttTestInit(RyanMqttClient_t **client, RyanMqttBool_e syncF
 	RyanMqttCheck(RyanMqttSuccessError == result, result, RyanMqttLog_e);
 
 	// 设置遗嘱消息
-	result = RyanMqttSetLwt(*client, "pub/lwt/test", "this is will", RyanMqttStrlen("this is will"), RyanMqttQos2, 0);
+	result = RyanMqttSetLwt(*client, "pub/lwt/test", "this is will", RyanMqttStrlen("this is will"), RyanMqttQos2,
+				0);
 	RyanMqttCheck(RyanMqttSuccessError == result, result, RyanMqttLog_e);
 	// 重复设定一次测试
-	result = RyanMqttSetLwt(*client, "pub/lwt/test", "this is will", RyanMqttStrlen("this is will"), RyanMqttQos2, 0);
+	result = RyanMqttSetLwt(*client, "pub/lwt/test", "this is will", RyanMqttStrlen("this is will"), RyanMqttQos2,
+				0);
 	RyanMqttCheck(RyanMqttSuccessError == result, result, RyanMqttLog_e);
 
 	// 启动mqtt客户端线程

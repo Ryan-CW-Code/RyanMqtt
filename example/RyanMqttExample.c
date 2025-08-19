@@ -374,7 +374,13 @@ static int Mqttsubscribe(int argc, char *argv[])
 		return 0;
 	}
 
-	RyanMqttSubscribe(client, argv[2], atoi(argv[3]));
+	int qos = atoi(argv[3]);
+	if (qos < 0 || qos > 2)
+	{
+		RyanMqttLog_w("无效的QoS值: %d，必须为0-2", qos);
+		return 0;
+	}
+	RyanMqttSubscribe(client, argv[2], qos);
 	return 0;
 }
 

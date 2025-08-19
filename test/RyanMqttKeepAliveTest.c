@@ -5,7 +5,7 @@ static RyanMqttError_e keepAliveTest(void)
 	RyanMqttClient_t *client;
 	RyanMqttError_e result = RyanMqttSuccessError;
 
-	RyanMqttTestInit(&client, RyanMqttTrue, RyanMqttTrue, 20, NULL, NULL);
+	RyanMqttTestInit(&client, RyanMqttTrue, RyanMqttTrue, 10, NULL, NULL);
 
 	while (RyanMqttConnectState != RyanMqttGetState(client))
 	{
@@ -13,21 +13,42 @@ static RyanMqttError_e keepAliveTest(void)
 	}
 
 	uint32_t keepAliveRemain = 0;
-	for (uint32_t i = 0; i < 90; i++)
+	uint32_t minKeepAliveRemain = 0;
+	for (uint32_t i = 0; i < 60; i++)
 	{
 		if (RyanMqttConnectState != RyanMqttGetState(client))
 		{
-			RyanMqttLog_e("mqtt断连了");
-			return RyanMqttFailedError;
+			result = RyanMqttFailedError;
+			break;
 		}
 
 		RyanMqttGetKeepAliveRemain(client, &keepAliveRemain);
+		if (keepAliveRemain < minKeepAliveRemain)
+		{
+			minKeepAliveRemain = keepAliveRemain;
+		}
+
 		RyanMqttLog_w("心跳倒计时: %d", keepAliveRemain);
 		RyanMqttCheckCodeNoReturn(0 != keepAliveRemain, RyanMqttFailedError, RyanMqttLog_e, { break; });
-		delay(1000);
+
+		// 超时判断：如果剩余心跳时间小于 3 秒，视为超时/异常
+		if (keepAliveRemain < 3000)
+		{
+			RyanMqttLog_e("心跳剩余时间过短: %d 秒，心跳包发送周期不对", keepAliveRemain);
+			result = RyanMqttFailedError;
+			break;
+		}
+
+		delay(500);
 	}
 
 	RyanMqttTestDestroyClient(client);
+
+	if (minKeepAliveRemain > 6 * 1000)
+	{
+		RyanMqttLog_e("心跳剩余时间过短: %d 秒，可能频繁的发送心跳包", minKeepAliveRemain);
+		result = RyanMqttFailedError;
+	}
 
 	return result;
 }

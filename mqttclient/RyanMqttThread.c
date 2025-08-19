@@ -3,7 +3,7 @@
 
 #include "RyanMqttThread.h"
 #include "RyanMqttLog.h"
-#include "RyanMqttUtile.h"
+#include "RyanMqttUtil.h"
 
 // mqtt标准是1.5倍，大部分mqtt服务器也是这个配置，RyanMqtt设置为1.4倍，给发送心跳包留一定的时间
 #define RyanMqttKeepAliveMultiplier (1.4)

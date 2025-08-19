@@ -24,6 +24,8 @@ extern "C" {
 #define RyanMqttPort     (1883)        // mqtt服务器端口
 #define RyanMqttUserName ("test")      // 填写你的用户名,没有填NULL
 #define RyanMqttPassword ("test")      // 填写你的密码,没有填NULL
+// #define RyanMqttUserName (NULL) // 填写你的用户名,没有填NULL
+// #define RyanMqttPassword (NULL) // 填写你的密码,没有填NULL
 
 #define delay(ms)         usleep((ms) * 1000)
 #define delay_us(us)      usleep((us))

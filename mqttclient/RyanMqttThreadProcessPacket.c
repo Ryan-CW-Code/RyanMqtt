@@ -3,7 +3,7 @@
 
 #include "RyanMqttThread.h"
 #include "RyanMqttLog.h"
-#include "RyanMqttUtile.h"
+#include "RyanMqttUtil.h"
 
 /**
  * @brief qos1或者qos2接收消息成功
@@ -258,11 +258,14 @@ static RyanMqttError_e RyanMqttSubackHandler(RyanMqttClient_t *client, MQTTPacke
 	RyanList_t *curr, *next;
 	RyanMqttAssert(NULL != client);
 
-	// 反序列化ack包,特意不加status判断，packetId为0也能反序列化出来
-	MQTT_DeserializeAck(pIncomingPacket, &packetId, NULL);
+	// 反序列化ack包，MQTTSuccess和MQTTServerRefused都是成功的
+	MQTTStatus_t status = MQTT_DeserializeAck(pIncomingPacket, &packetId, NULL);
+	RyanMqttCheck(MQTTSuccess == status || MQTTServerRefused == status, RyanMqttDeserializePacketError,
+		      RyanMqttLog_d);
 
 	// 检查ack的msgCount和返回消息的msgCount是否一致
 	{
+		// MQTT_DeserializeAck会保证 pIncomingPacket->remainingLength >= 3
 		uint32_t statusCount = pIncomingPacket->remainingLength - sizeof(uint16_t);
 		uint32_t ackMsgCount = 0;
 
