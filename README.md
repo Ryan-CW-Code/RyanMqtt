@@ -17,9 +17,9 @@
 
 #### 主要特性
 
-- ✅ **严格遵循 MQTT 3.1.1 协议标准**
+- ✅ **严格遵循  [MQTT 3.1.1](https://docs.oasis-open.org/mqtt/mqtt/v3.1.1/mqtt-v3.1.1.html)  协议标准**
 
-- ✅ **高质量代码保障** ， 引入 **[clang-tidy](https://clang.llvm.org/extra/clang-tidy/#clang-tidy)** 与 **[Cppcheck](https://cppcheck.sourceforge.io/)** 进行静态分析，实现接近语法级“零缺陷”，提升可维护性
+- ✅ **高质量代码保障** ， 引入 **[clang-tidy](https://clang.llvm.org/extra/clang-tidy/#clang-tidy)** 与 **[Cppcheck](https://cppcheck.sourceforge.io/)** 进行静态分析，实现接近语法级"**零缺陷**"，提升可维护性
 
 - ✅ **AI 辅助开发与审查**，使用  **[coderabbitai](https://www.coderabbit.ai)** 和 **[Copilot](https://github.com/features/copilot)** 辅助编码与代码审查，持续优化代码质量，构建安全防线
 
@@ -37,10 +37,7 @@
 
 - ✅ 丰富的参数配置与事件回调接口，满足绝大多数实际项目需求（欢迎提出新需求）
 
-- ✅**高性能与高并发能力：**经测试，在 Linux 环境下可稳定发送/接收连续 20,000 条 QoS2 消息，
-
-  无一丢包。
-
+- ✅**高性能与高并发能力**，在 Linux 环境下可稳定发送/接收连续 20,000 条 QoS2 消息，无一丢包。
   > ⚠️ 实际性能受单片机内存大小及网络硬件能力影响
 
 - ✅ **复杂线程环境下稳定运行**，已在多个商业项目中长期使用验证

@@ -7,7 +7,7 @@
 | 维度         | 变更类型                                                     | 核心价值                                                     |
 | ------------ | :----------------------------------------------------------- | :----------------------------------------------------------- |
 | **协议栈**   | **[Paho MQTT Embedded](https://github.com/eclipse-paho/paho.mqtt.embedded-c)** → **[coreMQTT](https://github.com/FreeRTOS/coreMQTT)** | 社区维护活跃、测试覆盖完善，为 [**MQTT 5.0**](https://docs.oasis-open.org/mqtt/mqtt/v5.0/mqtt-v5.0.html) 提供可扩展性基础 |
-| **代码规范** | 引入 **[clang-tidy](https://clang.llvm.org/extra/clang-tidy/#clang-tidy)** 和 **[Cppcheck](https://cppcheck.sourceforge.io/)** 进行静态分析 | **高质量代码保障**，接近语法级**`零缺陷`**，显著提升可维护性 |
+| **代码规范** | 引入 **[clang-tidy](https://clang.llvm.org/extra/clang-tidy/#clang-tidy)** 和 **[Cppcheck](https://cppcheck.sourceforge.io/)** 进行静态分析 | **高质量代码保障**，接近语法级"**零缺陷**"，显著提升可维护性 |
 | **代码审查** | 使用 **[coderabbitai](https://www.coderabbit.ai)** 和 **[Copilot](https://github.com/features/copilot)** 辅助编码与代码审查 | **AI辅助开发与审查**，持续提升代码质量，构筑安全防线         |
 | **内存管理** | 固定缓冲区 → **动态按需分配**                                | 按需申请，降低内存占用                                       |
 | **线程模型** | 更完善的线程安全                                             | 支撑复杂线程应用场景，杜绝竞态风险                           |
@@ -17,7 +17,7 @@
 
 ### 1. MQTT 协议栈升级
 
-- 从**[Paho MQTT Embedded](https://github.com/eclipse-paho/paho.mqtt.embedded-c)** 到 **[coreMQTT](https://github.com/FreeRTOS/coreMQTT)**
+- 从 **[Paho MQTT Embedded](https://github.com/eclipse-paho/paho.mqtt.embedded-c)** 到 **[coreMQTT](https://github.com/FreeRTOS/coreMQTT)**
 - **[coreMQTT](https://github.com/FreeRTOS/coreMQTT)** 社区活跃度高、维护频繁、测试覆盖更全面
 - 更灵活的缓冲区管理策略
 - 为 [**MQTT 5.0**](https://docs.oasis-open.org/mqtt/mqtt/v5.0/mqtt-v5.0.html) 扩展奠定实现基础
@@ -26,8 +26,6 @@
 
 - 移除固定 `recvBuffer` / `sendBuffer` 配置
 - 采用**按需动态分配**，降低运行内存占用
-- 增强边界检查与输入验证
-- 异常路径与析构流程保证**零资源泄漏**
 
 ### 3. 线程安全强化
 
@@ -83,8 +81,8 @@ uint32_t platformUptimeMs(void);
 ### 2. 网络收发模型简化
 
 - 收发接口改为**单次调用语义**，减少冗余循环与分支
-- 返回值由“错误码”调整为“实际传输字节数”，更贴近底层行为
-- 错误码分类更细化，异常恢复路径更明确可控
+- 返回值由`错误码`调整为`实际传输字节数`，更贴近底层行为
+- 异常恢复路径更明确可控
 
 ## 🧪 测试体系全面升级
 
@@ -128,7 +126,7 @@ uint32_t platformUptimeMs(void);
 - 性能优化：减少冗余拷贝与低效算法
 - 可读性：命名规范、注释完整、逻辑清晰
 
-> ✅ **成果**：实现接近语法级“零缺陷”，长期维护成本大幅降低
+> ✅ **成果**：实现接近语法级"**零缺陷**"，长期维护成本大幅降低
 
 ## 🔒 安全性与可靠性全面提升
 
