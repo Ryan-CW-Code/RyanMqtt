@@ -106,7 +106,7 @@ RyanMqttError_e RyanMqttInit(RyanMqttClient_t **pClient)
 
 	result = platformNetworkInit(client->config.userData, &client->network); // 网络接口初始化
 	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, result, RyanMqttLog_d, { goto __exit; });
-	networkIsOk = RyanMqttTrue;
+	// networkIsOk = RyanMqttTrue;
 
 	RyanListInit(&client->msgHandlerList);
 	RyanListInit(&client->ackHandlerList);
@@ -993,8 +993,10 @@ RyanMqttError_e RyanMqttSetLwt(RyanMqttClient_t *client, char *topicName, char *
 	if (NULL == client->lwtOptions)
 	{
 		client->lwtOptions = (lwtOptions_t *)platformMemoryMalloc(sizeof(lwtOptions_t));
-		RyanMqttCheckCode(NULL != client->lwtOptions, RyanMqttNotEnoughMemError, RyanMqttLog_d,
-				  { goto __exit; });
+		RyanMqttCheckCodeNoReturn(NULL != client->lwtOptions, RyanMqttNotEnoughMemError, RyanMqttLog_d, {
+			result = RyanMqttNotEnoughMemError;
+			goto __exit;
+		});
 	}
 	else
 	{

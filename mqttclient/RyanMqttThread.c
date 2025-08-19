@@ -240,9 +240,7 @@ static RyanMqttError_e RyanMqttConnect(RyanMqttClient_t *client, RyanMqttConnect
 	RyanMqttAssert(NULL != client);
 	RyanMqttAssert(NULL != connectState);
 
-	*connectState = RyanMqttConnectClientInvalid;
-	RyanMqttCheckCode(RyanMqttConnectState != RyanMqttGetClientState(client), RyanMqttConnectError, RyanMqttLog_d,
-			  { *connectState = RyanMqttConnectClientInvalid; });
+	RyanMqttCheck(RyanMqttConnectState != RyanMqttGetClientState(client), RyanMqttConnectError, RyanMqttLog_d);
 
 	// connect 信息
 	{
@@ -305,16 +303,20 @@ static RyanMqttError_e RyanMqttConnect(RyanMqttClient_t *client, RyanMqttConnect
 	// 序列化数据包
 	status = MQTT_SerializeConnect(&connectInfo, RyanMqttTrue == lwtFlag ? &willInfo : NULL, remainingLength,
 				       &fixedBuffer);
-	RyanMqttCheckCode(MQTTSuccess == status, RyanMqttSerializePacketError, RyanMqttLog_d, { goto __exit; });
+	RyanMqttCheckCodeNoReturn(MQTTSuccess == status, RyanMqttSerializePacketError, RyanMqttLog_d, {
+		result = RyanMqttSerializePacketError;
+		goto __exit;
+	});
 
 	// 调用底层的连接函数连接上服务器
 	result = platformNetworkConnect(client->config.userData, &client->network, client->config.host,
 					client->config.port);
-	RyanMqttCheckCode(RyanMqttSuccessError == result, RyanSocketFailedError, RyanMqttLog_d, { goto __exit; });
+	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanSocketFailedError, RyanMqttLog_d,
+				  { goto __exit; });
 
 	// 发送序列化mqtt的CONNECT报文
 	result = RyanMqttSendPacket(client, fixedBuffer.pBuffer, fixedBuffer.size);
-	RyanMqttCheckCode(RyanMqttSuccessError == result, result, RyanMqttLog_d, {
+	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, result, RyanMqttLog_d, {
 		platformNetworkClose(client->config.userData, &client->network);
 		goto __exit;
 	});
