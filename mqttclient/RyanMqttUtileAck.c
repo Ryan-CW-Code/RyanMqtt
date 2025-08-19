@@ -27,7 +27,7 @@ RyanMqttError_e RyanMqttAckHandlerCreate(RyanMqttClient_t *client, uint8_t packe
 
 	uint32_t mallocLen = sizeof(RyanMqttAckHandler_t);
 
-	// 给消息主题添加空格
+	// 为非预分配的数据包分配额外空间
 	if (RyanMqttTrue != isPreallocatedPacket)
 	{
 		mallocLen += packetLen + 1;
@@ -139,14 +139,19 @@ RyanMqttError_e RyanMqttAckListAddToAckList(RyanMqttClient_t *client, RyanMqttAc
 {
 	RyanMqttAssert(NULL != client);
 	RyanMqttAssert(NULL != ackHandler);
+	RyanMqttBool_e isAckCountWarning = RyanMqttFalse;
 
 	platformMutexLock(client->config.userData, &client->ackHandleLock);
 	// 将ack节点添加到链表尾部
 	RyanMqttListAddTail(&ackHandler->list, &client->ackHandlerList);
 	client->ackHandlerCount++;
+	if (client->ackHandlerCount >= client->config.ackHandlerCountWarning)
+	{
+		isAckCountWarning = RyanMqttTrue;
+	}
 	platformMutexUnLock(client->config.userData, &client->ackHandleLock);
 
-	if (client->ackHandlerCount >= client->config.ackHandlerCountWarning)
+	if (RyanMqttTrue == isAckCountWarning)
 	{
 		RyanMqttEventMachine(client, RyanMqttEventAckCountWarning, (void *)&client->ackHandlerCount);
 	}
