@@ -257,7 +257,7 @@ static void serializeConnectPacket( const MQTTConnectInfo_t * pConnectInfo,
  *
  * @param[in] responseCode MQTT standard CONNACK response code.
  */
-static void logConnackResponse( uint8_t responseCode );
+// static void logConnackResponse( uint8_t responseCode );
 
 /**
  * @brief Encodes the remaining length of the packet using the variable length
@@ -1046,35 +1046,35 @@ static MQTTStatus_t processPublishFlags( uint8_t publishFlags,
 
 /*-----------------------------------------------------------*/
 
-static void logConnackResponse( uint8_t responseCode )
-{
-    const char * const pConnackResponses[ 6 ] =
-    {
-        "Connection accepted.",                               /* 0 */
-        "Connection refused: unacceptable protocol version.", /* 1 */
-        "Connection refused: identifier rejected.",           /* 2 */
-        "Connection refused: server unavailable",             /* 3 */
-        "Connection refused: bad user name or password.",     /* 4 */
-        "Connection refused: not authorized."                 /* 5 */
-    };
+// static void logConnackResponse( uint8_t responseCode )
+// {
+//     const char * const pConnackResponses[ 6 ] =
+//     {
+//         "Connection accepted.",                               /* 0 */
+//         "Connection refused: unacceptable protocol version.", /* 1 */
+//         "Connection refused: identifier rejected.",           /* 2 */
+//         "Connection refused: server unavailable",             /* 3 */
+//         "Connection refused: bad user name or password.",     /* 4 */
+//         "Connection refused: not authorized."                 /* 5 */
+//     };
 
-    /* Avoid unused parameter warning when assert and logs are disabled. */
-    ( void ) responseCode;
-    ( void ) pConnackResponses;
+//     /* Avoid unused parameter warning when assert and logs are disabled. */
+//     ( void ) responseCode;
+//     ( void ) pConnackResponses;
 
-    assert( responseCode <= 5U );
+//     assert( responseCode <= 5U );
 
-    if( responseCode == 0u )
-    {
-        /* Log at Debug level for a success CONNACK response. */
-        LogDebug( ( "%s", pConnackResponses[ 0 ] ) );
-    }
-    else
-    {
-        /* Log an error based on the CONNACK response code. */
-        LogError( ( "%s", pConnackResponses[ responseCode ] ) );
-    }
-}
+//     if( responseCode == 0u )
+//     {
+//         /* Log at Debug level for a success CONNACK response. */
+//         LogDebug( ( "%s", pConnackResponses[ 0 ] ) );
+//     }
+//     else
+//     {
+//         /* Log an error based on the CONNACK response code. */
+//         LogError( ( "%s", pConnackResponses[ responseCode ] ) );
+//     }
+// }
 
 /*-----------------------------------------------------------*/
 
