@@ -335,21 +335,26 @@ static RyanMqttError_e RyanMqttConnect(RyanMqttClient_t *client, RyanMqttConnect
 		uint16_t packetId;
 		bool sessionPresent; // 会话位
 
-		// 反序列化ack包
+		// 反序列化ack包，MQTTSuccess 和 MQTTServerRefused都会返回正确的connectState
 		status = MQTT_DeserializeAck(&pIncomingPacket, &packetId, &sessionPresent);
-		if (MQTTSuccess != status)
+		if (MQTTSuccess != status && MQTTServerRefused != status)
 		{
-			RyanMqttLog_d("反序列化ack包失败");
 			result = RyanMqttFailedError;
 		}
 		else
 		{
 			*connectState = pIncomingPacket.pRemainingData[1];
-
-			// 服务端无历史会话，客户端这里选择直接进行清空
-			if (false == sessionPresent)
+			if (RyanMqttConnectAccepted != *connectState)
 			{
-				RyanMqttPurgeSession(client);
+				result = RyanMqttFailedError;
+			}
+			else
+			{
+				// 服务端无历史会话，客户端这里选择直接进行清空
+				if (false == sessionPresent)
+				{
+					RyanMqttPurgeSession(client);
+				}
 			}
 		}
 	}
