@@ -25,18 +25,18 @@ RyanMqttError_e RyanMqttAckHandlerCreate(RyanMqttClient_t *client, uint8_t packe
 	RyanMqttAssert(NULL != client);
 	RyanMqttAssert(NULL != pAckHandler);
 
-	uint32_t mallocLen = sizeof(RyanMqttAckHandler_t);
+	uint32_t mallocSize = sizeof(RyanMqttAckHandler_t);
 
 	// 为非预分配的数据包分配额外空间
 	if (RyanMqttTrue != isPreallocatedPacket)
 	{
-		mallocLen += packetLen + 1;
+		mallocSize += packetLen + 1;
 	}
 
 	// 为非预分配包申请额外空间
-	RyanMqttAckHandler_t *ackHandler = (RyanMqttAckHandler_t *)platformMemoryMalloc(mallocLen);
+	RyanMqttAckHandler_t *ackHandler = (RyanMqttAckHandler_t *)platformMemoryMalloc(mallocSize);
 	RyanMqttCheck(NULL != ackHandler, RyanMqttNotEnoughMemError, RyanMqttLog_d);
-	RyanMqttMemset(ackHandler, 0, mallocLen);
+	RyanMqttMemset(ackHandler, 0, mallocSize);
 
 	RyanMqttListInit(&ackHandler->list);
 	// 超时内没有响应将被销毁或重新发送

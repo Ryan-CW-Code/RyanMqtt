@@ -6,7 +6,7 @@
 #include "RyanMqttUtil.h"
 
 /**
- * @brief qos1或者qos2接收消息成功
+ * @brief qos1或者qos2接收消息成功确认处理
  *
  * @param client
  * @return RyanMqttError_e
@@ -524,20 +524,6 @@ RyanMqttError_e RyanMqttProcessPacketHandler(RyanMqttClient_t *client)
 
 	case MQTT_PACKET_TYPE_CONNACK: // 连接报文确认
 	{
-		// if (RyanMqttTrue == isConnect)
-		// {
-		// 	uint16_t packetId;
-		// 	bool sessionPresent; // 会话位
-		// 	MQTTStatus_t status;
-
-		// 	// 反序列化ack包
-		// 	status = MQTT_DeserializeAck(&pIncomingPacket, &packetId, &sessionPresent);
-		// 	if (MQTTSuccess != status)
-		// 	{
-		// 		result = RyanMqttFailedError;
-		// 	}
-		// }
-
 		// 客户端已处于连接状态时又收到CONNACK报文,应该视为严重错误，断开连接
 		RyanMqttLog_e("收到 CONNACK 时已连接，正在断开连接");
 		RyanMqttConnectStatus_e connectState = RyanMqttConnectProtocolError;

@@ -5,13 +5,11 @@
 #include "RyanMqttLog.h"
 #include "RyanMqttUtil.h"
 
-// mqtt标准是1.5倍，大部分mqtt服务器也是这个配置，RyanMqtt设置为1.4倍，给发送心跳包留一定的时间
-#define RyanMqttKeepAliveMultiplier (1.4)
+// mqtt标准是1.5倍，大部分mqtt服务器也是这个配置
+#define RyanMqttKeepAliveMultiplier (1.5)
 
 void RyanMqttRefreshKeepaliveTime(RyanMqttClient_t *client)
 {
-	// 服务器在心跳时间的1.5倍内没有收到keeplive消息则会断开连接
-	// 这里算 1.4 b倍时间内没有收到心跳就断开连接
 	platformCriticalEnter(client->config.userData, &client->criticalLock);
 	uint32_t timeout = (uint32_t)(client->config.keepaliveTimeoutS * 1000 * RyanMqttKeepAliveMultiplier);
 	RyanMqttTimerCutdown(&client->keepaliveTimer, timeout); // 启动心跳定时器
@@ -36,7 +34,7 @@ static RyanMqttError_e RyanMqttKeepalive(RyanMqttClient_t *client)
 
 	uint32_t timeRemain = RyanMqttTimerRemain(&client->keepaliveTimer);
 
-	// 超过设置的 1.4 倍心跳周期，主动通知用户断开连接
+	// 超过设置的 1.5 倍心跳周期，主动通知用户断开连接
 	if (0 == timeRemain)
 	{
 		RyanMqttConnectStatus_e connectState = RyanMqttKeepaliveTimeout;
@@ -49,7 +47,7 @@ static RyanMqttError_e RyanMqttKeepalive(RyanMqttClient_t *client)
 	// 当剩余时间小于 recvtimeout 时强制发送心跳包
 	if (timeRemain > client->config.recvTimeout)
 	{
-		// 当到达 keepaliveTimeoutS的0.9 倍时间时发送心跳包
+		// 当没有到达 keepaliveTimeoutS 的 0.9 倍时间时不进行发送心跳包
 		if (timeRemain > client->config.keepaliveTimeoutS * 1000 * (RyanMqttKeepAliveMultiplier - 0.9))
 		{
 			return RyanMqttSuccessError;

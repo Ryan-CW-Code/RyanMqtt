@@ -8,9 +8,10 @@ target("RyanMqtt",function()
     set_languages("gnu99") -- 关键！启用 GNU 扩展
     set_warnings("everything") -- 启用全部警告 -Wall -Wextra -Weffc++ / -Weverything
 
-    set_optimize("smallest") -- -Os
+    -- set_optimize("smallest") -- -Os
     -- set_optimize("faster") -- -O2
     -- set_optimize("fastest") -- -O3
+    set_optimize("aggressive") -- -Ofast
 
     add_defines("PKG_USING_RYANMQTT_IS_ENABLE_ASSERT") -- 开启assert
     add_ldflags("-Wl,-Map=$(buildir)/RyanMqtt.map") 

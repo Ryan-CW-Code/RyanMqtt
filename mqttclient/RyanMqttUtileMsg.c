@@ -183,10 +183,10 @@ RyanMqttError_e RyanMqttMsgHandlerCreate(RyanMqttClient_t *client, const char *t
 	RyanMqttAssert(NULL != pMsgHandler);
 	RyanMqttAssert(RyanMqttQos0 == qos || RyanMqttQos1 == qos || RyanMqttQos2 == qos);
 
-	RyanMqttMsgHandler_t *msgHandler =
-		(RyanMqttMsgHandler_t *)platformMemoryMalloc(sizeof(RyanMqttMsgHandler_t) + topicLen + 1);
+	uint32_t mallocSize = sizeof(RyanMqttMsgHandler_t) + topicLen + 1;
+	RyanMqttMsgHandler_t *msgHandler = (RyanMqttMsgHandler_t *)platformMemoryMalloc(mallocSize);
 	RyanMqttCheck(NULL != msgHandler, RyanMqttNotEnoughMemError, RyanMqttLog_d);
-	RyanMqttMemset(msgHandler, 0, sizeof(RyanMqttMsgHandler_t) + topicLen + 1);
+	RyanMqttMemset(msgHandler, 0, mallocSize);
 
 	// 初始化链表
 	RyanMqttListInit(&msgHandler->list);
@@ -349,7 +349,7 @@ RyanMqttError_e RyanMqttMsgHandlerAddToMsgList(RyanMqttClient_t *client, RyanMqt
 
 	platformMutexLock(client->config.userData, &client->msgHandleLock);
 	RyanMqttListAddTail(&msgHandler->list,
-			&client->msgHandlerList); // 将msgHandler节点添加到链表尾部
+			    &client->msgHandlerList); // 将msgHandler节点添加到链表尾部
 	platformMutexUnLock(client->config.userData, &client->msgHandleLock);
 
 	return RyanMqttSuccessError;
