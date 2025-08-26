@@ -372,7 +372,7 @@ __exit:
 
 	for (int32_t i = 0; i < count; i++)
 	{
-		// 创建msg包,允许服务端在发送 SUBACK 报文之前就开始发送与订阅匹配的 PUBLISH 报文。
+		// ?创建msg包,3.8.4响应,允许服务端在发送 SUBACK 报文之前就开始发送与订阅匹配的 PUBLISH 报文。
 		result = RyanMqttMsgHandlerCreate(client, subscriptionList[i].pTopicFilter,
 						  subscriptionList[i].topicFilterLength, packetId,
 						  (RyanMqttQos_e)subscriptionList[i].qos, NULL, &msgToListHandler);

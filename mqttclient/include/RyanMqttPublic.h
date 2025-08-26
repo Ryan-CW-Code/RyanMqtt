@@ -249,17 +249,6 @@ extern const char *RyanMqttStrError(int32_t state);
 
 /* extern variables-----------------------------------------------------------*/
 
-typedef struct
-{
-	uint32_t time;
-	uint32_t timeOut;
-} RyanMqttTimer_t;
-
-extern void RyanMqttTimerInit(RyanMqttTimer_t *platformTimer);
-extern void RyanMqttTimerCutdown(RyanMqttTimer_t *platformTimer, uint32_t timeout);
-extern uint32_t RyanMqttTimerGetConfigTimeout(RyanMqttTimer_t *platformTimer);
-extern uint32_t RyanMqttTimerRemain(RyanMqttTimer_t *platformTimer);
-
 #ifdef __cplusplus
 }
 #endif

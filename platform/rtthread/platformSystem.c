@@ -1,4 +1,5 @@
 #include "platformSystem.h"
+#include "RyanMqttPlatform.h"
 
 /**
  * @brief 申请内存

@@ -35,6 +35,15 @@
         "utility": "c",
         "pthread.h": "c",
         "ryanmqtttest.h": "c",
-        "core_mqtt_config_defaults.h": "c"
+        "core_mqtt_config_defaults.h": "c",
+        "ryanmqttplatform.h": "c",
+        "ryanmqttclient.h": "c",
+        "ryanmqttlog.h": "c",
+        "valloc.h": "c",
+        "platformsystem.h": "c",
+        "ryanmqttpublic.h": "c",
+        "ryanmqttlist.h": "c",
+        "platformnetwork.h": "c",
+        "inttypes.h": "c"
     },
 }

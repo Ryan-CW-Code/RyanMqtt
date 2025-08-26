@@ -87,27 +87,28 @@ static RyanMqttError_e RyanMqttPublishTest(RyanMqttQos_e qos, int32_t count, uin
 	// 等待订阅主题成功
 	result = RyanMqttSubscribe(client, RyanMqttPubTestSubTopic, qos);
 	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttFailedError, RyanMqttLog_e, { goto __exit; });
-	for (int32_t i = 0;; i++)
-	{
-		int32_t subscribeTotal = 0;
+    // !不等待topic订阅成功，检查是否正常接收消息
+	// for (int32_t i = 0;; i++)
+	// {
+	// 	int32_t subscribeTotal = 0;
 
-		result = RyanMqttGetSubscribeTotalCount(client, &subscribeTotal);
-		RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttFailedError, RyanMqttLog_e,
-					  { goto __exit; });
-		if (1 == subscribeTotal)
-		{
-			break;
-		}
+	// 	result = RyanMqttGetSubscribeTotalCount(client, &subscribeTotal);
+	// 	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttFailedError, RyanMqttLog_e,
+	// 				  { goto __exit; });
+	// 	if (1 == subscribeTotal)
+	// 	{
+	// 		break;
+	// 	}
 
-		if (i > 3000)
-		{
-			RyanMqttLog_e("订阅主题失败");
-			result = RyanMqttFailedError;
-			goto __exit;
-		}
+	// 	if (i > 3000)
+	// 	{
+	// 		RyanMqttLog_e("订阅主题失败");
+	// 		result = RyanMqttFailedError;
+	// 		goto __exit;
+	// 	}
 
-		delay(1);
-	}
+	// 	delay(1);
+	// }
 
 	// 生成随机的数据包大小
 	{

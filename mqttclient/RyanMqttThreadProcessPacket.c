@@ -282,7 +282,7 @@ static RyanMqttError_e RyanMqttSubackHandler(RyanMqttClient_t *client, MQTTPacke
 		}
 		platformMutexUnLock(client->config.userData, &client->msgHandleLock);
 
-		// 服务区回复的ack数和记录的ack数不一致就清除所有ack
+		// 服务器回复的ack数和记录的ack数不一致就清除所有ack
 		RyanMqttCheckCode(ackMsgCount == statusCount, RyanMqttNoRescourceError, RyanMqttLog_d, {
 			RyanMqttClearAckSession(client, MQTT_PACKET_TYPE_SUBACK, packetId);
 			platformMutexLock(client->config.userData, &client->msgHandleLock);
@@ -300,6 +300,7 @@ static RyanMqttError_e RyanMqttSubackHandler(RyanMqttClient_t *client, MQTTPacke
 		});
 	}
 
+	// 到这里说明ackCount和msgCount是一致的
 	RyanMqttQos_e subscriptionQos;
 	uint32_t ackMsgIndex = 0;
 	const uint8_t *pStatusStart = &pIncomingPacket->pRemainingData[sizeof(uint16_t)];

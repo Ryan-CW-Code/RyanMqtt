@@ -44,7 +44,7 @@ extern "C"
 #endif
 /* *INDENT-ON* */
 
-#include "platformSystem.h"
+#include "RyanMqttPlatform.h"
 
 /* The macro definition for MQTT_DO_NOT_USE_CUSTOM_CONFIG is for Doxygen
  * documentation only. */
