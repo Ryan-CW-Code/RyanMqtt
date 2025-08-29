@@ -13,20 +13,28 @@ extern "C" {
 #define RyanMqttMemset memset
 #endif
 
-#ifndef RyanMqttMemset
+#ifndef RyanMqttStrlen
 #define RyanMqttStrlen strlen
 #endif
 
-#ifndef RyanMqttMemset
+#ifndef RyanMqttMemcpy
 #define RyanMqttMemcpy memcpy
 #endif
 
-#ifndef RyanMqttMemset
-#define RyanMqttStrcmp strcmp
+#ifndef RyanMqttStrncmp
+#define RyanMqttStrncmp strncmp
 #endif
 
 #ifndef platformAssert
 #define platformAssert assert
+#endif
+
+#ifndef RyanMqttSnprintf
+#define RyanMqttSnprintf snprintf
+#endif
+
+#ifndef RyanMqttVsnprintf
+#define RyanMqttVsnprintf vsnprintf
 #endif
 
 // RyanMqttT内部imer接口

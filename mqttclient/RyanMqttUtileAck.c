@@ -15,7 +15,7 @@
  * @param packet
  * @param msgHandler
  * @param pAckHandler
- * @param isPreallocatedPacket
+ * @param isPreallocatedPacket packet是否预分配
  * @return RyanMqttError_e
  */
 RyanMqttError_e RyanMqttAckHandlerCreate(RyanMqttClient_t *client, uint8_t packetType, uint16_t packetId,
@@ -36,16 +36,15 @@ RyanMqttError_e RyanMqttAckHandlerCreate(RyanMqttClient_t *client, uint8_t packe
 	// 为非预分配包申请额外空间
 	RyanMqttAckHandler_t *ackHandler = (RyanMqttAckHandler_t *)platformMemoryMalloc(mallocSize);
 	RyanMqttCheck(NULL != ackHandler, RyanMqttNotEnoughMemError, RyanMqttLog_d);
-	RyanMqttMemset(ackHandler, 0, mallocSize);
 
+	ackHandler->packetType = packetType;
+	ackHandler->repeatCount = 0;
+	ackHandler->packetId = packetId;
+	ackHandler->isPreallocatedPacket = isPreallocatedPacket;
+	ackHandler->packetLen = packetLen;
 	RyanMqttListInit(&ackHandler->list);
 	// 超时内没有响应将被销毁或重新发送
 	RyanMqttTimerCutdown(&ackHandler->timer, client->config.ackTimeout);
-
-	ackHandler->isPreallocatedPacket = isPreallocatedPacket;
-	ackHandler->packetId = packetId;
-	ackHandler->packetLen = packetLen;
-	ackHandler->packetType = packetType;
 	ackHandler->msgHandler = msgHandler;
 
 	if (RyanMqttTrue != isPreallocatedPacket)
@@ -81,8 +80,9 @@ void RyanMqttAckHandlerDestroy(RyanMqttClient_t *client, RyanMqttAckHandler_t *a
 	RyanMqttMsgHandlerDestroy(client, ackHandler->msgHandler); // 释放msgHandler
 
 	// 释放用户预提供的缓冲区
-	if (RyanMqttTrue == ackHandler->isPreallocatedPacket && NULL != ackHandler->packet)
+	if (RyanMqttTrue == ackHandler->isPreallocatedPacket)
 	{
+		// 不加null判断，因为如果是空，一定是用户程序内存访问越界了
 		platformMemoryFree(ackHandler->packet);
 	}
 
@@ -139,21 +139,18 @@ RyanMqttError_e RyanMqttAckListAddToAckList(RyanMqttClient_t *client, RyanMqttAc
 {
 	RyanMqttAssert(NULL != client);
 	RyanMqttAssert(NULL != ackHandler);
-	RyanMqttBool_e isAckCountWarning = RyanMqttFalse;
+	uint16_t tmpAckHandlerCount;
 
 	platformMutexLock(client->config.userData, &client->ackHandleLock);
 	// 将ack节点添加到链表尾部
 	RyanMqttListAddTail(&ackHandler->list, &client->ackHandlerList);
 	client->ackHandlerCount++;
-	if (client->ackHandlerCount >= client->config.ackHandlerCountWarning)
-	{
-		isAckCountWarning = RyanMqttTrue;
-	}
+	tmpAckHandlerCount = client->ackHandlerCount;
 	platformMutexUnLock(client->config.userData, &client->ackHandleLock);
 
-	if (RyanMqttTrue == isAckCountWarning)
+	if (tmpAckHandlerCount >= client->config.ackHandlerCountWarning)
 	{
-		RyanMqttEventMachine(client, RyanMqttEventAckCountWarning, (void *)&client->ackHandlerCount);
+		RyanMqttEventMachine(client, RyanMqttEventAckCountWarning, (void *)&tmpAckHandlerCount);
 	}
 
 	return RyanMqttSuccessError;
@@ -183,7 +180,7 @@ RyanMqttError_e RyanMqttAckListRemoveToAckList(RyanMqttClient_t *client, RyanMqt
 }
 
 /**
- * @brief 检查链表中是否存在ack句柄
+ * @brief 检查用户层链表中是否存在ack句柄
  *
  * @param client
  * @param packetType
@@ -221,13 +218,6 @@ __exit:
 	return result;
 }
 
-/**
- * @brief 添加等待ack到链表
- *
- * @param client
- * @param ackHandler
- * @return RyanMqttError_e
- */
 RyanMqttError_e RyanMqttAckListAddToUserAckList(RyanMqttClient_t *client, RyanMqttAckHandler_t *ackHandler)
 {
 	RyanMqttAssert(NULL != client);
@@ -240,13 +230,6 @@ RyanMqttError_e RyanMqttAckListAddToUserAckList(RyanMqttClient_t *client, RyanMq
 	return RyanMqttSuccessError;
 }
 
-/**
- * @brief 从链表移除ack
- *
- * @param client
- * @param ackHandler
- * @return RyanMqttError_e
- */
 RyanMqttError_e RyanMqttAckListRemoveToUserAckList(RyanMqttClient_t *client, RyanMqttAckHandler_t *ackHandler)
 {
 	RyanMqttAssert(NULL != client);

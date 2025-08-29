@@ -243,6 +243,36 @@ void RyanMqttPurgeSession(RyanMqttClient_t *client)
 	platformMutexUnLock(client->config.userData, &client->userSessionLock);
 }
 
+void RyanMqttPurgeConfig(RyanMqttClientConfig_t *clientConfig)
+{
+	RyanMqttAssert(NULL != clientConfig);
+
+	if (clientConfig->clientId)
+	{
+		platformMemoryFree(clientConfig->clientId);
+	}
+
+	if (clientConfig->userName)
+	{
+		platformMemoryFree(clientConfig->userName);
+	}
+
+	if (clientConfig->password)
+	{
+		platformMemoryFree(clientConfig->password);
+	}
+
+	if (clientConfig->host)
+	{
+		platformMemoryFree(clientConfig->host);
+	}
+
+	if (clientConfig->taskName)
+	{
+		platformMemoryFree(clientConfig->taskName);
+	}
+}
+
 /**
  * @brief 初始化计时器
  *

@@ -149,6 +149,13 @@ static void mqttEventHandle(void *pclient, RyanMqttEventId_e event, const void *
 
 	case RyanMqttEventDestroyBefore: RyanMqttLog_i("销毁mqtt客户端前回调"); break;
 
+	case RyanMqttEventUnsubscribedData: {
+		RyanMqttMsgData_t *msgData = (RyanMqttMsgData_t *)eventData;
+		RyanMqttLog_i("接收到未匹配任何订阅主题的报文事件 topic: %.*s, packetId: %d, payload len: %d",
+			      msgData->topicLen, msgData->topic, msgData->packetId, msgData->payloadLen);
+		break;
+	}
+
 	default: break;
 	}
 }

@@ -87,7 +87,7 @@ static RyanMqttError_e RyanMqttPublishTest(RyanMqttQos_e qos, int32_t count, uin
 	// 等待订阅主题成功
 	result = RyanMqttSubscribe(client, RyanMqttPubTestSubTopic, qos);
 	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttFailedError, RyanMqttLog_e, { goto __exit; });
-    // !不等待topic订阅成功，检查是否正常接收消息
+	// !不等待topic订阅成功，检查是否正常接收消息
 	// for (int32_t i = 0;; i++)
 	// {
 	// 	int32_t subscribeTotal = 0;

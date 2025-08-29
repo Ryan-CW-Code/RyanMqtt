@@ -166,6 +166,45 @@ static RyanMqttBool_e RyanMqttMatchTopic(const char *topic, const uint16_t topic
 }
 
 /**
+ * @brief 检查消息处理程序的主题是否与给定主题匹配
+ *
+ * @param msgHandler
+ * @param topic
+ * @param topicLen
+ * @param isTopicMatchedFlag
+ * @return RyanMqttBool_e
+ */
+static RyanMqttBool_e RyanMqttMsgTopicIsMatch(RyanMqttMsgHandler_t *msgHandler, const char *topic, uint16_t topicLen,
+					      RyanMqttBool_e isTopicMatchedFlag)
+{
+	// 不进行通配符匹配
+	if (RyanMqttTrue != isTopicMatchedFlag)
+	{
+		// 不相等跳过
+		if (topicLen != msgHandler->topicLen)
+		{
+			return RyanMqttFalse;
+		}
+
+		// 主题名称不相等且没有使能通配符匹配
+		if (0 != RyanMqttStrncmp(topic, msgHandler->topic, topicLen))
+		{
+			return RyanMqttFalse;
+		}
+	}
+	else
+	{
+		// 进行通配符匹配
+		if (RyanMqttTrue != RyanMqttMatchTopic(topic, topicLen, msgHandler->topic, msgHandler->topicLen))
+		{
+			return RyanMqttFalse;
+		}
+	}
+
+	return RyanMqttTrue;
+}
+
+/**
  * @brief 创建msg句柄
  *
  * @param topic
@@ -186,23 +225,22 @@ RyanMqttError_e RyanMqttMsgHandlerCreate(RyanMqttClient_t *client, const char *t
 	uint32_t mallocSize = sizeof(RyanMqttMsgHandler_t) + topicLen + 1;
 	RyanMqttMsgHandler_t *msgHandler = (RyanMqttMsgHandler_t *)platformMemoryMalloc(mallocSize);
 	RyanMqttCheck(NULL != msgHandler, RyanMqttNotEnoughMemError, RyanMqttLog_d);
-	RyanMqttMemset(msgHandler, 0, mallocSize);
 
-	// 初始化链表
-	RyanMqttListInit(&msgHandler->list);
 	msgHandler->packetId = packetId;
-	msgHandler->qos = qos;
 	msgHandler->topicLen = topicLen;
+	msgHandler->qos = qos;
+	RyanMqttListInit(&msgHandler->list); // 初始化链表
 	msgHandler->userData = userData;
 	msgHandler->topic = (char *)msgHandler + sizeof(RyanMqttMsgHandler_t);
-	RyanMqttMemcpy(msgHandler->topic, topic, topicLen); // 将packet数据保存到ack中
+	RyanMqttMemcpy(msgHandler->topic, topic, topicLen);
+	msgHandler->topic[topicLen] = '\0';
 
 	*pMsgHandler = msgHandler;
 	return RyanMqttSuccessError;
 }
 
 /**
- * @brief 销毁msg 句柄
+ * @brief 销毁 msg 句柄
  *
  * @param msgHandler
  */
@@ -213,56 +251,26 @@ void RyanMqttMsgHandlerDestroy(RyanMqttClient_t *client, RyanMqttMsgHandler_t *m
 	platformMemoryFree(msgHandler);
 }
 
-RyanMqttBool_e RyanMqttMsgIsMatch(RyanMqttMsgHandler_t *msgHandler, const char *topic, uint16_t topicLen,
-				  RyanMqttBool_e topicMatchedFlag)
-{
-	// 不进行通配符匹配
-	if (RyanMqttTrue != topicMatchedFlag)
-	{
-		// 不相等跳过
-		if (topicLen != msgHandler->topicLen)
-		{
-			return RyanMqttFalse;
-		}
-
-		// 主题名称不相等且没有使能通配符匹配
-		if (0 != strncmp(topic, msgHandler->topic, topicLen))
-		{
-			return RyanMqttFalse;
-		}
-	}
-	else
-	{
-		// 进行通配符匹配
-		if (RyanMqttTrue != RyanMqttMatchTopic(topic, topicLen, msgHandler->topic, msgHandler->topicLen))
-		{
-			return RyanMqttFalse;
-		}
-	}
-
-	return RyanMqttTrue;
-}
-
 /**
  * @brief 查找msg句柄
  *
  * @param client
  * @param topic
  * @param topicLen
- * @param topicMatchedFlag
+ * @param isTopicMatchedFlag
  * @param pMsgHandler
  * @return RyanMqttError_e
  */
-RyanMqttError_e RyanMqttMsgHandlerFind(RyanMqttClient_t *client, RyanMqttMsgHandler_t *findMsgHandler,
-				       RyanMqttBool_e topicMatchedFlag, RyanMqttMsgHandler_t **pMsgHandler)
+RyanMqttError_e RyanMqttMsgHandlerFind(RyanMqttClient_t *client, RyanMqttMsgHandler_t *msgMatchCriteria,
+				       RyanMqttBool_e isTopicMatchedFlag, RyanMqttMsgHandler_t **pMsgHandler)
 {
 	RyanMqttError_e result = RyanMqttSuccessError;
 	RyanMqttList_t *curr, *next;
 	RyanMqttMsgHandler_t *msgHandler;
 
 	RyanMqttAssert(NULL != client);
-	RyanMqttAssert(NULL != findMsgHandler);
-	RyanMqttAssert(NULL != findMsgHandler->topic && 0 != findMsgHandler->topicLen);
+	RyanMqttAssert(NULL != msgMatchCriteria);
+	RyanMqttAssert(NULL != msgMatchCriteria->topic && 0 != msgMatchCriteria->topicLen);
 	RyanMqttAssert(NULL != pMsgHandler);
 
 	platformMutexLock(client->config.userData, &client->msgHandleLock);
@@ -270,8 +278,8 @@ RyanMqttError_e RyanMqttMsgHandlerFind(RyanMqttClient_t *client, RyanMqttMsgHand
 	{
 		msgHandler = RyanMqttListEntry(curr, RyanMqttMsgHandler_t, list);
 
-		if (RyanMqttFalse ==
-		    RyanMqttMsgIsMatch(msgHandler, findMsgHandler->topic, findMsgHandler->topicLen, topicMatchedFlag))
+		if (RyanMqttFalse == RyanMqttMsgTopicIsMatch(msgHandler, msgMatchCriteria->topic,
+							     msgMatchCriteria->topicLen, isTopicMatchedFlag))
 		{
 			continue;
 		}
@@ -289,38 +297,46 @@ __exit:
 	return result;
 }
 
-void RyanMqttMsgHandlerFindAndDestroyByPackId(RyanMqttClient_t *client, RyanMqttMsgHandler_t *findMsgHandler,
-					      RyanMqttBool_e isSkipMatchingId)
+/**
+ * @brief 查找同名进行删除,并根据skipSamePacketId查找packetid一样和不一样的进行删除后
+ * packetid不一样保证msg列表只有一个, packetid一样清除所有同名同packetid msg。用于清空批量订阅和取消订阅
+ *
+ * @param client
+ * @param msgMatchCriteria
+ * @param skipSamePacketId
+ */
+void RyanMqttMsgHandlerFindAndDestroyByPackId(RyanMqttClient_t *client, RyanMqttMsgHandler_t *msgMatchCriteria,
+					      RyanMqttBool_e skipSamePacketId)
 {
 	RyanMqttList_t *curr, *next;
 	RyanMqttMsgHandler_t *msgHandler;
 
 	RyanMqttAssert(NULL != client);
-	RyanMqttAssert(NULL != findMsgHandler);
-	RyanMqttAssert(NULL != findMsgHandler->topic && 0 != findMsgHandler->topicLen);
+	RyanMqttAssert(NULL != msgMatchCriteria);
+	RyanMqttAssert(NULL != msgMatchCriteria->topic && 0 != msgMatchCriteria->topicLen);
 
 	platformMutexLock(client->config.userData, &client->msgHandleLock);
 	RyanMqttListForEachSafe(curr, next, &client->msgHandlerList)
 	{
 		msgHandler = RyanMqttListEntry(curr, RyanMqttMsgHandler_t, list);
 
-		if (RyanMqttFalse == isSkipMatchingId)
+		if (RyanMqttFalse == skipSamePacketId)
 		{
-			if (msgHandler->packetId != findMsgHandler->packetId)
+			if (msgHandler->packetId != msgMatchCriteria->packetId)
 			{
 				continue;
 			}
 		}
 		else
 		{
-			if (msgHandler->packetId == findMsgHandler->packetId)
+			if (msgHandler->packetId == msgMatchCriteria->packetId)
 			{
 				continue;
 			}
 		}
 
-		if (RyanMqttFalse ==
-		    RyanMqttMsgIsMatch(msgHandler, findMsgHandler->topic, findMsgHandler->topicLen, RyanMqttFalse))
+		if (RyanMqttFalse == RyanMqttMsgTopicIsMatch(msgHandler, msgMatchCriteria->topic,
+							     msgMatchCriteria->topicLen, RyanMqttFalse))
 		{
 			continue;
 		}
@@ -329,8 +345,8 @@ void RyanMqttMsgHandlerFindAndDestroyByPackId(RyanMqttClient_t *client, RyanMqtt
 		RyanMqttMsgHandlerRemoveToMsgList(client, msgHandler);
 		RyanMqttMsgHandlerDestroy(client, msgHandler);
 
-		// ?理论上最多只会有一个同名订阅，或许也不好说？ 比如订阅的时侯数组内部有同名的？场景太少，可以不考虑
-		break;
+		// ?理论上最多只会有一个同名订阅，或许也不好说？ 比如订阅的时侯数组内部有同名的？
+		// break;
 	}
 	platformMutexUnLock(client->config.userData, &client->msgHandleLock);
 }
@@ -348,8 +364,7 @@ RyanMqttError_e RyanMqttMsgHandlerAddToMsgList(RyanMqttClient_t *client, RyanMqt
 	RyanMqttAssert(NULL != msgHandler);
 
 	platformMutexLock(client->config.userData, &client->msgHandleLock);
-	RyanMqttListAddTail(&msgHandler->list,
-			    &client->msgHandlerList); // 将msgHandler节点添加到链表尾部
+	RyanMqttListAddTail(&msgHandler->list, &client->msgHandlerList); // 将msgHandler节点添加到链表尾部
 	platformMutexUnLock(client->config.userData, &client->msgHandleLock);
 
 	return RyanMqttSuccessError;

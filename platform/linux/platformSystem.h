@@ -19,7 +19,9 @@ extern "C" {
 #define RyanMqttMemset     memset
 #define RyanMqttStrlen     strlen
 #define RyanMqttMemcpy     memcpy
-#define RyanMqttStrcmp     strcmp
+#define RyanMqttStrncmp    strncmp
+#define RyanMqttSnprintf   snprintf
+#define RyanMqttVsnprintf  vsnprintf
 
 typedef struct
 {

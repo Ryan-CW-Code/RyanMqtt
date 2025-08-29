@@ -7,7 +7,7 @@ static RyanMqttSubscribeData_t *topicIsSubscribeArr(char *topic)
 {
 	for (int32_t i = 0; i < subTestCount; i++)
 	{
-		if (0 == RyanMqttStrcmp(topic, subscribeManyData[i].topic))
+		if (0 == RyanMqttStrncmp(topic, subscribeManyData[i].topic, RyanMqttStrlen(topic)))
 		{
 			return &subscribeManyData[i];
 		}
@@ -176,7 +176,7 @@ static RyanMqttError_e RyanMqttSubscribeHybridTest(int32_t count)
 				result = RyanMqttNotEnoughMemError;
 				goto __exit;
 			}
-			snprintf(topic, 64, "test/subscribe/%d", i);
+			RyanMqttSnprintf(topic, 64, "test/subscribe/%d", i);
 			subscribeManyData[i].topic = topic;
 			subscribeManyData[i].topicLen = RyanMqttStrlen(topic);
 		}
@@ -223,7 +223,7 @@ static RyanMqttError_e RyanMqttSubscribeHybridTest(int32_t count)
 			result = RyanMqttNotEnoughMemError;
 			goto __exit;
 		}
-		snprintf(topic, 64, "test/subscribe/%d", i);
+		RyanMqttSnprintf(topic, 64, "test/subscribe/%d", i);
 		unSubscribeManyData[i].topic = topic;
 		unSubscribeManyData[i].topicLen = RyanMqttStrlen(topic);
 	}

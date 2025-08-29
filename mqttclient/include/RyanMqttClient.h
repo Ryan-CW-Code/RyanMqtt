@@ -34,8 +34,8 @@ typedef struct
 	uint16_t topicLen;   // 主题长度
 	RyanMqttQos_e qos;   // qos等级
 	RyanMqttList_t list; // 链表节点，用户勿动
-	char *topic;         // 主题
 	void *userData;      // 用户自定义数据
+	char *topic;         // 主题,不要求必须是最后一位,但最好保持这样
 } RyanMqttMsgHandler_t;
 
 typedef struct
@@ -48,7 +48,7 @@ typedef struct
 	RyanMqttList_t list;                 // 链表节点，用户勿动
 	RyanMqttTimer_t timer;               // ack超时定时器，用户勿动
 	RyanMqttMsgHandler_t *msgHandler;    // msg信息
-	uint8_t *packet;                     // 没有收到期望ack，重新发送的原始报文
+	uint8_t *packet;                     // 没有收到期望ack，重新发送的原始报文,不要求必须是最后一位,但最好保持这样
 } RyanMqttAckHandler_t;
 
 typedef struct
@@ -76,32 +76,33 @@ typedef struct
 
 typedef struct
 {
-	char *clientId;                   // 客户端ID
-	char *userName;                   // 用户名
-	char *password;                   // 密码
-	char *host;                       // mqtt服务器地址
-	char *taskName;                   // 线程名字
-	RyanMqttBool_e autoReconnectFlag; // 自动重连标志位
-	RyanMqttBool_e cleanSessionFlag;  // 清除会话标志位
-	uint8_t mqttVersion;              // mqtt版本 3.1.1是4, 3.1是3
-	uint16_t port;                    // mqtt服务器端口
+	char *clientId;      // 客户端ID
+	char *userName;      // 用户名
+	char *password;      // 密码
+	char *host;          // mqtt服务器地址
+	uint16_t port;       // mqtt服务器端口
+	uint8_t mqttVersion; // mqtt版本 3.1.1是4, 3.1是3
 
-	// ack重发超过这个数值后触发事件回调,根据实际硬件选择。典型值为 *
-	// ackTimeout ~= 300秒
-	uint16_t ackHandlerRepeatCountWarning;
+	char *taskName;     // 线程名字
 	uint16_t taskPrio;  // mqtt线程优先级
 	uint16_t taskStack; // 线程栈大小
 
-	// mqtt等待接收命令超时时间, 根据实际硬件选择。推荐 > ackTimeout && <= (keepaliveTimeoutS / 2)
-	uint16_t recvTimeout;
-	uint16_t sendTimeout;       // mqtt发送给命令超时时间, 根据实际硬件选择。
-	uint16_t ackTimeout;        // mqtack等待命令超时时间, 典型值为5 - 30
-	uint16_t keepaliveTimeoutS; // mqtt心跳时间间隔秒
+	RyanMqttBool_e autoReconnectFlag; // 自动重连标志位
+	RyanMqttBool_e cleanSessionFlag;  // 清除会话标志位
+
+	// ack重发超过这个数值后触发事件回调,根据实际硬件选择。典型值为 5
+	uint16_t ackHandlerRepeatCountWarning;
 
 	// 等待ack的警告数.每次添加ack，ack总数大于或等于该值将触发事件回调,根据实际硬件选择。典型值是32
 	uint16_t ackHandlerCountWarning;
 
-	uint16_t reconnectTimeout;           // mqtt重连间隔时间
+	// mqtt等待接收命令超时时间, 根据实际硬件选择。推荐 > ackTimeout && <= (keepaliveTimeoutS / 2)
+	uint16_t recvTimeout;       // mqtt接收命令超时时间, 根据实际硬件选择。单位ms
+	uint16_t sendTimeout;       // mqtt发送命令超时时间, 根据实际硬件选择。单位ms
+	uint16_t ackTimeout;        // mqtt ack 等待回复的超时时间, 典型值为5 - 60秒。单位ms
+	uint16_t keepaliveTimeoutS; // mqtt心跳时间间隔。单位S
+	uint16_t reconnectTimeout;  // mqtt重连间隔时间。单位S
+
 	RyanMqttEventHandle mqttEventHandle; // mqtt事件回调函数
 	void *userData;                      // 用户自定义数据,用户需要保证指针指向内容的持久性
 } RyanMqttClientConfig_t;
@@ -162,6 +163,8 @@ extern RyanMqttError_e RyanMqttGetSubscribeTotalCount(RyanMqttClient_t *client, 
 
 extern RyanMqttState_e RyanMqttGetState(RyanMqttClient_t *client);
 extern RyanMqttError_e RyanMqttGetKeepAliveRemain(RyanMqttClient_t *client, uint32_t *keepAliveRemain);
+extern RyanMqttError_e RyanMqttGetConfig(RyanMqttClient_t *client, RyanMqttClientConfig_t **pclientConfig);
+extern RyanMqttError_e RyanMqttFreeConfigFromGet(RyanMqttClientConfig_t *clientConfig);
 extern RyanMqttError_e RyanMqttSetConfig(RyanMqttClient_t *client, RyanMqttClientConfig_t *clientConfig);
 extern RyanMqttError_e RyanMqttSetLwt(RyanMqttClient_t *client, char *topicName, char *payload, uint32_t payloadLen,
 				      RyanMqttQos_e qos, RyanMqttBool_e retain);

@@ -44,8 +44,8 @@ static RyanMqttError_e RyanMqttKeepalive(RyanMqttClient_t *client)
 		return RyanMqttFailedError;
 	}
 
-	// 当剩余时间小于 recvtimeout 时强制发送心跳包
-	if (timeRemain > client->config.recvTimeout)
+	// 当剩余时间大于 recvtimeout 并且小于 keepaliveTimeoutS 的 0.9 倍时间时不进行发送心跳包
+	if (timeRemain - client->config.recvTimeout > 100)
 	{
 		// 当没有到达 keepaliveTimeoutS 的 0.9 倍时间时不进行发送心跳包
 		if (timeRemain > client->config.keepaliveTimeoutS * 1000 * (RyanMqttKeepAliveMultiplier - 0.9))
@@ -81,7 +81,7 @@ static RyanMqttError_e RyanMqttKeepalive(RyanMqttClient_t *client)
 }
 
 // todo 也可以考虑有ack链表的时候recvTime可以短一些，有坑点
-// todo 也可以考虑将发送操作独立出去，异步发送,目前没有遇到性能瓶颈，需要超高性能的时候再考虑吧
+// todo 也可以考虑将发送操作独立出去,异步发送,目前没有遇到性能瓶颈,需要超高性能的时候再考虑吧
 /**
  * @brief 遍历ack链表，进行相应的处理
  *
@@ -131,7 +131,7 @@ static void RyanMqttAckListScan(RyanMqttClient_t *client, RyanMqttBool_e waitFla
 			continue;
 		}
 
-		// 超过最大处理时间，直接跳出处理函数
+		// 超过最大处理时间,直接跳出处理函数,等待下次再处理
 		if (0 == RyanMqttTimerRemain(&ackScanRemainTimer))
 		{
 			break;
@@ -144,6 +144,7 @@ static void RyanMqttAckListScan(RyanMqttClient_t *client, RyanMqttBool_e waitFla
 		uint32_t ackRemainTime = RyanMqttTimerRemain(&ackHandler->timer);
 		if (0 != ackRemainTime)
 		{
+			// 如果ack剩余时间小于节流时间，就把ack剩余时间更新到节流上
 			if (ackRemainTime < ackScanThrottleTime)
 			{
 				ackScanThrottleTime = ackRemainTime;
@@ -222,7 +223,7 @@ static void RyanMqttAckListScan(RyanMqttClient_t *client, RyanMqttBool_e waitFla
  * @param client
  * @return RyanMqttError_e
  */
-static RyanMqttError_e RyanMqttConnect(RyanMqttClient_t *client, RyanMqttConnectStatus_e *connectState)
+static RyanMqttError_e RyanMqttConnectBroker(RyanMqttClient_t *client, RyanMqttConnectStatus_e *connectState)
 {
 	RyanMqttError_e result = RyanMqttSuccessError;
 	MQTTStatus_t status;
@@ -236,7 +237,7 @@ static RyanMqttError_e RyanMqttConnect(RyanMqttClient_t *client, RyanMqttConnect
 
 	RyanMqttCheck(RyanMqttConnectState != RyanMqttGetClientState(client), RyanMqttConnectError, RyanMqttLog_d);
 
-	// connect 信息
+	// 填充 connect 信息
 	{
 		connectInfo.pClientIdentifier = client->config.clientId;
 		connectInfo.clientIdentifierLength = RyanMqttStrlen(client->config.clientId);
@@ -329,7 +330,8 @@ static RyanMqttError_e RyanMqttConnect(RyanMqttClient_t *client, RyanMqttConnect
 		uint16_t packetId;
 		bool sessionPresent; // 会话位
 
-		// 反序列化ack包，MQTTSuccess 和 MQTTServerRefused都会返回正确的connectState
+		// 反序列化ack包，MQTTSuccess 和 MQTTServerRefused 都会返回正确的connectState
+		// MQTTServerRefused 表示连接被拒绝，但是可以获取原因思什么
 		status = MQTT_DeserializeAck(&pIncomingPacket, &packetId, &sessionPresent);
 		if (MQTTSuccess != status && MQTTServerRefused != status)
 		{
@@ -337,6 +339,7 @@ static RyanMqttError_e RyanMqttConnect(RyanMqttClient_t *client, RyanMqttConnect
 		}
 		else
 		{
+			// 获取连接返回值
 			*connectState = pIncomingPacket.pRemainingData[1];
 			if (RyanMqttConnectAccepted != *connectState)
 			{
@@ -379,8 +382,7 @@ void RyanMqttEventMachine(RyanMqttClient_t *client, RyanMqttEventId_e eventId, v
 	{
 	case RyanMqttEventConnected: // 第一次连接成功
 		RyanMqttRefreshKeepaliveTime(client);
-		RyanMqttAckListScan(client,
-				    RyanMqttFalse); // 扫描确认列表，销毁已超时的确认处理程序或重新发送它们
+		RyanMqttAckListScan(client, RyanMqttFalse); // 扫描确认列表，销毁已超时的确认处理程序或重新发送它们
 		RyanMqttSetClientState(client, RyanMqttConnectState);
 		break;
 
@@ -440,26 +442,7 @@ void RyanMqttThread(void *argument)
 			platformNetworkDestroy(client->config.userData, &client->network);
 
 			// 清除config信息
-			if (NULL != client->config.clientId)
-			{
-				platformMemoryFree(client->config.clientId);
-			}
-			if (NULL != client->config.userName)
-			{
-				platformMemoryFree(client->config.userName);
-			}
-			if (NULL != client->config.password)
-			{
-				platformMemoryFree(client->config.password);
-			}
-			if (NULL != client->config.host)
-			{
-				platformMemoryFree(client->config.host);
-			}
-			if (NULL != client->config.taskName)
-			{
-				platformMemoryFree(client->config.taskName);
-			}
+			RyanMqttPurgeConfig(&client->config);
 
 			// 清除遗嘱相关配置
 			if (NULL != client->lwtOptions)
@@ -505,16 +488,19 @@ void RyanMqttThread(void *argument)
 		// 客户端状态变更状态机
 		switch (RyanMqttGetClientState(client))
 		{
-
 		case RyanMqttStartState: // 开始状态状态
 		case RyanMqttReconnectState: {
 			RyanMqttLog_d("开始连接");
 			RyanMqttConnectStatus_e connectState;
-			RyanMqttError_e result = RyanMqttConnect(client, &connectState);
-			RyanMqttEventMachine(client,
-					     RyanMqttSuccessError == result ? RyanMqttEventConnected
-									    : RyanMqttEventDisconnected,
-					     (void *)&connectState);
+			RyanMqttError_e result = RyanMqttConnectBroker(client, &connectState);
+			if (RyanMqttSuccessError == result)
+			{
+				RyanMqttEventMachine(client, RyanMqttEventConnected, (void *)&connectState);
+			}
+			else
+			{
+				RyanMqttEventMachine(client, RyanMqttEventDisconnected, (void *)&connectState);
+			}
 		}
 		break;
 

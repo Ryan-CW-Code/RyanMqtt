@@ -69,6 +69,7 @@ static RyanMqttError_e RyanMqttPubrelPacketHandler(RyanMqttClient_t *client, MQT
 	status = MQTT_SerializeAck(&fixedBuffer, MQTT_PACKET_TYPE_PUBCOMP, packetId);
 	RyanMqttCheck(MQTTSuccess == status, RyanMqttSerializePacketError, RyanMqttLog_d);
 
+	// ?这里没法判断packetid是否非法，只能每次都回复咯
 	// 每次收到PUBREL都返回消息
 	result = RyanMqttSendPacket(client, fixedBuffer.pBuffer, MQTT_PUBLISH_ACK_PACKET_SIZE);
 	RyanMqttCheck(RyanMqttSuccessError == result, result, RyanMqttLog_d);
@@ -94,7 +95,7 @@ static RyanMqttError_e RyanMqttPubrecPacketHandler(RyanMqttClient_t *client, MQT
 	MQTTStatus_t status = MQTT_DeserializeAck(pIncomingPacket, &packetId, NULL);
 	RyanMqttCheck(MQTTSuccess == status, RyanMqttSerializePacketError, RyanMqttLog_d);
 
-	// 每次收到PUBREC都返回ack,确保服务器可以认为数据包被发送了
+	// 每次收到 PUBREC 都返回ack,确保服务器可以认为数据包被发送了
 	uint8_t buffer[MQTT_PUBLISH_ACK_PACKET_SIZE];
 	MQTTFixedBuffer_t fixedBuffer = {.pBuffer = buffer, .size = sizeof(buffer)};
 
@@ -109,33 +110,29 @@ static RyanMqttError_e RyanMqttPubrecPacketHandler(RyanMqttClient_t *client, MQT
 		RyanMqttMsgHandler_t *msgHandler;
 		RyanMqttAckHandler_t *ackHandler;
 
-		// 查找ack链表是否存在pubcomp报文,不存在表示首次接收到
-		result = RyanMqttAckListNodeFind(client, MQTT_PACKET_TYPE_PUBCOMP, packetId, &ackHandler);
-		if (RyanMqttSuccessError != result)
-		{
-			// 首次收到消息
-			result = RyanMqttMsgHandlerCreate(client, ackHandlerPubrec->msgHandler->topic,
-							  ackHandlerPubrec->msgHandler->topicLen,
-							  RyanMqttMsgInvalidPacketId, ackHandlerPubrec->msgHandler->qos,
-							  ackHandlerPubrec->msgHandler->userData, &msgHandler);
-			RyanMqttCheck(RyanMqttSuccessError == result, result, RyanMqttLog_d);
+		// 首次收到消息，创建 pubcomp ack
+		result = RyanMqttMsgHandlerCreate(client, ackHandlerPubrec->msgHandler->topic,
+						  ackHandlerPubrec->msgHandler->topicLen, RyanMqttMsgInvalidPacketId,
+						  ackHandlerPubrec->msgHandler->qos,
+						  ackHandlerPubrec->msgHandler->userData, &msgHandler);
+		RyanMqttCheck(RyanMqttSuccessError == result, result, RyanMqttLog_d);
 
-			result = RyanMqttAckHandlerCreate(client, MQTT_PACKET_TYPE_PUBCOMP, packetId,
-							  MQTT_PUBLISH_ACK_PACKET_SIZE, fixedBuffer.pBuffer, msgHandler,
-							  &ackHandler, RyanMqttFalse);
-			RyanMqttCheckCode(RyanMqttSuccessError == result, result, RyanMqttLog_d,
-					  { RyanMqttMsgHandlerDestroy(client, msgHandler); });
-			RyanMqttAckListAddToAckList(client, ackHandler);
+		result = RyanMqttAckHandlerCreate(client, MQTT_PACKET_TYPE_PUBCOMP, packetId,
+						  MQTT_PUBLISH_ACK_PACKET_SIZE, fixedBuffer.pBuffer, msgHandler,
+						  &ackHandler, RyanMqttFalse);
+		RyanMqttCheckCode(RyanMqttSuccessError == result, result, RyanMqttLog_d,
+				  { RyanMqttMsgHandlerDestroy(client, msgHandler); });
+		RyanMqttAckListAddToAckList(client, ackHandler);
 
-			RyanMqttAckListRemoveToAckList(client, ackHandlerPubrec);
-			RyanMqttAckHandlerDestroy(client, ackHandlerPubrec);
-		}
-		// 出现pubrec和pubcomp同时存在的情况,清除pubrec。理论上不会出现（冗余措施）
-		else
-		{
-			RyanMqttAckListRemoveToAckList(client, ackHandlerPubrec);
-			RyanMqttAckHandlerDestroy(client, ackHandlerPubrec);
-		}
+		// 清除pubrec记录
+		RyanMqttAckListRemoveToAckList(client, ackHandlerPubrec);
+		RyanMqttAckHandlerDestroy(client, ackHandlerPubrec);
+	}
+	else
+	{
+		// 没有pubrec ，并且没有pubcomp，说明这个报文是非法报文，不进行mqtt服务器回复
+		result = RyanMqttAckListNodeFind(client, MQTT_PACKET_TYPE_PUBCOMP, packetId, &ackHandlerPubrec);
+		RyanMqttCheck(RyanMqttSuccessError == result, RyanMqttInvalidPacketError, RyanMqttLog_d);
 	}
 
 	result = RyanMqttSendPacket(client, fixedBuffer.pBuffer, MQTT_PUBLISH_ACK_PACKET_SIZE);
@@ -174,11 +171,13 @@ static RyanMqttError_e RyanMqttPublishPacketHandler(RyanMqttClient_t *client, MQ
 		msgData.retained = publishInfo.retain;
 		msgData.dup = publishInfo.dup;
 
-		// 查看订阅列表是否包含此消息主题,进行通配符匹配。不包含就直接退出在一定程度上可以防止恶意攻击
-		RyanMqttMsgHandler_t tempMsgHandler = {.topic = msgData.topic, .topicLen = msgData.topicLen};
-		result = RyanMqttMsgHandlerFind(client, &tempMsgHandler, RyanMqttTrue, &msgHandler);
-		RyanMqttCheckCode(RyanMqttSuccessError == result, result, RyanMqttLog_d,
-				  { RyanMqttLog_w("主题不匹配: %.*s", msgData.topicLen, msgData.topic); });
+		// 查看订阅列表是否包含此消息主题,进行通配符匹配
+		RyanMqttMsgHandler_t msgMatchCriteria = {.topic = msgData.topic, .topicLen = msgData.topicLen};
+		result = RyanMqttMsgHandlerFind(client, &msgMatchCriteria, RyanMqttTrue, &msgHandler);
+		RyanMqttCheckCode(RyanMqttSuccessError == result, result, RyanMqttLog_d, {
+			RyanMqttLog_w("主题不匹配: %.*s", msgData.topicLen, msgData.topic);
+			RyanMqttEventMachine(client, RyanMqttEventUnsubscribedData, (void *)&msgData);
+		});
 	}
 
 	switch (msgData.qos)
@@ -210,14 +209,18 @@ static RyanMqttError_e RyanMqttPublishPacketHandler(RyanMqttClient_t *client, MQ
 
 		// !序列化ack数据包,必须先执行，因为创建ack需要用到这个报文
 		MQTTStatus_t status = MQTT_SerializeAck(&fixedBuffer, MQTT_PACKET_TYPE_PUBREC, packetId);
+		// 上面代码不太可能出错，如果出错了就让服务器重新发送吧
 		RyanMqttCheck(MQTTSuccess == status, RyanMqttSerializePacketError, RyanMqttLog_d);
 
-		// 上面代码不太可能出错，出错后就让服务器重新发送吧
-		// 收到publish就期望收到PUBREL，如果PUBREL报文已经存在说明不是首次收到publish,
-		// 不进行qos2 PUBREC消息处理
+		// 收到 publish 就期望收到 PUBREL ，如果 PUBREL 报文已经存在说明不是首次收到 publish,不进行qos2 PUBREC
+		// 消息处理
 		result = RyanMqttAckListNodeFind(client, MQTT_PACKET_TYPE_PUBREL, msgData.packetId, &ackHandler);
 		if (RyanMqttSuccessError != result)
 		{
+			// 第一次收到 PUBREL 报文
+			RyanMqttEventMachine(client, RyanMqttEventData, (void *)&msgData);
+
+			// 期望下一次收到 PUBREL 报文
 			result = RyanMqttMsgHandlerCreate(client, msgData.topic, msgData.topicLen,
 							  RyanMqttMsgInvalidPacketId, msgData.qos, NULL, &msgHandler);
 			RyanMqttCheck(RyanMqttSuccessError == result, result, RyanMqttLog_d);
@@ -228,10 +231,9 @@ static RyanMqttError_e RyanMqttPublishPacketHandler(RyanMqttClient_t *client, MQ
 			RyanMqttCheckCode(RyanMqttSuccessError == result, result, RyanMqttLog_d,
 					  { RyanMqttMsgHandlerDestroy(client, msgHandler); });
 			RyanMqttAckListAddToAckList(client, ackHandler);
-
-			RyanMqttEventMachine(client, RyanMqttEventData, (void *)&msgData);
 		}
 
+		// 无论是不是第一次收到，都回复 pub ack报文
 		result = RyanMqttSendPacket(client, fixedBuffer.pBuffer, MQTT_PUBLISH_ACK_PACKET_SIZE);
 		RyanMqttCheck(RyanMqttSuccessError == result, result, RyanMqttLog_d);
 	}
@@ -258,14 +260,15 @@ static RyanMqttError_e RyanMqttSubackHandler(RyanMqttClient_t *client, MQTTPacke
 	RyanMqttList_t *curr, *next;
 	RyanMqttAssert(NULL != client);
 
-	// 反序列化ack包，MQTTSuccess和MQTTServerRefused都是成功的
+	// 反序列化ack包，MQTTSuccess 和 MQTTServerRefused 都是成功的
+	// coreMqtt 检测到qos等级为 0x80 就会返回 MQTTServerRefused
 	MQTTStatus_t status = MQTT_DeserializeAck(pIncomingPacket, &packetId, NULL);
 	RyanMqttCheck(MQTTSuccess == status || MQTTServerRefused == status, RyanMqttDeserializePacketError,
 		      RyanMqttLog_d);
 
 	// 检查ack的msgCount和返回消息的msgCount是否一致
 	{
-		// MQTT_DeserializeAck会保证 pIncomingPacket->remainingLength >= 3
+		// MQTT_DeserializeAck 会保证 pIncomingPacket->remainingLength >= 3
 		uint32_t statusCount = pIncomingPacket->remainingLength - sizeof(uint16_t);
 		uint32_t ackMsgCount = 0;
 
@@ -274,7 +277,6 @@ static RyanMqttError_e RyanMqttSubackHandler(RyanMqttClient_t *client, MQTTPacke
 		RyanMqttListForEachSafe(curr, next, &client->msgHandlerList)
 		{
 			msgHandler = RyanMqttListEntry(curr, RyanMqttMsgHandler_t, list);
-
 			if (packetId == msgHandler->packetId)
 			{
 				ackMsgCount++;
@@ -284,12 +286,14 @@ static RyanMqttError_e RyanMqttSubackHandler(RyanMqttClient_t *client, MQTTPacke
 
 		// 服务器回复的ack数和记录的ack数不一致就清除所有ack
 		RyanMqttCheckCode(ackMsgCount == statusCount, RyanMqttNoRescourceError, RyanMqttLog_d, {
+			// 清除所有ack
 			RyanMqttClearAckSession(client, MQTT_PACKET_TYPE_SUBACK, packetId);
+
+			// 清除所有msg
 			platformMutexLock(client->config.userData, &client->msgHandleLock);
 			RyanMqttListForEachSafe(curr, next, &client->msgHandlerList)
 			{
 				msgHandler = RyanMqttListEntry(curr, RyanMqttMsgHandler_t, list);
-
 				if (packetId == msgHandler->packetId)
 				{
 					RyanMqttMsgHandlerRemoveToMsgList(client, msgHandler);
@@ -312,22 +316,26 @@ static RyanMqttError_e RyanMqttSubackHandler(RyanMqttClient_t *client, MQTTPacke
 	{
 		ackHandler = RyanMqttListEntry(curr, RyanMqttAckHandler_t, list);
 
-		if (packetId != ackHandler->packetId || MQTT_PACKET_TYPE_SUBACK != ackHandler->packetType)
+		if (packetId != ackHandler->packetId)
 		{
 			continue;
 		}
 
-		// 查找同名订阅并删除,保证订阅主题列表只有一个最新的
+		// 处理非订阅ack
+		if (MQTT_PACKET_TYPE_SUBACK != ackHandler->packetType)
+		{
+			goto __next;
+		}
+
+		// 查找同名订阅但是packetid不一样的进行删除,保证订阅主题列表只有一个最新的
 		RyanMqttMsgHandlerFindAndDestroyByPackId(client, ackHandler->msgHandler, RyanMqttTrue);
 
 		// 到这里就可以保证没有同名订阅了
 		// 查找之前记录的topic句柄，根据服务器授权Qos进行更新
+		// 几乎不可能查找不到，可以查找到 ackHandler 就一定有 msgHandler
 		RyanMqttError_e result =
 			RyanMqttMsgHandlerFind(client, ackHandler->msgHandler, RyanMqttFalse, &msgHandler);
-
-		// 几乎不可能，可以查找到 ackHandler 就一定有 msgHandler
-		// 没有的话可以打印一条信息吧
-		RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, result, RyanMqttLog_d, { continue; });
+		RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, result, RyanMqttLog_d, { goto __next; });
 
 		// 解析服务端授权 QoS（0,1,2）或失败(0x80)
 		subscriptionQos = pStatusStart[ackMsgIndex];
@@ -358,6 +366,7 @@ static RyanMqttError_e RyanMqttSubackHandler(RyanMqttClient_t *client, MQTTPacke
 			break;
 		}
 
+__next:
 		RyanMqttAckListRemoveToAckList(client, ackHandler);
 		RyanMqttAckHandlerDestroy(client, ackHandler); // 销毁ackHandler
 	}
@@ -386,20 +395,24 @@ static RyanMqttError_e RyanMqttUnSubackHandler(RyanMqttClient_t *client, MQTTPac
 	MQTTStatus_t status = MQTT_DeserializeAck(pIncomingPacket, &packetId, NULL);
 	RyanMqttCheck(MQTTSuccess == status, RyanMqttSerializePacketError, RyanMqttLog_d);
 
-	// todo 这里效率非常低，订阅属于用的少的功能，暂时可以接受
+	// todo 这里效率低，取消订阅属于用的少的功能，暂时可以接受
 	platformMutexLock(client->config.userData, &client->ackHandleLock);
 	RyanMqttListForEachSafe(curr, next, &client->ackHandlerList)
 	{
 		ackHandler = RyanMqttListEntry(curr, RyanMqttAckHandler_t, list);
 
-		if ((packetId != ackHandler->packetId) || (MQTT_PACKET_TYPE_UNSUBACK != ackHandler->packetType))
+		if (packetId != ackHandler->packetId)
 		{
 			continue;
 		}
 
+		if (MQTT_PACKET_TYPE_UNSUBACK != ackHandler->packetType)
+		{
+			goto __next;
+		}
+
 		// 查找当前主题是否已经订阅,进行取消订阅
 		result = RyanMqttMsgHandlerFind(client, ackHandler->msgHandler, RyanMqttFalse, &subMsgHandler);
-
 		if (RyanMqttSuccessError == result)
 		{
 			ackHandler->msgHandler->qos = subMsgHandler->qos;
@@ -410,6 +423,7 @@ static RyanMqttError_e RyanMqttUnSubackHandler(RyanMqttClient_t *client, MQTTPac
 		// mqtt事件回调
 		RyanMqttEventMachine(client, RyanMqttEventUnSubscribed, (void *)ackHandler->msgHandler);
 
+__next:
 		RyanMqttAckListRemoveToAckList(client, ackHandler);
 		RyanMqttAckHandlerDestroy(client, ackHandler); // 销毁ackHandler
 	}
@@ -515,6 +529,7 @@ RyanMqttError_e RyanMqttProcessPacketHandler(RyanMqttClient_t *client)
 	RyanMqttLog_d("pIncomingPacket.type: %x ", pIncomingPacket.type & 0xF0U);
 
 	// 控制报文类型
+	// QoS2 使用官方推荐的方法B
 	// 发送者QoS2动作 发布PUBLISH报文 -> 等待PUBREC报文 -> 发送PUBREL报文 -> 等待PUBCOMP报文
 	// 接收者QoS2动作 等待PUBLISH报文 -> 发送PUBREC报文 -> 等待PUBREL报文 -> 发送PUBCOMP报文
 	switch (pIncomingPacket.type & 0xF0U)
@@ -525,7 +540,7 @@ RyanMqttError_e RyanMqttProcessPacketHandler(RyanMqttClient_t *client)
 
 	case MQTT_PACKET_TYPE_CONNACK: // 连接报文确认
 	{
-		// 客户端已处于连接状态时又收到CONNACK报文,应该视为严重错误，断开连接
+		// ?客户端已处于连接状态时又收到CONNACK报文,应该视为严重错误，断开连接
 		RyanMqttLog_e("收到 CONNACK 时已连接，正在断开连接");
 		RyanMqttConnectStatus_e connectState = RyanMqttConnectProtocolError;
 		RyanMqttEventMachine(client, RyanMqttEventDisconnected, &connectState);
@@ -542,12 +557,24 @@ RyanMqttError_e RyanMqttProcessPacketHandler(RyanMqttClient_t *client)
 		result = RyanMqttPubrecPacketHandler(client, &pIncomingPacket);
 		break;
 
-	case (MQTT_PACKET_TYPE_PUBREL & 0xF0U): // 客户端接收QOS2 已经发布PUBREC，等待服务器发布释放
-		if (pIncomingPacket.type & 0x02U)
-		{ // PUBREL 控制报文固定报头的第 3,2,1,0 位必须被设置为
-		  // 0,0,1,0。必须将其它的任何值都当做是不合法的并关闭网络连接
-			result = RyanMqttPubrelPacketHandler(client, &pIncomingPacket);
-		}
+	case (MQTT_PACKET_TYPE_PUBREL & 0xF0U): // 客户端接收QOS2 已经发布PUBREC，等待服务器发布释放 pubrel
+		result = RyanMqttPubrelPacketHandler(client, &pIncomingPacket);
+
+		// !RyanMqttGetPacketInfo 检查报文type错误时不会惊醒返回，所以下面逻辑暂时没用
+		// // PUBREL 控制报文固定报头的第 3,2,1,0
+		// // 位必须被设置为0,0,1,0。必须将其它的任何值都当做是不合法的并关闭网络连接
+		// if (pIncomingPacket.type & 0x02U)
+		// {
+		// 	result = RyanMqttPubrelPacketHandler(client, &pIncomingPacket);
+		// }
+		// else
+		// {
+		// 	RyanMqttLog_e("PUBREL 控制报文固定报头的第 3,2,1,0 "
+		// 		      "位必须被设置为0,0,1,0。必须将其它的任何值都当做是不合法的并关闭网络连接");
+		// 	RyanMqttConnectStatus_e connectState = RyanMqttConnectInvalidPacketError;
+		// 	RyanMqttEventMachine(client, RyanMqttEventDisconnected, &connectState);
+		// 	result = RyanMqttInvalidPacketError;
+		// }
 		break;
 
 	case MQTT_PACKET_TYPE_SUBACK: // 订阅确认

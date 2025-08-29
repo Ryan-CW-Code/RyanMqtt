@@ -81,7 +81,7 @@ static void *concurrentPublishThread(void *arg)
 	}
 
 	// 订阅主题
-	snprintf(topic, sizeof(topic), "test/thread/%d", testData->threadIndex);
+	RyanMqttSnprintf(topic, sizeof(topic), "test/thread/%d", testData->threadIndex);
 	result = RyanMqttSubscribe(testData->client, topic, testData->threadIndex % 2 ? RyanMqttQos2 : RyanMqttQos1);
 	if (RyanMqttSuccessError != result)
 	{
@@ -92,7 +92,7 @@ static void *concurrentPublishThread(void *arg)
 	// 发布消息
 	for (int i = 0; i < MESSAGES_PER_THREAD; i++)
 	{
-		snprintf(payload, sizeof(payload), "Message %d from thread %d", i, testData->threadIndex);
+		RyanMqttSnprintf(payload, sizeof(payload), "Message %d from thread %d", i, testData->threadIndex);
 
 		result = RyanMqttPublish(testData->client, topic, payload, RyanMqttStrlen(payload),
 					 i % 2 ? RyanMqttQos2 : RyanMqttQos1, RyanMqttFalse);

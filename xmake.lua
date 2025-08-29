@@ -4,8 +4,8 @@ target("RyanMqtt",function()
 
     add_syslinks("pthread")
     set_toolchains("gcc")  -- 确保使用 GCC
-    -- set_toolchains("clang-20")  -- 确保使用 GCC
-    set_languages("gnu99") -- 关键！启用 GNU 扩展
+    -- set_toolchains("clang-20")  
+    set_languages("gnu99") -- 启用 GNU 扩展
     set_warnings("everything") -- 启用全部警告 -Wall -Wextra -Weffc++ / -Weverything
 
     -- set_optimize("smallest") -- -Os
@@ -14,7 +14,7 @@ target("RyanMqtt",function()
     set_optimize("aggressive") -- -Ofast
 
     add_defines("PKG_USING_RYANMQTT_IS_ENABLE_ASSERT") -- 开启assert
-    add_ldflags("-Wl,-Map=$(buildir)/RyanMqtt.map") 
+    add_ldflags("-Wl,-Map=$(buildir)/RyanMqtt.map")
     add_cxflags(
                 "-pedantic",  
                 "-Wall",
@@ -38,6 +38,5 @@ target("RyanMqtt",function()
     add_files('./mqttclient/*.c', {public = true})
     add_files('./platform/linux/*.c', {public = true})
     add_files('./platform/linux/valloc/*.c', {public = true})
-
 
 end)

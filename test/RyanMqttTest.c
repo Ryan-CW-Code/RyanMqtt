@@ -116,6 +116,13 @@ void mqttEventBaseHandle(void *pclient, RyanMqttEventId_e event, const void *eve
 		}
 		break;
 
+	case RyanMqttEventUnsubscribedData: {
+		RyanMqttMsgData_t *msgData = (RyanMqttMsgData_t *)eventData;
+		RyanMqttLog_i("接收到未匹配任何订阅主题的报文事件 topic: %.*s, packetId: %d, payload len: %d",
+			      msgData->topicLen, msgData->topic, msgData->packetId, msgData->payloadLen);
+		break;
+	}
+
 	default: break;
 	}
 }
@@ -135,7 +142,7 @@ RyanMqttError_e RyanMqttTestInit(RyanMqttClient_t **client, RyanMqttBool_e syncF
 	count++;
 	RyanMqttTestExitCritical();
 
-	snprintf(aaa, sizeof(aaa), "%s%d", RyanMqttClientId, count);
+	RyanMqttSnprintf(aaa, sizeof(aaa), "%s%d", RyanMqttClientId, count);
 
 	struct RyanMqttTestEventUserData *eventUserData =
 		(struct RyanMqttTestEventUserData *)malloc(sizeof(struct RyanMqttTestEventUserData));
@@ -190,6 +197,12 @@ RyanMqttError_e RyanMqttTestInit(RyanMqttClient_t **client, RyanMqttBool_e syncF
 	// 重复设定一次测试
 	result = RyanMqttSetConfig(*client, &mqttConfig);
 	RyanMqttCheck(RyanMqttSuccessError == result, result, RyanMqttLog_e);
+
+	// 获取config测试
+	RyanMqttClientConfig_t *mqttConfig22;
+	result = RyanMqttGetConfig(*client, &mqttConfig22);
+	RyanMqttCheck(RyanMqttSuccessError == result, result, RyanMqttLog_e);
+	RyanMqttFreeConfigFromGet(mqttConfig22);
 
 	// 设置遗嘱消息
 	result = RyanMqttSetLwt(*client, "pub/lwt/test", "this is will", RyanMqttStrlen("this is will"), RyanMqttQos2,

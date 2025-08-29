@@ -178,6 +178,15 @@ typedef enum
 	 */
 	RyanMqttEventData = RyanMqttBit14,
 
+	/**
+	 * @brief 接收到未匹配任何订阅主题的报文事件
+	 *
+	 * 此事件触发时，报文的主题不在当前客户端订阅的 topic 列表中，
+	 *
+	 * @eventData RyanMqttMsgData_t*
+	 */
+	RyanMqttEventUnsubscribedData = RyanMqttBit15,
+
 	RyanMqttEventAnyId = UINT32_MAX,
 } RyanMqttEventId_e;
 
@@ -200,6 +209,7 @@ typedef enum
 	RyanMqttSendBufToShortError,        // MQTT 缓冲区太短
 	RyanMqttNotEnoughMemError,          // MQTT 内存不足
 	RyanMqttFailedError,                // 失败
+	RyanMqttInvalidPacketError,         // 收到非法的报文
 	RyanMqttSuccessError = 0x0000,      // 成功
 	RyanMqttErrorForceInt32 = INT32_MAX // 强制编译器使用int32_t类型
 } RyanMqttError_e;
@@ -223,6 +233,7 @@ typedef enum
 	RyanMqttConnectTimeout,                     // 超时断开
 	RyanMqttConnectFirstPackNotConnack,         // 发送connect后接受到的第一个报文不是connack
 	RyanMqttConnectProtocolError,               // 多次收到connack
+	RyanMqttConnectInvalidPacketError,          // 收到不符合MQTT3.1.1协议的报文，并且要求关闭客户端的
 	RyanMqttConnectStatusForceInt32 = INT32_MAX // 强制编译器使用int32_t类型
 } RyanMqttConnectStatus_e;
 
