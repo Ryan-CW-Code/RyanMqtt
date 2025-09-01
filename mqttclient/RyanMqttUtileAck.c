@@ -216,7 +216,7 @@ RyanMqttError_e RyanMqttAckListNodeFindByUserAckList(RyanMqttClient_t *client, u
 			result = RyanMqttSuccessError;
 			if (RyanMqttTrue == removeOnMatch)
 			{
-				RyanMqttAckListRemoveToAckList(client, ackHandler);
+				RyanMqttAckListRemoveToUserAckList(client, ackHandler);
 			}
 			goto __exit;
 		}

@@ -45,7 +45,7 @@ static RyanMqttError_e RyanMqttKeepalive(RyanMqttClient_t *client)
 	}
 
 	// 当剩余时间大于 recvtimeout 并且小于 keepaliveTimeoutS 的 0.9 倍时间时不进行发送心跳包
-	if (timeRemain - client->config.recvTimeout > 100)
+	if (timeRemain > (uint32_t)(client->config.recvTimeout + 100))
 	{
 		// 当没有到达 keepaliveTimeoutS 的 0.9 倍时间时不进行发送心跳包
 		if (timeRemain > client->config.keepaliveTimeoutS * 1000 * (RyanMqttKeepAliveMultiplier - 0.9))
