@@ -229,7 +229,7 @@ static RyanMqttError_e RyanMqttConnectBroker(RyanMqttClient_t *client, RyanMqttC
 	MQTTStatus_t status;
 	MQTTConnectInfo_t connectInfo;
 	MQTTPublishInfo_t willInfo;
-	MQTTFixedBuffer_t fixedBuffer;
+	MQTTFixedBuffer_t fixedBuffer = {0};
 	size_t remainingLength;
 	RyanMqttBool_e lwtFlag;
 	RyanMqttAssert(NULL != client);
@@ -245,6 +245,7 @@ static RyanMqttError_e RyanMqttConnectBroker(RyanMqttClient_t *client, RyanMqttC
 	// 填充 connect 信息
 	{
 		// 无需判断config有效性，如果无效一定是用户内存访问越界了
+		// RyanMqtt不允许 pClientIdentifier 为NULL
 		connectInfo.pClientIdentifier = client->config.clientId;
 		connectInfo.clientIdentifierLength = RyanMqttStrlen(client->config.clientId);
 		connectInfo.pUserName = client->config.userName;
@@ -371,6 +372,7 @@ static RyanMqttError_e RyanMqttConnectBroker(RyanMqttClient_t *client, RyanMqttC
 	}
 	else
 	{
+		result = RyanMqttInvalidPacketError;
 		*connectState = RyanMqttConnectFirstPackNotConnack;
 	}
 
@@ -382,7 +384,10 @@ static RyanMqttError_e RyanMqttConnectBroker(RyanMqttClient_t *client, RyanMqttC
 	}
 
 __exit:
-	platformMemoryFree(fixedBuffer.pBuffer);
+	if (fixedBuffer.pBuffer)
+	{
+		platformMemoryFree(fixedBuffer.pBuffer);
+	}
 	return result;
 }
 

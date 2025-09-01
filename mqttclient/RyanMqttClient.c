@@ -229,6 +229,7 @@ RyanMqttError_e RyanMqttDisconnect(RyanMqttClient_t *client, RyanMqttBool_e send
  */
 RyanMqttError_e RyanMqttReconnect(RyanMqttClient_t *client)
 {
+	RyanMqttError_e result = RyanMqttSuccessError;
 	RyanMqttCheck(NULL != client, RyanMqttParamInvalidError, RyanMqttLog_d);
 	RyanMqttCheck(RyanMqttDisconnectState == RyanMqttGetClientState(client), RyanMqttConnectError, RyanMqttLog_d);
 
@@ -237,7 +238,9 @@ RyanMqttError_e RyanMqttReconnect(RyanMqttClient_t *client)
 		return RyanMqttNoRescourceError;
 	}
 
-	platformThreadStart(client->config.userData, &client->mqttThread);
+	result = platformThreadStart(client->config.userData, &client->mqttThread);
+	RyanMqttCheck(RyanMqttSuccessError == result, result, RyanMqttLog_d);
+
 	return RyanMqttSuccessError;
 }
 
@@ -325,6 +328,7 @@ RyanMqttError_e RyanMqttSubscribeMany(RyanMqttClient_t *client, int32_t count,
 			goto __RyanMqttSubCreateAckErrorExit;
 		});
 
+		// 不会失败
 		RyanMqttAckListAddToUserAckList(client, userAckHandler);
 		continue;
 
@@ -483,6 +487,7 @@ RyanMqttError_e RyanMqttUnSubscribeMany(RyanMqttClient_t *client, int32_t count,
 			goto __RyanMqttUnSubCreateAckErrorExit;
 		});
 
+		// 不会失败
 		RyanMqttAckListAddToUserAckList(client, userAckHandler);
 		continue;
 
@@ -775,6 +780,7 @@ RyanMqttError_e RyanMqttSafeFreeSubscribeResources(RyanMqttMsgHandler_t *msgHand
 {
 	RyanMqttError_e result = RyanMqttSuccessError;
 	RyanMqttCheck(NULL != msgHandles, RyanMqttParamInvalidError, RyanMqttLog_d);
+	// RyanMqttGetSubscribeSafe 返回地址的话 subscribeNum 一定大于0
 	RyanMqttCheck(subscribeNum > 0, RyanMqttParamInvalidError, RyanMqttLog_d);
 
 	for (int32_t i = 0; i < subscribeNum; i++)
