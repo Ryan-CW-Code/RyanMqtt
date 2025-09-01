@@ -318,7 +318,7 @@ static RyanMqttError_e RyanMqttConnectBroker(RyanMqttClient_t *client, RyanMqttC
 
 	// 等待报文
 	// mqtt规范 服务端接收到connect报文后，服务端发送给客户端的第一个报文必须是 CONNACK
-	MQTTPacketInfo_t pIncomingPacket;
+	MQTTPacketInfo_t pIncomingPacket = {0};
 	result = RyanMqttGetPacketInfo(client, &pIncomingPacket);
 	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttSerializePacketError, RyanMqttLog_d, {
 		platformNetworkClose(client->config.userData, &client->network);

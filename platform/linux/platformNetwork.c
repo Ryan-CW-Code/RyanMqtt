@@ -50,8 +50,9 @@ RyanMqttError_e platformNetworkConnect(void *userData, platformNetwork_t *platfo
 	};
 
 	// 传递的是ip地址，不用进行dns解析，某些情况下调用dns解析反而会错误
-	if (inet_pton(server_addr.sin_family, host, &server_addr.sin_addr) == 1)
+	if (inet_pton(server_addr.sin_family, host, &server_addr.sin_addr))
 	{
+		buf = NULL;
 	}
 	// 解析域名信息
 	else
@@ -71,7 +72,8 @@ RyanMqttError_e platformNetworkConnect(void *userData, platformNetwork_t *platfo
 
 		if (0 != gethostbyname_r(host, &hostinfo, buf, dnsBufferSize, &phost, &h_errnop))
 		{
-			RyanMqttLog_w("平台可能不支持 gethostbyname_r 函数, 再次尝试使用 gethostbyname 获取域名信息");
+			RyanMqttLog_w(
+				(char *)"平台可能不支持 gethostbyname_r 函数, 再次尝试使用 gethostbyname 获取域名信息");
 
 			// 非线程安全版本,请根据实际情况选择使用
 			// NOLINTNEXTLINE(concurrency-mt-unsafe)
@@ -103,6 +105,8 @@ RyanMqttError_e platformNetworkConnect(void *userData, platformNetwork_t *platfo
 		goto __exit;
 	}
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wanalyzer-fd-leak"
 	// 绑定套接字到主机地址和端口号
 	if (0 != connect(platformNetwork->socket, (struct sockaddr *)&server_addr, sizeof(server_addr)))
 	{
@@ -110,6 +114,7 @@ RyanMqttError_e platformNetworkConnect(void *userData, platformNetwork_t *platfo
 		result = RyanMqttSocketConnectFailError;
 		goto __exit;
 	}
+#pragma GCC diagnostic pop
 
 __exit:
 	if (NULL != buf)
@@ -163,11 +168,13 @@ int32_t platformNetworkRecvAsync(void *userData, platformNetwork_t *platformNetw
 	{
 		int32_t rt_errno = errno; // 似乎RT 5.0.0以上版本需要使用 rt_get_errno
 		// 下列表示没问题,但需要退出接收
-		if (EAGAIN == rt_errno ||      // 套接字已标记为非阻塞，而接收操作被阻塞或者接收超时
+		if (EAGAIN == rt_errno || // 套接字已标记为非阻塞，而接收操作被阻塞或者接收超时
+#if EAGAIN != EWOULDBLOCK
 		    EWOULDBLOCK == rt_errno || // 发送时套接字发送缓冲区已满，或接收时套接字接收缓冲区为空
-		    EINTR == rt_errno ||       // 操作被信号中断
-		    ETIME == rt_errno ||       // 计时器过期（部分平台）
-		    ETIMEDOUT == rt_errno)     // 超时（通用）
+#endif
+		    EINTR == rt_errno ||   // 操作被信号中断
+		    ETIME == rt_errno ||   // 计时器过期（部分平台）
+		    ETIMEDOUT == rt_errno) // 超时（通用）
 		{
 			return 0;
 		}
@@ -217,13 +224,15 @@ int32_t platformNetworkSendAsync(void *userData, platformNetwork_t *platformNetw
 
 	if (sendResult < 0) // 小于零，表示错误，个别错误不代表socket错误
 	{
-		int32_t rt_errno = errno;      // 似乎5.0.0以上版本需要使用 rt_get_errno
-					       // 下列表示没问题,但需要退出发送
-		if (EAGAIN == rt_errno ||      // 套接字已标记为非阻塞，而接收操作被阻塞或者接收超时
+		int32_t rt_errno = errno; // 似乎5.0.0以上版本需要使用 rt_get_errno
+					  // 下列表示没问题,但需要退出发送
+		if (EAGAIN == rt_errno || // 套接字已标记为非阻塞，而接收操作被阻塞或者接收超时
+#if EAGAIN != EWOULDBLOCK
 		    EWOULDBLOCK == rt_errno || // 发送时套接字发送缓冲区已满，或接收时套接字接收缓冲区为空
-		    EINTR == rt_errno ||       // 操作被信号中断
-		    ETIME == rt_errno ||       // 计时器过期（部分平台）
-		    ETIMEDOUT == rt_errno)     // 超时（通用）
+#endif
+		    EINTR == rt_errno ||   // 操作被信号中断
+		    ETIME == rt_errno ||   // 计时器过期（部分平台）
+		    ETIMEDOUT == rt_errno) // 超时（通用）
 		{
 			return 0;
 		}

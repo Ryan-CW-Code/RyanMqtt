@@ -24,14 +24,13 @@ static RyanMqttError_e RyanMqttPubackAndPubcompPacketHandler(RyanMqttClient_t *c
 	RyanMqttCheck(MQTTSuccess == status, RyanMqttSerializePacketError, RyanMqttLog_d);
 
 	// 可能会多次收到 puback / pubcomp,仅在首次收到时触发发布成功回调函数
-	result = RyanMqttAckListNodeFind(client, pIncomingPacket->type & 0xF0U, packetId, &ackHandler);
+	result = RyanMqttAckListNodeFind(client, pIncomingPacket->type & 0xF0U, packetId, &ackHandler, RyanMqttTrue);
 	RyanMqttCheckCode(RyanMqttSuccessError == result, result, RyanMqttLog_d, {
 		RyanMqttLog_i("packetType: %02x, packetId: %d", pIncomingPacket->type & 0xF0U, packetId);
 	});
 
 	RyanMqttEventMachine(client, RyanMqttEventPublished, (void *)ackHandler); // 回调函数
 
-	RyanMqttAckListRemoveToAckList(client, ackHandler);
 	RyanMqttAckHandlerDestroy(client, ackHandler); // 销毁ackHandler
 	return result;
 }
@@ -54,10 +53,9 @@ static RyanMqttError_e RyanMqttPubrelPacketHandler(RyanMqttClient_t *client, MQT
 	RyanMqttCheck(MQTTSuccess == status, RyanMqttSerializePacketError, RyanMqttLog_d);
 
 	// 删除pubrel记录
-	result = RyanMqttAckListNodeFind(client, MQTT_PACKET_TYPE_PUBREL, packetId, &ackHandler);
+	result = RyanMqttAckListNodeFind(client, MQTT_PACKET_TYPE_PUBREL, packetId, &ackHandler, RyanMqttTrue);
 	if (RyanMqttSuccessError == result)
 	{
-		RyanMqttAckListRemoveToAckList(client, ackHandler);
 		RyanMqttAckHandlerDestroy(client, ackHandler);
 	}
 
@@ -104,7 +102,7 @@ static RyanMqttError_e RyanMqttPubrecPacketHandler(RyanMqttClient_t *client, MQT
 	RyanMqttCheck(MQTTSuccess == status, RyanMqttSerializePacketError, RyanMqttLog_d);
 
 	// 只在首次收到pubrec, 并pubcomp不存在于ack链表时，才创建pubcmp到ack链表,再删除pubrec记录
-	result = RyanMqttAckListNodeFind(client, MQTT_PACKET_TYPE_PUBREC, packetId, &ackHandlerPubrec);
+	result = RyanMqttAckListNodeFind(client, MQTT_PACKET_TYPE_PUBREC, packetId, &ackHandlerPubrec, RyanMqttFalse);
 	if (RyanMqttSuccessError == result)
 	{
 		RyanMqttMsgHandler_t *msgHandler;
@@ -117,6 +115,7 @@ static RyanMqttError_e RyanMqttPubrecPacketHandler(RyanMqttClient_t *client, MQT
 						  ackHandlerPubrec->msgHandler->userData, &msgHandler);
 		RyanMqttCheck(RyanMqttSuccessError == result, result, RyanMqttLog_d);
 
+		// 期望收到pubcomp否则会重复发送pubrel
 		result = RyanMqttAckHandlerCreate(client, MQTT_PACKET_TYPE_PUBCOMP, packetId,
 						  MQTT_PUBLISH_ACK_PACKET_SIZE, fixedBuffer.pBuffer, msgHandler,
 						  &ackHandler, RyanMqttFalse);
@@ -124,14 +123,19 @@ static RyanMqttError_e RyanMqttPubrecPacketHandler(RyanMqttClient_t *client, MQT
 				  { RyanMqttMsgHandlerDestroy(client, msgHandler); });
 		RyanMqttAckListAddToAckList(client, ackHandler);
 
-		// 清除pubrec记录
-		RyanMqttAckListRemoveToAckList(client, ackHandlerPubrec);
-		RyanMqttAckHandlerDestroy(client, ackHandlerPubrec);
+		// 清除pubrec记录,必须使用find函数进行重新查找才能确保线程安全
+		result = RyanMqttAckListNodeFind(client, MQTT_PACKET_TYPE_PUBREC, packetId, &ackHandlerPubrec,
+						 RyanMqttTrue);
+		if (RyanMqttSuccessError == result)
+		{
+			RyanMqttAckHandlerDestroy(client, ackHandlerPubrec);
+		}
 	}
 	else
 	{
 		// 没有pubrec ，并且没有pubcomp，说明这个报文是非法报文，不进行mqtt服务器回复
-		result = RyanMqttAckListNodeFind(client, MQTT_PACKET_TYPE_PUBCOMP, packetId, &ackHandlerPubrec);
+		result = RyanMqttAckListNodeFind(client, MQTT_PACKET_TYPE_PUBCOMP, packetId, &ackHandlerPubrec,
+						 RyanMqttFalse);
 		RyanMqttCheck(RyanMqttSuccessError == result, RyanMqttInvalidPacketError, RyanMqttLog_d);
 	}
 
@@ -214,7 +218,8 @@ static RyanMqttError_e RyanMqttPublishPacketHandler(RyanMqttClient_t *client, MQ
 
 		// 收到 publish 就期望收到 PUBREL ，如果 PUBREL 报文已经存在说明不是首次收到 publish,不进行qos2 PUBREC
 		// 消息处理
-		result = RyanMqttAckListNodeFind(client, MQTT_PACKET_TYPE_PUBREL, msgData.packetId, &ackHandler);
+		result = RyanMqttAckListNodeFind(client, MQTT_PACKET_TYPE_PUBREL, msgData.packetId, &ackHandler,
+						 RyanMqttFalse);
 		if (RyanMqttSuccessError != result)
 		{
 			// 第一次收到 PUBREL 报文

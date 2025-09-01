@@ -17,7 +17,8 @@
 #endif
 
 extern void RyanMqttLogOutPutRaw(char *const fmt, ...);
-extern void RyanMqttLogOutPut(char *lvl, uint8_t color, char *fileStr, uint32_t lineNum, char *const fmt, ...);
+extern void RyanMqttLogOutPut(const char *lvl, uint8_t color, const char *fileStr, uint32_t lineNum, char *const fmt,
+			      ...);
 
 /**
  * @brief log等级检索

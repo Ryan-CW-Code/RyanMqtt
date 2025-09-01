@@ -5,6 +5,11 @@ static int32_t subTestCount = 0;
 
 static RyanMqttSubscribeData_t *topicIsSubscribeArr(char *topic)
 {
+	if (NULL == topic)
+	{
+		return NULL;
+	}
+
 	for (int32_t i = 0; i < subTestCount; i++)
 	{
 		if (0 == RyanMqttStrncmp(topic, subscribeManyData[i].topic, RyanMqttStrlen(topic)))
@@ -158,7 +163,8 @@ static RyanMqttError_e RyanMqttSubscribeHybridTest(int32_t count)
 
 	// 生成需要订阅的主题数据
 	{
-		subscribeManyData = (RyanMqttSubscribeData_t *)malloc(sizeof(RyanMqttSubscribeData_t) * count);
+		subscribeManyData =
+			(RyanMqttSubscribeData_t *)platformMemoryMalloc(sizeof(RyanMqttSubscribeData_t) * count);
 		if (NULL == subscribeManyData)
 		{
 			RyanMqttLog_e("内存不足");
@@ -169,7 +175,7 @@ static RyanMqttError_e RyanMqttSubscribeHybridTest(int32_t count)
 		for (int32_t i = 0; i < count; i++)
 		{
 			subscribeManyData[i].qos = i % 3;
-			char *topic = (char *)malloc(64);
+			char *topic = (char *)platformMemoryMalloc(64);
 			if (NULL == topic)
 			{
 				RyanMqttLog_e("内存不足");
@@ -207,7 +213,7 @@ static RyanMqttError_e RyanMqttSubscribeHybridTest(int32_t count)
 	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttFailedError, RyanMqttLog_e, { goto __exit; });
 
 	// 测试取消所有订阅消息
-	unSubscribeManyData = malloc(sizeof(RyanMqttUnSubscribeData_t) * count);
+	unSubscribeManyData = platformMemoryMalloc(sizeof(RyanMqttUnSubscribeData_t) * count);
 	if (NULL == unSubscribeManyData)
 	{
 		RyanMqttLog_e("内存不足");
@@ -216,7 +222,7 @@ static RyanMqttError_e RyanMqttSubscribeHybridTest(int32_t count)
 	}
 	for (int32_t i = 0; i < count; i++)
 	{
-		char *topic = (char *)malloc(64);
+		char *topic = (char *)platformMemoryMalloc(64);
 		if (NULL == topic)
 		{
 			RyanMqttLog_e("内存不足");
@@ -283,23 +289,23 @@ __exit:
 	{
 		if (NULL != subscribeManyData && NULL != subscribeManyData[i].topic)
 		{
-			free(subscribeManyData[i].topic);
+			platformMemoryFree(subscribeManyData[i].topic);
 		}
 
-		if (NULL != subscribeManyData && NULL != unSubscribeManyData[i].topic)
+		if (NULL != unSubscribeManyData && NULL != unSubscribeManyData[i].topic)
 		{
-			free(unSubscribeManyData[i].topic);
+			platformMemoryFree(unSubscribeManyData[i].topic);
 		}
 	}
 
 	if (NULL != subscribeManyData)
 	{
-		free(subscribeManyData);
+		platformMemoryFree(subscribeManyData);
 	}
 
 	if (NULL != unSubscribeManyData)
 	{
-		free(unSubscribeManyData);
+		platformMemoryFree(unSubscribeManyData);
 	}
 
 	RyanMqttLog_i("mqtt 订阅测试，销毁mqtt客户端");

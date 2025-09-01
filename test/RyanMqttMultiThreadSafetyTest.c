@@ -16,12 +16,9 @@ typedef struct
 // 多线程测试控制结构
 typedef struct
 {
-	int32_t runningThreads;
 	int32_t totalPublished;
 	int32_t totalReceived;
 	int32_t threadIndex;
-	pthread_mutex_t statsMutex;
-	pthread_cond_t completionCond;
 	int32_t testComplete;
 	RyanMqttClient_t *client;
 } MultiThreadTestControl_t;
@@ -29,23 +26,69 @@ typedef struct
 static MultiThreadTestControl_t g_testControl = {0};
 static ThreadTestData_t g_threadTestData[CONCURRENT_CLIENTS + 1] = {0};
 
+static bool safeParseTopic(const char *topic, uint32_t topicLen, int *threadId)
+{
+	const char *prefix = "testThread/";
+	const char *suffix = "/tttt";
+
+	size_t prefix_len = strlen(prefix);
+	size_t suffix_len = strlen(suffix);
+
+	if (topicLen <= prefix_len + suffix_len)
+	{
+		return false;
+	}
+	if (strncmp(topic, prefix, prefix_len) != 0)
+	{
+		return false;
+	}
+	if (topicLen < prefix_len + suffix_len)
+	{
+		return false;
+	}
+	if (strncmp(topic + topicLen - suffix_len, suffix, suffix_len) != 0)
+	{
+		return false;
+	}
+
+	size_t num_len = topicLen - prefix_len - suffix_len;
+	if (num_len == 0 || num_len >= 16)
+	{
+		return false;
+	}
+
+	char num_buf[16] = {0};
+	memcpy(num_buf, topic + prefix_len, num_len);
+
+	char *endptr = NULL;
+	long val = strtol(num_buf, &endptr, 10);
+	if (*endptr != '\0')
+	{
+		return false;
+	}
+
+	*threadId = (int)val;
+	return true;
+}
+
 // 多线程事件处理函数
 static void multiThreadEventHandle(void *pclient, RyanMqttEventId_e event, const void *eventData)
 {
-
 	switch (event)
 	{
 	case RyanMqttEventPublished: {
 		RyanMqttMsgHandler_t *msgHandler = ((RyanMqttAckHandler_t *)eventData)->msgHandler;
 		// RyanMqttLog_w("qos1 / qos2发送成功事件回调 topic: %s, qos: %d", msgHandler->topic, msgHandler->qos);
 
-		int thread_id;
+		int threadId;
 
 		// NOLINTNEXTLINE(cert-err34-c)
-		if (1 == sscanf(msgHandler->topic, "testThread/%d/tttt", &thread_id))
+		// if (1 == sscanf(msgHandler->topic, "testThread/%d/tttt", &threadId))
+		if (safeParseTopic(msgHandler->topic, msgHandler->topicLen, &threadId))
 		{
-			ThreadTestData_t *testData = &g_threadTestData[thread_id];
+
 			RyanMqttTestEnableCritical();
+			ThreadTestData_t *testData = &g_threadTestData[threadId];
 			testData->publishedCount += 1;
 			g_testControl.totalPublished += 1;
 			RyanMqttTestExitCritical();
@@ -59,13 +102,14 @@ static void multiThreadEventHandle(void *pclient, RyanMqttEventId_e event, const
 		// RyanMqttLog_i("接收到mqtt消息事件回调 topic: %.*s, packetId: %d, payload len: %d, qos: %d",
 		// 	      msgData->topicLen, msgData->topic, msgData->packetId, msgData->payloadLen, msgData->qos);
 
-		int thread_id;
+		int threadId;
 
-		// NOLINTNEXTLINE(cert-err34-c)
-		if (1 == sscanf(msgData->topic, "testThread/%d/tttt", &thread_id))
+		// 非线程安全
+		// if (1 == sscanf(msgData->topic, "testThread/%d/tttt", &threadId))
+		if (safeParseTopic(msgData->topic, msgData->topicLen, &threadId))
 		{
-			ThreadTestData_t *testData = &g_threadTestData[thread_id];
 			RyanMqttTestEnableCritical();
+			ThreadTestData_t *testData = &g_threadTestData[threadId];
 			testData->receivedCount += 1;
 			g_testControl.totalReceived += 1;
 			RyanMqttTestExitCritical();
@@ -94,7 +138,8 @@ static void *concurrentPublishThread(void *arg)
 
 	// 订阅主题
 	RyanMqttSnprintf(topic, sizeof(topic), "testThread/%d/tttt", threadIndex);
-	result = RyanMqttSubscribe(g_testControl.client, topic, threadIndex % 2 ? RyanMqttQos2 : RyanMqttQos1);
+	result = RyanMqttSubscribe(g_testControl.client, topic, RyanMqttQos2);
+	// result = RyanMqttSubscribe(g_testControl.client, topic, threadIndex % 2 ? RyanMqttQos2 : RyanMqttQos1);
 	if (RyanMqttSuccessError != result)
 	{
 		RyanMqttLog_e("Thread %d: Failed to subscribe", threadIndex);
@@ -124,7 +169,7 @@ static void *concurrentPublishThread(void *arg)
 			}
 		}
 
-		delay_us(700); // 电脑配置不一样需要的时间也就不一样
+		delay_us(900); // 电脑配置不一样需要的时间也就不一样
 	}
 
 	// 等待消息处理完成
@@ -146,14 +191,6 @@ static void *concurrentPublishThread(void *arg)
 cleanup:
 	delay(50); // 让mqtt线程运行
 
-	pthread_mutex_lock(&g_testControl.statsMutex);
-	g_testControl.runningThreads--;
-	if (g_testControl.runningThreads == 0)
-	{
-		pthread_cond_signal(&g_testControl.completionCond);
-	}
-	pthread_mutex_unlock(&g_testControl.statsMutex);
-
 	return NULL;
 }
 
@@ -166,9 +203,6 @@ static RyanMqttError_e multiClientConcurrentTest(void)
 
 	// 初始化测试控制结构
 	RyanMqttMemset(&g_testControl, 0, sizeof(g_testControl));
-	pthread_mutex_init(&g_testControl.statsMutex, NULL);
-	pthread_cond_init(&g_testControl.completionCond, NULL);
-	g_testControl.runningThreads = CONCURRENT_CLIENTS;
 
 	// 初始化客户端
 	result =
@@ -179,21 +213,6 @@ static RyanMqttError_e multiClientConcurrentTest(void)
 	for (int i = 0; i < CONCURRENT_CLIENTS; i++)
 	{
 
-		struct sched_param param;
-
-		// 初始化线程属性
-		pthread_attr_init(&g_threadTestData[i].attr);
-
-		// 设置线程为显式调度属性（否则可能忽略优先级）
-		pthread_attr_setinheritsched(&g_threadTestData[i].attr, PTHREAD_EXPLICIT_SCHED);
-
-		// 设置调度策略，例如 SCHED_FIFO 或 SCHED_RR（实时策略）
-		pthread_attr_setschedpolicy(&g_threadTestData[i].attr, SCHED_FIFO);
-
-		// 设置优先级（范围依赖于调度策略）
-		param.sched_priority = 1; // 实时优先级范围通常是 1 ~ 99
-		pthread_attr_setschedparam(&g_threadTestData[i].attr, &param);
-
 		if (pthread_create(&g_threadTestData[i].threadId, NULL, concurrentPublishThread, NULL) != 0)
 		{
 			RyanMqttLog_e("Failed to create thread %d", i);
@@ -202,22 +221,11 @@ static RyanMqttError_e multiClientConcurrentTest(void)
 		}
 	}
 
-	// 等待所有线程完成
-	pthread_mutex_lock(&g_testControl.statsMutex);
-	while (g_testControl.runningThreads > 0)
-	{
-		pthread_cond_wait(&g_testControl.completionCond, &g_testControl.statsMutex);
-	}
-	pthread_mutex_unlock(&g_testControl.statsMutex);
-
 	// 等待线程结束
 	for (int i = 0; i < CONCURRENT_CLIENTS; i++)
 	{
 		pthread_join(g_threadTestData[i].threadId, NULL);
-		pthread_attr_destroy(&g_threadTestData[i].attr);
 	}
-
-	RyanMqttTestDestroyClient(g_testControl.client);
 
 	// 统计结果
 	RyanMqttLog_i("Multi-client test results:");
@@ -240,10 +248,9 @@ static RyanMqttError_e multiClientConcurrentTest(void)
 		result = RyanMqttFailedError;
 	}
 
-cleanup:
-	pthread_mutex_destroy(&g_testControl.statsMutex);
-	pthread_cond_destroy(&g_testControl.completionCond);
+	RyanMqttTestDestroyClient(g_testControl.client);
 
+cleanup:
 	return result;
 }
 

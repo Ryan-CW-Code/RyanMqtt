@@ -115,14 +115,14 @@ static RyanMqttError_e RyanMqttPublishTest(RyanMqttQos_e qos, int32_t count, uin
 		// NOLINTNEXTLINE(cert-err33-c)
 		time(&timeStampNow);
 
-		pubStr = (char *)malloc(2048);
+		pubStr = (char *)platformMemoryMalloc(2048);
 		RyanMqttCheck(NULL != pubStr, RyanMqttNotEnoughMemError, RyanMqttLog_e);
 		RyanMqttMemset(pubStr, 0, 2048);
 
 		// NOLINTNEXTLINE(cert-msc32-c,cert-msc51-cpp)
 		srand(timeStampNow);
 		// NOLINTNEXTLINE(concurrency-mt-unsafe,cert-msc30-c,cert-msc50-cpp)
-		for (int32_t i = 0; i < rand() % 250 + 1 + 100; i++)
+		for (uint32_t i = 0; i < (uint32_t)(rand() % 250 + 1 + 100); i++)
 		{
 			// NOLINTNEXTLINE(concurrency-mt-unsafe,cert-msc30-c,cert-msc50-cpp)
 			snprintf(pubStr + 4 * i, 2048 - 4 * i, "%04d", rand());
@@ -183,7 +183,7 @@ static RyanMqttError_e RyanMqttPublishTest(RyanMqttQos_e qos, int32_t count, uin
 	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttFailedError, RyanMqttLog_e, { goto __exit; });
 
 __exit:
-	free(pubStr);
+	platformMemoryFree(pubStr);
 	pubStr = NULL;
 	RyanMqttLog_i("mqtt 发布测试，销毁mqtt客户端");
 	RyanMqttTestDestroyClient(client);
@@ -243,14 +243,14 @@ static RyanMqttError_e RyanMqttPublishHybridTest(int32_t count, uint32_t delayms
 		// NOLINTNEXTLINE(cert-err33-c)
 		time(&timeStampNow);
 
-		pubStr = (char *)malloc(2048);
+		pubStr = (char *)platformMemoryMalloc(2048);
 		RyanMqttCheck(NULL != pubStr, RyanMqttNotEnoughMemError, RyanMqttLog_e);
 		RyanMqttMemset(pubStr, 0, 2048);
 
 		// NOLINTNEXTLINE(cert-msc32-c,cert-msc51-cpp)
 		srand(timeStampNow);
 		// NOLINTNEXTLINE(concurrency-mt-unsafe,cert-msc30-c,cert-msc50-cpp)
-		for (int32_t i = 0; i < rand() % 250 + 1 + 100; i++)
+		for (uint32_t i = 0; i < (uint32_t)(rand() % 250 + 1 + 100); i++)
 		{
 			// NOLINTNEXTLINE(concurrency-mt-unsafe,cert-msc30-c,cert-msc50-cpp)
 			snprintf(pubStr + 4 * i, 2048 - 4 * i, "%04d", rand());
@@ -310,7 +310,7 @@ static RyanMqttError_e RyanMqttPublishHybridTest(int32_t count, uint32_t delayms
 	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttFailedError, RyanMqttLog_e, { goto __exit; });
 
 __exit:
-	free(pubStr);
+	platformMemoryFree(pubStr);
 	pubStr = NULL;
 	RyanMqttLog_i("mqtt 发布测试，销毁mqtt客户端");
 	RyanMqttTestDestroyClient(client);

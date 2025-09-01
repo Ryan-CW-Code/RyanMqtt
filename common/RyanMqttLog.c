@@ -2,7 +2,7 @@
 #include "RyanMqttPlatform.h"
 #include <inttypes.h>
 
-void RyanMqttLogOutPut(char *lvl, uint8_t color, char *fileStr, uint32_t lineNum, char *const fmt, ...)
+void RyanMqttLogOutPut(const char *lvl, uint8_t color, const char *fileStr, uint32_t lineNum, char *const fmt, ...)
 {
 	// RyanLogPrintf("\033[字背景颜色;字体颜色m  用户字符串 \033[0m" );
 	char dbgBuffer[256];

@@ -75,7 +75,11 @@ RyanMqttError_e platformThreadInit(void *userData, platformThread_t *platformThr
 	pthread_attr_setstacksize(&attr, stackSize);
 	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED); // 设置为分离状态
 
-	int ret = pthread_create(&platformThread->thread, &attr, (void *)entry, param);
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcast-function-type"
+	int ret = pthread_create(&platformThread->thread, &attr, (void *(*)(void *))entry, param);
+#pragma GCC diagnostic pop
+
 	if (0 != ret)
 	{
 		return RyanMqttNoRescourceError;

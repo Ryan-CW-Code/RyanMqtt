@@ -52,7 +52,7 @@ RyanMqttError_e platformNetworkConnect(void *userData, platformNetwork_t *platfo
 	// 传递的是ip地址，不用进行dns解析，某些情况下调用dns解析反而会错误
 	// RT-Thread平台下lwip和netdev都是通过宏定义方式定义 inet_pton 和 inet_addr,所以这里没有问题
 #ifdef inet_pton
-	if (inet_pton(server_addr.sin_family, host, &server_addr.sin_addr) == 1)
+	if (inet_pton(server_addr.sin_family, host, &server_addr.sin_addr))
 	{
 	}
 #elif defined(inet_addr)
@@ -180,11 +180,13 @@ int32_t platformNetworkRecvAsync(void *userData, platformNetwork_t *platformNetw
 		}
 
 		// 下列表示没问题,但需要退出接收
-		if (EAGAIN == rt_errno ||      // 套接字已标记为非阻塞，而接收操作被阻塞或者接收超时
+		if (EAGAIN == rt_errno || // 套接字已标记为非阻塞，而接收操作被阻塞或者接收超时
+#if EAGAIN != EWOULDBLOCK
 		    EWOULDBLOCK == rt_errno || // 发送时套接字发送缓冲区已满，或接收时套接字接收缓冲区为空
-		    EINTR == rt_errno ||       // 操作被信号中断
-		    ETIME == rt_errno ||       // 计时器过期（部分平台）
-		    ETIMEDOUT == rt_errno)     // 超时（通用）
+#endif
+		    EINTR == rt_errno ||   // 操作被信号中断
+		    ETIME == rt_errno ||   // 计时器过期（部分平台）
+		    ETIMEDOUT == rt_errno) // 超时（通用）
 		{
 			return 0;
 		}
@@ -241,11 +243,13 @@ int32_t platformNetworkSendAsync(void *userData, platformNetwork_t *platformNetw
 		}
 
 		// 下列表示没问题,但需要退出发送
-		if (EAGAIN == rt_errno ||      // 套接字已标记为非阻塞，而接收操作被阻塞或者接收超时
+		if (EAGAIN == rt_errno || // 套接字已标记为非阻塞，而接收操作被阻塞或者接收超时
+#if EAGAIN != EWOULDBLOCK
 		    EWOULDBLOCK == rt_errno || // 发送时套接字发送缓冲区已满，或接收时套接字接收缓冲区为空
-		    EINTR == rt_errno ||       // 操作被信号中断
-		    ETIME == rt_errno ||       // 计时器过期（部分平台）
-		    ETIMEDOUT == rt_errno)     // 超时（通用）
+#endif
+		    EINTR == rt_errno ||   // 操作被信号中断
+		    ETIME == rt_errno ||   // 计时器过期（部分平台）
+		    ETIMEDOUT == rt_errno) // 超时（通用）
 		{
 			return 0;
 		}

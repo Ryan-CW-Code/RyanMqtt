@@ -15,12 +15,12 @@
  * @param packet
  * @param msgHandler
  * @param pAckHandler
- * @param isPreallocatedPacket packet是否预分配
+ * @param packetAllocatedExternally packet 是外部分配的
  * @return RyanMqttError_e
  */
 RyanMqttError_e RyanMqttAckHandlerCreate(RyanMqttClient_t *client, uint8_t packetType, uint16_t packetId,
 					 uint16_t packetLen, uint8_t *packet, RyanMqttMsgHandler_t *msgHandler,
-					 RyanMqttAckHandler_t **pAckHandler, RyanMqttBool_e isPreallocatedPacket)
+					 RyanMqttAckHandler_t **pAckHandler, RyanMqttBool_e packetAllocatedExternally)
 {
 	RyanMqttAssert(NULL != client);
 	RyanMqttAssert(NULL != pAckHandler);
@@ -28,7 +28,7 @@ RyanMqttError_e RyanMqttAckHandlerCreate(RyanMqttClient_t *client, uint8_t packe
 	uint32_t mallocSize = sizeof(RyanMqttAckHandler_t);
 
 	// 为非预分配的数据包分配额外空间
-	if (RyanMqttTrue != isPreallocatedPacket)
+	if (RyanMqttTrue != packetAllocatedExternally)
 	{
 		mallocSize += packetLen + 1;
 	}
@@ -37,17 +37,17 @@ RyanMqttError_e RyanMqttAckHandlerCreate(RyanMqttClient_t *client, uint8_t packe
 	RyanMqttAckHandler_t *ackHandler = (RyanMqttAckHandler_t *)platformMemoryMalloc(mallocSize);
 	RyanMqttCheck(NULL != ackHandler, RyanMqttNotEnoughMemError, RyanMqttLog_d);
 
+	ackHandler->packetAllocatedExternally = packetAllocatedExternally;
 	ackHandler->packetType = packetType;
 	ackHandler->repeatCount = 0;
 	ackHandler->packetId = packetId;
-	ackHandler->isPreallocatedPacket = isPreallocatedPacket;
 	ackHandler->packetLen = packetLen;
 	RyanMqttListInit(&ackHandler->list);
 	// 超时内没有响应将被销毁或重新发送
 	RyanMqttTimerCutdown(&ackHandler->timer, client->config.ackTimeout);
 	ackHandler->msgHandler = msgHandler;
 
-	if (RyanMqttTrue != isPreallocatedPacket)
+	if (RyanMqttTrue != packetAllocatedExternally)
 	{
 		if (NULL != packet && packetLen > 0)
 		{
@@ -80,7 +80,7 @@ void RyanMqttAckHandlerDestroy(RyanMqttClient_t *client, RyanMqttAckHandler_t *a
 	RyanMqttMsgHandlerDestroy(client, ackHandler->msgHandler); // 释放msgHandler
 
 	// 释放用户预提供的缓冲区
-	if (RyanMqttTrue == ackHandler->isPreallocatedPacket)
+	if (RyanMqttTrue == ackHandler->packetAllocatedExternally)
 	{
 		// 不加null判断，因为如果是空，一定是用户程序内存访问越界了
 		platformMemoryFree(ackHandler->packet);
@@ -96,10 +96,11 @@ void RyanMqttAckHandlerDestroy(RyanMqttClient_t *client, RyanMqttAckHandler_t *a
  * @param packetType
  * @param packetId
  * @param pAckHandler
+ * @param removeOnMatch
  * @return RyanMqttError_e
  */
 RyanMqttError_e RyanMqttAckListNodeFind(RyanMqttClient_t *client, uint8_t packetType, uint16_t packetId,
-					RyanMqttAckHandler_t **pAckHandler)
+					RyanMqttAckHandler_t **pAckHandler, RyanMqttBool_e removeOnMatch)
 {
 	RyanMqttError_e result = RyanMqttSuccessError;
 	RyanMqttList_t *curr, *next;
@@ -118,6 +119,10 @@ RyanMqttError_e RyanMqttAckListNodeFind(RyanMqttClient_t *client, uint8_t packet
 		{
 			*pAckHandler = ackHandler;
 			result = RyanMqttSuccessError;
+			if (RyanMqttTrue == removeOnMatch)
+			{
+				RyanMqttAckListRemoveToAckList(client, ackHandler);
+			}
 			goto __exit;
 		}
 	}
@@ -186,10 +191,11 @@ RyanMqttError_e RyanMqttAckListRemoveToAckList(RyanMqttClient_t *client, RyanMqt
  * @param packetType
  * @param packetId
  * @param pAckHandler
+ * @param removeOnMatch
  * @return RyanMqttError_e
  */
 RyanMqttError_e RyanMqttAckListNodeFindByUserAckList(RyanMqttClient_t *client, uint8_t packetType, uint16_t packetId,
-						     RyanMqttAckHandler_t **pAckHandler)
+						     RyanMqttAckHandler_t **pAckHandler, RyanMqttBool_e removeOnMatch)
 {
 	RyanMqttError_e result = RyanMqttSuccessError;
 	RyanMqttList_t *curr, *next;
@@ -208,6 +214,10 @@ RyanMqttError_e RyanMqttAckListNodeFindByUserAckList(RyanMqttClient_t *client, u
 		{
 			*pAckHandler = ackHandler;
 			result = RyanMqttSuccessError;
+			if (RyanMqttTrue == removeOnMatch)
+			{
+				RyanMqttAckListRemoveToAckList(client, ackHandler);
+			}
 			goto __exit;
 		}
 	}
@@ -248,25 +258,23 @@ void RyanMqttClearAckSession(RyanMqttClient_t *client, uint8_t packetType, uint1
 	RyanMqttAckHandler_t *ackHandler;
 
 	// 清除所有ack链表
-	while (1)
+	do
 	{
-		result = RyanMqttAckListNodeFindByUserAckList(client, packetType, packetId, &ackHandler);
+		result = RyanMqttAckListNodeFindByUserAckList(client, packetType, packetId, &ackHandler, RyanMqttTrue);
 		if (RyanMqttSuccessError == result)
 		{
-			RyanMqttAckListRemoveToUserAckList(client, ackHandler);
 			RyanMqttAckHandlerDestroy(client, ackHandler);
 			continue;
 		}
 
-		// 还有可能已经被添加到ack链表了
-		result = RyanMqttAckListNodeFind(client, packetType, packetId, &ackHandler);
+		// 不可能同时在userAck和mqttAck，还有可能已经被添加到ack链表了
+		result = RyanMqttAckListNodeFind(client, packetType, packetId, &ackHandler, RyanMqttTrue);
 		if (RyanMqttSuccessError == result)
 		{
-			RyanMqttAckListRemoveToAckList(client, ackHandler);
 			RyanMqttAckHandlerDestroy(client, ackHandler);
 			continue;
 		}
 
 		break;
-	}
+	} while (1);
 }

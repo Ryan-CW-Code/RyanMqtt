@@ -13,7 +13,14 @@ extern "C" {
 #include <unistd.h>
 #include <stdlib.h>
 #include <time.h>
+
+#ifdef RyanMqttLinuxTestEnable
 #include "valloc.h"
+#define malloc  v_malloc
+#define calloc  v_calloc
+#define free    v_free
+#define realloc v_realloc
+#endif
 
 #define platformAssert(EX) assert(EX)
 #define RyanMqttMemset     memset

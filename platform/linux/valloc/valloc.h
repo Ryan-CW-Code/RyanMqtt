@@ -12,24 +12,18 @@
 #define __valloc_H
 
 #ifdef __cplusplus
-extern "C"
-{
+extern "C" {
 #endif
 
 #include <stdlib.h>
 
-    void *v_malloc(size_t size);
-    void *v_calloc(size_t num, size_t size);
-    void v_free(void *block);
-    void *v_realloc(void *block, size_t size);
-    int v_mcheck(int *_count, int *_use);
-    void displayMem(void);
-    void vallocInit(void);
-
-#define malloc v_malloc
-#define calloc v_calloc
-#define free v_free
-#define realloc v_realloc
+extern void *v_malloc(size_t size);
+extern void *v_calloc(size_t num, size_t size);
+extern void v_free(void *block);
+extern void *v_realloc(void *block, size_t size);
+extern int v_mcheck(int *dstCount, int *dstUse);
+extern void displayMem(void);
+extern void vallocInit(void);
 
 #ifdef __cplusplus
 }

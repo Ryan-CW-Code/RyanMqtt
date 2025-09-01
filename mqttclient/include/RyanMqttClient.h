@@ -40,15 +40,15 @@ typedef struct
 
 typedef struct
 {
-	uint8_t packetType;                  // 期望接收到的ack报文类型
-	uint16_t repeatCount;                // 当前ack超时重发次数
-	uint16_t packetId;                   // 报文标识符 系统生成，用户勿动
-	RyanMqttBool_e isPreallocatedPacket; // 是否是预分配的内存
-	uint32_t packetLen;                  // 报文长度
-	RyanMqttList_t list;                 // 链表节点，用户勿动
-	RyanMqttTimer_t timer;               // ack超时定时器，用户勿动
-	RyanMqttMsgHandler_t *msgHandler;    // msg信息
-	uint8_t *packet;                     // 没有收到期望ack，重新发送的原始报文,不要求必须是最后一位,但最好保持这样
+	RyanMqttBool_e packetAllocatedExternally; // packet 是外部分配的
+	uint8_t packetType;                       // 期望接收到的ack报文类型
+	uint16_t repeatCount;                     // 当前ack超时重发次数
+	uint16_t packetId;                        // 报文标识符 系统生成，用户勿动
+	uint32_t packetLen;                       // 报文长度
+	RyanMqttList_t list;                      // 链表节点，用户勿动
+	RyanMqttTimer_t timer;                    // ack超时定时器，用户勿动
+	RyanMqttMsgHandler_t *msgHandler;         // msg信息
+	uint8_t *packet; // 没有收到期望ack，重新发送的原始报文,不要求必须是最后一位,但最好保持这样
 } RyanMqttAckHandler_t;
 
 typedef struct

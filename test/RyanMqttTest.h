@@ -9,9 +9,15 @@ extern "C" {
 #include <stdint.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <unistd.h>
 #include <semaphore.h>
 #include <pthread.h>
+#include "valloc.h"
+#define malloc  v_malloc
+#define calloc  v_calloc
+#define free    v_free
+#define realloc v_realloc
 
 #define RyanMqttLogLevel (RyanMqttLogLevelDebug) // 日志打印等级
 
@@ -40,9 +46,8 @@ extern "C" {
 			RyanMqttLog_e("内存泄漏");                                                                     \
 			while (1)                                                                                      \
 			{                                                                                              \
-				int area = 0, use = 0;                                                                 \
 				v_mcheck(&area, &use);                                                                 \
-				RyanMqttLog_w("|||----------->>> area = %d, size = %d", area, use);                    \
+				RyanMqttLog_e("|||----------->>> area = %d, size = %d", area, use);                    \
 				delay(3000);                                                                           \
 			}                                                                                              \
 		}                                                                                                      \
@@ -59,8 +64,8 @@ struct RyanMqttTestEventUserData
 };
 /* extern variables-----------------------------------------------------------*/
 
-extern void RyanMqttTestEnableCritical();
-extern void RyanMqttTestExitCritical();
+extern void RyanMqttTestEnableCritical(void);
+extern void RyanMqttTestExitCritical(void);
 extern RyanMqttError_e RyanMqttTestInit(RyanMqttClient_t **client, RyanMqttBool_e syncFlag,
 					RyanMqttBool_e autoReconnectFlag, uint16_t keepaliveTimeoutS,
 					RyanMqttEventHandle mqttEventCallback, void *userData);

@@ -44,6 +44,8 @@
         "ryanmqttpublic.h": "c",
         "ryanmqttlist.h": "c",
         "platformnetwork.h": "c",
-        "inttypes.h": "c"
+        "inttypes.h": "c",
+        "memory": "c",
+        "stdbool.h": "c"
     },
 }

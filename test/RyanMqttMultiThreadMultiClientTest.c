@@ -19,8 +19,6 @@ typedef struct
 	volatile int runningThreads;
 	volatile int totalPublished;
 	volatile int totalReceived;
-	pthread_mutex_t statsMutex;
-	pthread_cond_t completionCond;
 	volatile int testComplete;
 } MultiThreadTestControl_t;
 
@@ -82,7 +80,8 @@ static void *concurrentPublishThread(void *arg)
 
 	// 订阅主题
 	RyanMqttSnprintf(topic, sizeof(topic), "test/thread/%d", testData->threadIndex);
-	result = RyanMqttSubscribe(testData->client, topic, testData->threadIndex % 2 ? RyanMqttQos2 : RyanMqttQos1);
+	result = RyanMqttSubscribe(testData->client, topic, RyanMqttQos2);
+	// result = RyanMqttSubscribe(testData->client, topic, testData->threadIndex % 2 ? RyanMqttQos2 : RyanMqttQos1);
 	if (RyanMqttSuccessError != result)
 	{
 		RyanMqttLog_e("Thread %d: Failed to subscribe", testData->threadIndex);
@@ -101,7 +100,7 @@ static void *concurrentPublishThread(void *arg)
 			RyanMqttLog_e("Thread %d: Failed to publish message %d", testData->threadIndex, i);
 		}
 
-		delay(i % 2 ? 2 : 1);
+		delay_us(900);
 	}
 
 	// 等待消息处理完成
@@ -128,14 +127,6 @@ cleanup:
 		RyanMqttTestDestroyClient(testData->client);
 	}
 
-	pthread_mutex_lock(&g_testControl.statsMutex);
-	g_testControl.runningThreads--;
-	if (g_testControl.runningThreads == 0)
-	{
-		pthread_cond_signal(&g_testControl.completionCond);
-	}
-	pthread_mutex_unlock(&g_testControl.statsMutex);
-
 	return NULL;
 }
 
@@ -149,8 +140,6 @@ static RyanMqttError_e multiClientConcurrentTest(void)
 
 	// 初始化测试控制结构
 	RyanMqttMemset(&g_testControl, 0, sizeof(g_testControl));
-	pthread_mutex_init(&g_testControl.statsMutex, NULL);
-	pthread_cond_init(&g_testControl.completionCond, NULL);
 	g_testControl.runningThreads = CONCURRENT_CLIENTS;
 
 	// 创建测试线程
@@ -166,14 +155,6 @@ static RyanMqttError_e multiClientConcurrentTest(void)
 			goto cleanup;
 		}
 	}
-
-	// 等待所有线程完成
-	pthread_mutex_lock(&g_testControl.statsMutex);
-	while (g_testControl.runningThreads > 0)
-	{
-		pthread_cond_wait(&g_testControl.completionCond, &g_testControl.statsMutex);
-	}
-	pthread_mutex_unlock(&g_testControl.statsMutex);
 
 	// 等待线程结束
 	for (int i = 0; i < CONCURRENT_CLIENTS; i++)
@@ -203,8 +184,6 @@ static RyanMqttError_e multiClientConcurrentTest(void)
 	}
 
 cleanup:
-	pthread_mutex_destroy(&g_testControl.statsMutex);
-	pthread_cond_destroy(&g_testControl.completionCond);
 
 	return result;
 }

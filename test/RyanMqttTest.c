@@ -92,7 +92,7 @@ void mqttEventBaseHandle(void *pclient, RyanMqttEventId_e event, const void *eve
 	{
 		// 这里选择直接丢弃该消息
 		RyanMqttAckHandler_t *ackHandler = (RyanMqttAckHandler_t *)eventData;
-		RyanMqttLog_w("ack重发次数超过警戒值回调 packetType: %d, packetId: %d, topic: %s, qos: %d",
+		RyanMqttLog_e("ack重发次数超过警戒值回调 packetType: %d, packetId: %d, topic: %s, qos: %d",
 			      ackHandler->packetType, ackHandler->packetId, ackHandler->msgHandler->topic,
 			      ackHandler->msgHandler->qos);
 		RyanMqttDiscardAckHandler(client, ackHandler->packetType, ackHandler->packetId);
@@ -127,10 +127,6 @@ void mqttEventBaseHandle(void *pclient, RyanMqttEventId_e event, const void *eve
 	}
 }
 
-void RyanMqttTestUserDataEvent(void *pclient, RyanMqttEventId_e event, const void *eventData)
-{
-}
-
 RyanMqttError_e RyanMqttTestInit(RyanMqttClient_t **client, RyanMqttBool_e syncFlag, RyanMqttBool_e autoReconnectFlag,
 				 uint16_t keepaliveTimeoutS, RyanMqttEventHandle mqttEventCallback, void *userData)
 {
@@ -145,7 +141,7 @@ RyanMqttError_e RyanMqttTestInit(RyanMqttClient_t **client, RyanMqttBool_e syncF
 	RyanMqttSnprintf(aaa, sizeof(aaa), "%s%d", RyanMqttClientId, count);
 
 	struct RyanMqttTestEventUserData *eventUserData =
-		(struct RyanMqttTestEventUserData *)malloc(sizeof(struct RyanMqttTestEventUserData));
+		(struct RyanMqttTestEventUserData *)platformMemoryMalloc(sizeof(struct RyanMqttTestEventUserData));
 	if (NULL == eventUserData)
 	{
 		RyanMqttLog_e("内存不足");
@@ -171,7 +167,7 @@ RyanMqttError_e RyanMqttTestInit(RyanMqttClient_t **client, RyanMqttBool_e syncF
 					     .taskStack = 4096,
 					     .mqttVersion = 4,
 					     .ackHandlerRepeatCountWarning = 6,
-					     .ackHandlerCountWarning = 2000,
+					     .ackHandlerCountWarning = 60000,
 					     .autoReconnectFlag = autoReconnectFlag,
 					     .cleanSessionFlag = RyanMqttTrue,
 					     .reconnectTimeout = 3000,
@@ -246,8 +242,9 @@ RyanMqttError_e RyanMqttTestDestroyClient(RyanMqttClient_t *client)
 		sem_destroy(&eventUserData->sem);
 	}
 
-	free(eventUserData);
-	delay(3);
+	// RyanMqttEventDestroyBefore 后mqtt客户端还要执行清除操作
+	delay(10);
+	platformMemoryFree(eventUserData);
 	return RyanMqttSuccessError;
 }
 
@@ -288,16 +285,17 @@ void printfArrStr(uint8_t *buf, uint32_t len, char *userData)
 	RyanMqttLog_raw("\r\n");
 }
 
-void RyanMqttTestEnableCritical()
+void RyanMqttTestEnableCritical(void)
 {
 	pthread_spin_lock(&spin);
 }
 
-void RyanMqttTestExitCritical()
+void RyanMqttTestExitCritical(void)
 {
 	pthread_spin_unlock(&spin);
 }
 
+// todo 增加session测试
 // !当测试程序出错时，并不会回收内存。交由父进程进行回收
 int main(void)
 {

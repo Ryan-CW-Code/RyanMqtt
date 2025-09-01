@@ -3,6 +3,9 @@
 #include <string.h>
 #include <pthread.h>
 #include <unistd.h>
+#include "valloc.h"
+
+#define HEADER_SIZE sizeof(int)
 
 static pthread_mutex_t mutex;
 static int count = 0;
@@ -10,90 +13,104 @@ static int use = 0;
 
 void *v_malloc(size_t size)
 {
-	void *p;
-	p = malloc(size ? size + sizeof(int) : 0);
+	if (size == 0)
+	{
+		return NULL;
+	}
+
+	void *p = malloc(size + HEADER_SIZE);
 	if (!p)
 	{
 		return NULL;
 	}
 
-	pthread_mutex_lock(&mutex); // 互斥锁上锁
+	*(int *)p = (int)size;
+
+	pthread_mutex_lock(&mutex);
 	count++;
-	*(int *)p = size;
-	use += size;
-	pthread_mutex_unlock(&mutex); // 互斥锁解锁
-	return (void *)((char *)p + sizeof(int));
+	use += (int)size;
+	pthread_mutex_unlock(&mutex);
+
+	return (char *)p + HEADER_SIZE;
 }
 
 void *v_calloc(size_t num, size_t size)
 {
-	void *p;
-	p = v_malloc(num * size);
-	if (!p)
+	size_t total = num * size;
+	void *p = v_malloc(total);
+	if (p)
 	{
-		return NULL;
+		memset(p, 0, total);
 	}
-	memset(p, 0, num * size);
 	return p;
 }
 
 void v_free(void *block)
 {
-	void *p;
 	if (!block)
 	{
 		return;
 	}
-	p = (void *)((char *)block - sizeof(int));
 
-	pthread_mutex_lock(&mutex); // 互斥锁上锁
-	use -= *(int *)p;
+	void *p = (char *)block - HEADER_SIZE;
+	int size = *(int *)p;
+
+	pthread_mutex_lock(&mutex);
 	count--;
-	pthread_mutex_unlock(&mutex); // 互斥锁解锁
+	use -= size;
+	pthread_mutex_unlock(&mutex);
 
 	free(p);
 }
 
 void *v_realloc(void *block, size_t size)
 {
-	void *p;
-	int s = 0;
+	if (size == 0)
+	{
+		v_free(block);
+		return NULL;
+	}
+
+	int old_size = 0;
+	void *raw = NULL;
+
 	if (block)
 	{
-		block = (void *)((char *)block - sizeof(int));
-		s = *(int *)block;
+		raw = (char *)block - HEADER_SIZE;
+		old_size = *(int *)raw;
 	}
-	p = realloc(block, size ? size + sizeof(int) : 0);
+
+	void *p = realloc(raw, size + HEADER_SIZE);
 	if (!p)
 	{
 		return NULL;
 	}
 
-	pthread_mutex_lock(&mutex); // 互斥锁上锁
+	*(int *)p = (int)size;
+
+	pthread_mutex_lock(&mutex);
 	if (!block)
 	{
 		count++;
 	}
-	*(int *)p = size;
-	use += (size - s);
-	pthread_mutex_unlock(&mutex); // 互斥锁解锁
+	use += (int)(size - old_size);
+	pthread_mutex_unlock(&mutex);
 
-	return (void *)((char *)p + sizeof(int));
+	return (char *)p + HEADER_SIZE;
 }
 
-int v_mcheck(int *_count, int *_use)
+int v_mcheck(int *dstCount, int *dstUse)
 {
-	pthread_mutex_lock(&mutex); // 互斥锁上锁
-	if (_count)
+	pthread_mutex_lock(&mutex);
+	if (dstCount)
 	{
-		*_count = count;
+		*dstCount = count;
 	}
-	if (_use)
+	if (dstUse)
 	{
-		*_use = use;
+		*dstUse = use;
 	}
-	pthread_mutex_unlock(&mutex); // 互斥锁解锁
-
+	pthread_mutex_unlock(&mutex);
 	return 0;
 }
 
@@ -106,6 +123,5 @@ void displayMem(void)
 
 void vallocInit(void)
 {
-	/* 初始化互斥锁 */
 	pthread_mutex_init(&mutex, NULL);
 }

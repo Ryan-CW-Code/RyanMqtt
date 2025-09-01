@@ -50,14 +50,15 @@ extern RyanMqttError_e RyanMqttMsgHandlerRemoveToMsgList(RyanMqttClient_t *clien
 extern RyanMqttError_e RyanMqttAckHandlerCreate(RyanMqttClient_t *client, uint8_t packetType, uint16_t packetId,
 						uint16_t packetLen, uint8_t *packet, RyanMqttMsgHandler_t *msgHandler,
 						RyanMqttAckHandler_t **pAckHandler,
-						RyanMqttBool_e isPreallocatedPacket);
+						RyanMqttBool_e packetAllocatedExternally);
 extern void RyanMqttAckHandlerDestroy(RyanMqttClient_t *client, RyanMqttAckHandler_t *ackHandler);
 extern RyanMqttError_e RyanMqttAckListNodeFind(RyanMqttClient_t *client, uint8_t packetType, uint16_t packetId,
-					       RyanMqttAckHandler_t **pAckHandler);
+					       RyanMqttAckHandler_t **pAckHandler, RyanMqttBool_e removeOnMatch);
 extern RyanMqttError_e RyanMqttAckListAddToAckList(RyanMqttClient_t *client, RyanMqttAckHandler_t *ackHandler);
 extern RyanMqttError_e RyanMqttAckListRemoveToAckList(RyanMqttClient_t *client, RyanMqttAckHandler_t *ackHandler);
 extern RyanMqttError_e RyanMqttAckListNodeFindByUserAckList(RyanMqttClient_t *client, uint8_t packetType,
-							    uint16_t packetId, RyanMqttAckHandler_t **pAckHandler);
+							    uint16_t packetId, RyanMqttAckHandler_t **pAckHandler,
+							    RyanMqttBool_e removeOnMatch);
 extern RyanMqttError_e RyanMqttAckListAddToUserAckList(RyanMqttClient_t *client, RyanMqttAckHandler_t *ackHandler);
 extern RyanMqttError_e RyanMqttAckListRemoveToUserAckList(RyanMqttClient_t *client, RyanMqttAckHandler_t *ackHandler);
 extern void RyanMqttClearAckSession(RyanMqttClient_t *client, uint8_t packetType, uint16_t packetId);

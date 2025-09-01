@@ -1,4 +1,5 @@
 #define RyanMqttLogLevel (RyanMqttLogLevelAssert) // 日志打印等级
+// #define RyanMqttLogLevel (RyanMqttLogLevelError) // 日志打印等级
 // #define RyanMqttLogLevel (RyanMqttLogLevelDebug) // 日志打印等级
 
 #include "RyanMqttClient.h"
@@ -589,27 +590,27 @@ RyanMqttError_e RyanMqttPublishAndUserData(RyanMqttClient_t *client, char *topic
 	{
 		RyanMqttMsgHandler_t *msgHandler;
 		RyanMqttAckHandler_t *userAckHandler;
+		uint8_t packetType = (RyanMqttQos1 == qos) ? MQTT_PACKET_TYPE_PUBACK : MQTT_PACKET_TYPE_PUBREC;
 		// qos1 / qos2需要收到预期响应ack,否则数据将被重新发送
 		result = RyanMqttMsgHandlerCreate(client, publishInfo.pTopicName, publishInfo.topicNameLength,
 						  RyanMqttMsgInvalidPacketId, qos, userData, &msgHandler);
 		RyanMqttCheckCode(RyanMqttSuccessError == result, result, RyanMqttLog_d,
 				  { platformMemoryFree(fixedBuffer.pBuffer); });
 
-		result = RyanMqttAckHandlerCreate(
-			client, (RyanMqttQos1 == qos) ? MQTT_PACKET_TYPE_PUBACK : MQTT_PACKET_TYPE_PUBREC, packetId,
-			fixedBuffer.size, fixedBuffer.pBuffer, msgHandler, &userAckHandler, RyanMqttTrue);
+		result = RyanMqttAckHandlerCreate(client, packetType, packetId, fixedBuffer.size, fixedBuffer.pBuffer,
+						  msgHandler, &userAckHandler, RyanMqttTrue);
 		RyanMqttCheckCode(RyanMqttSuccessError == result, result, RyanMqttLog_d, {
 			platformMemoryFree(fixedBuffer.pBuffer);
 			RyanMqttMsgHandlerDestroy(client, msgHandler);
 		});
 
-		// 一定要先加再send，要不可能线程调度mqtt返回消息会比添加ack更快执行
+		// 一定要先加再send，send一定在mqtt broker回复前执行完，要不可能线程调度mqtt返回消息会比添加ack更快执行
 		RyanMqttAckListAddToUserAckList(client, userAckHandler);
 
 		result = RyanMqttSendPacket(client, userAckHandler->packet, userAckHandler->packetLen);
 		RyanMqttCheckCode(RyanMqttSuccessError == result, result, RyanMqttLog_d, {
-			RyanMqttAckListRemoveToUserAckList(client, userAckHandler);
-			RyanMqttAckHandlerDestroy(client, userAckHandler);
+			// userAck 必须通过这个执行，因为可能已经复制到mqtt内核空间了
+			RyanMqttClearAckSession(client, packetType, packetId);
 		});
 	}
 
@@ -952,7 +953,7 @@ RyanMqttError_e RyanMqttSetConfig(RyanMqttClient_t *client, RyanMqttClientConfig
 	RyanMqttCheck(NULL != clientConfig->clientId, RyanMqttParamInvalidError, RyanMqttLog_d);
 	RyanMqttCheck(NULL != clientConfig->host, RyanMqttParamInvalidError, RyanMqttLog_d);
 	RyanMqttCheck(NULL != clientConfig->taskName, RyanMqttParamInvalidError, RyanMqttLog_d);
-	RyanMqttCheck(clientConfig->recvTimeout <= clientConfig->keepaliveTimeoutS * 1000 / 2,
+	RyanMqttCheck(clientConfig->recvTimeout <= (uint32_t)clientConfig->keepaliveTimeoutS * 1000 / 2,
 		      RyanMqttParamInvalidError, RyanMqttLog_d);
 	RyanMqttCheck(clientConfig->recvTimeout >= clientConfig->sendTimeout, RyanMqttParamInvalidError, RyanMqttLog_d);
 
@@ -1080,9 +1081,8 @@ RyanMqttError_e RyanMqttDiscardAckHandler(RyanMqttClient_t *client, uint8_t pack
 
 	// 删除pubrel记录
 	platformMutexLock(client->config.userData, &client->ackHandleLock);
-	result = RyanMqttAckListNodeFind(client, packetType, packetId, &ackHandler);
+	result = RyanMqttAckListNodeFind(client, packetType, packetId, &ackHandler, RyanMqttTrue);
 	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, result, RyanMqttLog_d, { goto __exit; });
-	RyanMqttAckListRemoveToAckList(client, ackHandler);
 
 __exit:
 	platformMutexUnLock(client->config.userData, &client->ackHandleLock);
