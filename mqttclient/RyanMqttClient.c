@@ -765,7 +765,7 @@ __exit:
 }
 
 /**
- * @brief 安全释放订阅主题列表
+ * @brief 安全释放订阅主题列表(禁止直接调用free函数)
  *
  * @param msgHandles
  * @param subscribeNum
@@ -911,7 +911,7 @@ RyanMqttError_e RyanMqttGetConfig(RyanMqttClient_t *client, RyanMqttClientConfig
 }
 
 /**
- * @brief 释放通过 RyanMqttGetConfig 获取的配置信息
+ * @brief 释放通过 RyanMqttGetConfig 获取的配置信息 (禁止直接调用free函数)
  *
  * @param clientConfig
  * @return RyanMqttError_e

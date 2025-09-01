@@ -234,6 +234,7 @@ typedef enum
 	RyanMqttConnectFirstPackNotConnack,         // 发送connect后接受到的第一个报文不是connack
 	RyanMqttConnectProtocolError,               // 多次收到connack
 	RyanMqttConnectInvalidPacketError,          // 收到不符合MQTT3.1.1协议的报文，并且要求关闭客户端的
+	RyanMqttConnectFailedError,                 // 杂项原因，比如内存分配失败，序列化失败等
 	RyanMqttConnectStatusForceInt32 = INT32_MAX // 强制编译器使用int32_t类型
 } RyanMqttConnectStatus_e;
 

@@ -235,10 +235,16 @@ static RyanMqttError_e RyanMqttConnectBroker(RyanMqttClient_t *client, RyanMqttC
 	RyanMqttAssert(NULL != client);
 	RyanMqttAssert(NULL != connectState);
 
-	RyanMqttCheck(RyanMqttConnectState != RyanMqttGetClientState(client), RyanMqttConnectError, RyanMqttLog_d);
+	RyanMqttCheckCodeNoReturn(RyanMqttConnectState != RyanMqttGetClientState(client), RyanMqttConnectError,
+				  RyanMqttLog_d, {
+					  result = RyanMqttNoRescourceError;
+					  *connectState = RyanMqttConnectClientInvalid;
+					  goto __exit;
+				  });
 
 	// 填充 connect 信息
 	{
+		// 无需判断config有效性，如果无效一定是用户内存访问越界了
 		connectInfo.pClientIdentifier = client->config.clientId;
 		connectInfo.clientIdentifierLength = RyanMqttStrlen(client->config.clientId);
 		connectInfo.pUserName = client->config.userName;
@@ -293,26 +299,33 @@ static RyanMqttError_e RyanMqttConnectBroker(RyanMqttClient_t *client, RyanMqttC
 
 	// 申请数据包的空间
 	fixedBuffer.pBuffer = platformMemoryMalloc(fixedBuffer.size);
-	RyanMqttCheck(NULL != fixedBuffer.pBuffer, RyanMqttNoRescourceError, RyanMqttLog_d);
+	RyanMqttCheckCodeNoReturn(NULL != fixedBuffer.pBuffer, RyanMqttNoRescourceError, RyanMqttLog_d, {
+		result = RyanMqttNoRescourceError;
+		*connectState = RyanMqttConnectFailedError;
+		goto __exit;
+	});
 
 	// 序列化数据包
 	status = MQTT_SerializeConnect(&connectInfo, RyanMqttTrue == lwtFlag ? &willInfo : NULL, remainingLength,
 				       &fixedBuffer);
 	RyanMqttCheckCodeNoReturn(MQTTSuccess == status, RyanMqttSerializePacketError, RyanMqttLog_d, {
 		result = RyanMqttSerializePacketError;
+		*connectState = RyanMqttConnectFailedError;
 		goto __exit;
 	});
 
 	// 调用底层的连接函数连接上服务器
 	result = platformNetworkConnect(client->config.userData, &client->network, client->config.host,
 					client->config.port);
-	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanSocketFailedError, RyanMqttLog_d,
-				  { goto __exit; });
+	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanSocketFailedError, RyanMqttLog_d, {
+		*connectState = RyanMqttConnectNetWorkFail;
+		goto __exit;
+	});
 
 	// 发送序列化mqtt的CONNECT报文
 	result = RyanMqttSendPacket(client, fixedBuffer.pBuffer, fixedBuffer.size);
 	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, result, RyanMqttLog_d, {
-		platformNetworkClose(client->config.userData, &client->network);
+		*connectState = RyanMqttConnectNetWorkFail;
 		goto __exit;
 	});
 
@@ -321,7 +334,7 @@ static RyanMqttError_e RyanMqttConnectBroker(RyanMqttClient_t *client, RyanMqttC
 	MQTTPacketInfo_t pIncomingPacket = {0};
 	result = RyanMqttGetPacketInfo(client, &pIncomingPacket);
 	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttSerializePacketError, RyanMqttLog_d, {
-		platformNetworkClose(client->config.userData, &client->network);
+		*connectState = RyanMqttConnectInvalidPacketError;
 		goto __exit;
 	});
 
@@ -336,6 +349,7 @@ static RyanMqttError_e RyanMqttConnectBroker(RyanMqttClient_t *client, RyanMqttC
 		if (MQTTSuccess != status && MQTTServerRefused != status)
 		{
 			result = RyanMqttFailedError;
+			*connectState = RyanMqttConnectInvalidPacketError;
 		}
 		else
 		{
@@ -361,6 +375,11 @@ static RyanMqttError_e RyanMqttConnectBroker(RyanMqttClient_t *client, RyanMqttC
 	}
 
 	platformMemoryFree(pIncomingPacket.pRemainingData);
+
+	if (RyanMqttSuccessError != result)
+	{
+		platformNetworkClose(client->config.userData, &client->network);
+	}
 
 __exit:
 	platformMemoryFree(fixedBuffer.pBuffer);

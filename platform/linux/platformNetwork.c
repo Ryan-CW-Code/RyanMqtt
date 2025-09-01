@@ -52,7 +52,7 @@ RyanMqttError_e platformNetworkConnect(void *userData, platformNetwork_t *platfo
 	// 传递的是ip地址，不用进行dns解析，某些情况下调用dns解析反而会错误
 	if (inet_pton(server_addr.sin_family, host, &server_addr.sin_addr))
 	{
-		buf = NULL;
+		// inet_pton 已经将地址赋值到 server_addr.sin_addr，无需额外处理
 	}
 	// 解析域名信息
 	else

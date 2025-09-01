@@ -54,6 +54,10 @@ RyanMqttError_e RyanMqttAckHandlerCreate(RyanMqttClient_t *client, uint8_t packe
 			ackHandler->packet = (uint8_t *)ackHandler + sizeof(RyanMqttAckHandler_t);
 			RyanMqttMemcpy(ackHandler->packet, packet, packetLen); // 将packet数据保存到ack中
 		}
+		else
+		{
+			ackHandler->packet = NULL;
+		}
 	}
 	else
 	{
@@ -108,6 +112,7 @@ RyanMqttError_e RyanMqttAckListNodeFind(RyanMqttClient_t *client, uint8_t packet
 	RyanMqttAssert(NULL != client);
 	RyanMqttAssert(NULL != pAckHandler);
 
+	*pAckHandler = NULL;
 	platformMutexLock(client->config.userData, &client->ackHandleLock);
 	RyanMqttListForEachSafe(curr, next, &client->ackHandlerList)
 	{
@@ -203,6 +208,7 @@ RyanMqttError_e RyanMqttAckListNodeFindByUserAckList(RyanMqttClient_t *client, u
 	RyanMqttAssert(NULL != client);
 	RyanMqttAssert(NULL != pAckHandler);
 
+	*pAckHandler = NULL;
 	platformMutexLock(client->config.userData, &client->userSessionLock);
 	RyanMqttListForEachSafe(curr, next, &client->userAckHandlerList)
 	{

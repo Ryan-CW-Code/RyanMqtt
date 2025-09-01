@@ -8,7 +8,6 @@
 - [RT-Thread-RyanMqtt 移植指南（三）RT-Thread问答社区 - RT-Thread](https://club.rt-thread.org/ask/article/611b7a947f7221cf.html)
 - [keil使用 RyanMQTT 编译错误（中文编码问题）RT-Thread问答社区 - RT-Thread](https://club.rt-thread.org/ask/question/7269a82662b6cf31.html)
 
-
 ### 1、介绍
 
 **RyanMqtt** 是一个严格遵循 [MQTT 3.1.1](https://docs.oasis-open.org/mqtt/mqtt/v3.1.1/mqtt-v3.1.1.html) 协议标准实现的客户端库，专为资源受限的嵌入式设备设计并优化。
@@ -103,7 +102,7 @@ _MQTT 协议要求基础传输层能够提供有序的、可靠的、双向传�
 | ------------------------ | ------------------------ |
 | platformNetworkInit      | 网络资源初始化           |
 | platformNetworkDestroy   | 网络资源销毁             |
-| platformNetworkConnect   | 根据 ip 和端口连接服务器 |
+| platformNetworkConnect   | 根据主机名/IP 与端口连接服务器 |
 | platformNetworkRecvAsync | 非阻塞接收数据           |
 | platformNetworkSendAsync | 非阻塞发送数据           |
 | platformNetworkClose     | 断开 mqtt 服务器连接     |
@@ -168,7 +167,4 @@ _RyanMqtt 依靠函数生成毫秒时间戳，用于计算持续时间和超时�
 
 > 🛑 **作者不对因使用本库导致的任何直接或间接损失承担责任。请在深度评估后谨慎使用。**
 
-
-
 如需进一步帮助，请访问 [RT-Thread 社区](https://club.rt-thread.org/index.html) 或联系作者。
-

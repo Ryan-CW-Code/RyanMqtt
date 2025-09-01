@@ -54,6 +54,7 @@ RyanMqttError_e platformNetworkConnect(void *userData, platformNetwork_t *platfo
 #ifdef inet_pton
 	if (inet_pton(server_addr.sin_family, host, &server_addr.sin_addr))
 	{
+		// inet_pton 已经将地址赋值到 server_addr.sin_addr，无需额外处理
 	}
 #elif defined(inet_addr)
 	if (INADDR_NONE != inet_addr(host))
