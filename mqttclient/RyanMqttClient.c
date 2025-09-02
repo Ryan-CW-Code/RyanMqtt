@@ -445,10 +445,10 @@ RyanMqttError_e RyanMqttUnSubscribeMany(RyanMqttClient_t *client, int32_t count,
 		// ?不判断是否订阅，统一都发送取消
 		RyanMqttMsgHandler_t msgMatchCriteria = {.topic = (char *)subscriptionList[i].pTopicFilter,
 							 .topicLen = subscriptionList[i].topicFilterLength};
-		result = RyanMqttMsgHandlerFind(client, &msgMatchCriteria, RyanMqttFalse, &subMsgHandler);
+		result =
+			RyanMqttMsgHandlerFind(client, &msgMatchCriteria, RyanMqttFalse, &subMsgHandler, RyanMqttFalse);
 		if (RyanMqttSuccessError == result)
 		{
-			// todo
 			// !有线程安全问题,subMsgHandler是指针，但用户层只要不是特别的混乱重复取消订阅这里应该就问题，暂时不管成本太高
 			// 同步msg qos等级，之后unsub回调使用
 			subscriptionList[i].qos = (MQTTQoS_t)subMsgHandler->qos;
@@ -714,8 +714,11 @@ RyanMqttError_e RyanMqttGetSubscribeSafe(RyanMqttClient_t *client, RyanMqttMsgHa
 		}
 
 		msgHandler = RyanMqttListEntry(curr, RyanMqttMsgHandler_t, list);
-		msgHandlerArr[subscribeCount].topic = (char *)platformMemoryMalloc(msgHandler->topicLen + 1);
-		if (NULL == msgHandlerArr[subscribeCount].topic)
+
+		RyanMqttMemcpy(&msgHandlerArr[subscribeCount], msgHandler, sizeof(RyanMqttMsgHandler_t));
+		result = RyanMqttDupString(&msgHandlerArr[subscribeCount].topic, msgHandler->topic,
+					   msgHandler->topicLen);
+		if (RyanMqttSuccessError != result)
 		{
 			platformMutexUnLock(client->config.userData, &client->msgHandleLock);
 			RyanMqttSafeFreeSubscribeResources(msgHandlerArr, subscribeCount);
@@ -723,9 +726,6 @@ RyanMqttError_e RyanMqttGetSubscribeSafe(RyanMqttClient_t *client, RyanMqttMsgHa
 			goto __exit;
 		}
 
-		msgHandlerArr[subscribeCount].qos = msgHandler->qos;
-		RyanMqttMemcpy(msgHandlerArr[subscribeCount].topic, msgHandler->topic, msgHandler->topicLen);
-		msgHandlerArr[subscribeCount].topic[msgHandler->topicLen] = '\0'; // 添加字符串结束符
 		subscribeCount++;
 	}
 	platformMutexUnLock(client->config.userData, &client->msgHandleLock);

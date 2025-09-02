@@ -40,7 +40,8 @@ extern RyanMqttError_e RyanMqttMsgHandlerCreate(RyanMqttClient_t *client, const 
 						RyanMqttMsgHandler_t **pMsgHandler);
 extern void RyanMqttMsgHandlerDestroy(RyanMqttClient_t *client, RyanMqttMsgHandler_t *msgHandler);
 extern RyanMqttError_e RyanMqttMsgHandlerFind(RyanMqttClient_t *client, RyanMqttMsgHandler_t *msgMatchCriteria,
-					      RyanMqttBool_e isTopicMatchedFlag, RyanMqttMsgHandler_t **pMsgHandler);
+					      RyanMqttBool_e isTopicMatchedFlag, RyanMqttMsgHandler_t **pMsgHandler,
+					      RyanMqttBool_e removeOnMatch);
 extern void RyanMqttMsgHandlerFindAndDestroyByPackId(RyanMqttClient_t *client, RyanMqttMsgHandler_t *msgMatchCriteria,
 						     RyanMqttBool_e skipSamePacketId);
 extern RyanMqttError_e RyanMqttMsgHandlerAddToMsgList(RyanMqttClient_t *client, RyanMqttMsgHandler_t *msgHandler);

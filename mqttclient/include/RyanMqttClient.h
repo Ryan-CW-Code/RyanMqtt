@@ -144,12 +144,15 @@ extern RyanMqttError_e RyanMqttReconnect(RyanMqttClient_t *client);
 extern RyanMqttError_e RyanMqttPublishAndUserData(RyanMqttClient_t *client, char *topic, uint16_t topicLen,
 						  char *payload, uint32_t payloadLen, RyanMqttQos_e qos,
 						  RyanMqttBool_e retain, void *userData);
+// !推荐使用 RyanMqttPublishAndUserData , RyanMqttPublish不能正确处理topic结尾为0的情况
 extern RyanMqttError_e RyanMqttPublish(RyanMqttClient_t *client, char *topic, char *payload, uint32_t payloadLen,
 				       RyanMqttQos_e qos, RyanMqttBool_e retain);
 
+// !推荐使用 RyanMqttSubscribeMany , RyanMqttSubscribe不能正确处理topic结尾为0的情况
 extern RyanMqttError_e RyanMqttSubscribe(RyanMqttClient_t *client, char *topic, RyanMqttQos_e qos);
 extern RyanMqttError_e RyanMqttSubscribeMany(RyanMqttClient_t *client, int32_t count,
 					     RyanMqttSubscribeData_t subscribeManyData[]);
+// !推荐使用 RyanMqttUnSubscribeMany , RyanMqttUnSubscribe不能正确处理topic结尾为0的情况
 extern RyanMqttError_e RyanMqttUnSubscribe(RyanMqttClient_t *client, char *topic);
 extern RyanMqttError_e RyanMqttUnSubscribeMany(RyanMqttClient_t *client, int32_t count,
 					       RyanMqttUnSubscribeData_t unSubscribeManyData[]);

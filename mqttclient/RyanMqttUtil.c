@@ -62,7 +62,7 @@ int32_t coreMqttTransportRecv(NetworkContext_t *pNetworkContext, void *pBuffer, 
 }
 
 /**
- * @brief mqtt读取报文
+ * @brief mqtt读取报文,此函数仅Mqtt线程进行调用
  *
  * @param client
  * @param buf

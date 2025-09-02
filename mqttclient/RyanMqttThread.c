@@ -190,12 +190,14 @@ static void RyanMqttAckListScan(RyanMqttClient_t *client, RyanMqttBool_e waitFla
 		}
 
 		// 订阅 / 取消订阅超时就认为失败
-		case MQTT_PACKET_TYPE_SUBACK:
-			RyanMqttMsgHandlerFindAndDestroyByPackId(client, ackHandler->msgHandler, RyanMqttFalse);
+		case MQTT_PACKET_TYPE_SUBACK: {
+			RyanMqttMsgHandler_t *msgMatchCriteria = ackHandler->msgHandler;
+			RyanMqttMsgHandlerFindAndDestroyByPackId(client, msgMatchCriteria, RyanMqttFalse);
 			RyanMqttEventMachine(client, RyanMqttEventSubscribedFailed, (void *)ackHandler->msgHandler);
 			RyanMqttAckListRemoveToAckList(client, ackHandler);
 			RyanMqttAckHandlerDestroy(client, ackHandler); // 清除句柄
 			break;
+		}
 
 		case MQTT_PACKET_TYPE_UNSUBACK: {
 			RyanMqttEventMachine(client, RyanMqttEventUnSubscribedFailed, (void *)ackHandler->msgHandler);

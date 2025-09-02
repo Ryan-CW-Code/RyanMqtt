@@ -255,14 +255,15 @@ void RyanMqttMsgHandlerDestroy(RyanMqttClient_t *client, RyanMqttMsgHandler_t *m
  * @brief 查找msg句柄
  *
  * @param client
- * @param topic
- * @param topicLen
+ * @param msgMatchCriteria
  * @param isTopicMatchedFlag
  * @param pMsgHandler
+ * @param removeOnMatch
  * @return RyanMqttError_e
  */
 RyanMqttError_e RyanMqttMsgHandlerFind(RyanMqttClient_t *client, RyanMqttMsgHandler_t *msgMatchCriteria,
-				       RyanMqttBool_e isTopicMatchedFlag, RyanMqttMsgHandler_t **pMsgHandler)
+				       RyanMqttBool_e isTopicMatchedFlag, RyanMqttMsgHandler_t **pMsgHandler,
+				       RyanMqttBool_e removeOnMatch)
 {
 	RyanMqttError_e result = RyanMqttSuccessError;
 	RyanMqttList_t *curr, *next;
@@ -284,8 +285,11 @@ RyanMqttError_e RyanMqttMsgHandlerFind(RyanMqttClient_t *client, RyanMqttMsgHand
 			continue;
 		}
 
+		if (RyanMqttTrue == removeOnMatch)
+		{
+			RyanMqttMsgHandlerRemoveToMsgList(client, msgHandler);
+		}
 		*pMsgHandler = msgHandler;
-
 		result = RyanMqttSuccessError;
 		goto __exit;
 	}

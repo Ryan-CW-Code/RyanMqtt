@@ -177,7 +177,7 @@ static RyanMqttError_e RyanMqttPublishPacketHandler(RyanMqttClient_t *client, MQ
 
 		// 查看订阅列表是否包含此消息主题,进行通配符匹配
 		RyanMqttMsgHandler_t msgMatchCriteria = {.topic = msgData.topic, .topicLen = msgData.topicLen};
-		result = RyanMqttMsgHandlerFind(client, &msgMatchCriteria, RyanMqttTrue, &msgHandler);
+		result = RyanMqttMsgHandlerFind(client, &msgMatchCriteria, RyanMqttTrue, &msgHandler, RyanMqttFalse);
 		RyanMqttCheckCode(RyanMqttSuccessError == result, result, RyanMqttLog_d, {
 			RyanMqttLog_w("主题不匹配: %.*s", msgData.topicLen, msgData.topic);
 			RyanMqttEventMachine(client, RyanMqttEventUnsubscribedData, (void *)&msgData);
@@ -332,19 +332,22 @@ static RyanMqttError_e RyanMqttSubackHandler(RyanMqttClient_t *client, MQTTPacke
 			goto __next;
 		}
 
+		platformMutexLock(client->config.userData, &client->msgHandleLock);
 		// 查找同名订阅但是packetid不一样的进行删除,保证订阅主题列表只有一个最新的
 		RyanMqttMsgHandlerFindAndDestroyByPackId(client, ackHandler->msgHandler, RyanMqttTrue);
 
 		// 到这里就可以保证没有同名订阅了
 		// 查找之前记录的topic句柄，根据服务器授权Qos进行更新
 		// 几乎不可能查找不到，可以查找到 ackHandler 就一定有 msgHandler
-		RyanMqttError_e result =
-			RyanMqttMsgHandlerFind(client, ackHandler->msgHandler, RyanMqttFalse, &msgHandler);
-		RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, result, RyanMqttLog_d, { goto __next; });
+		RyanMqttError_e result = RyanMqttMsgHandlerFind(client, ackHandler->msgHandler, RyanMqttFalse,
+								&msgHandler, RyanMqttFalse);
+		RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, result, RyanMqttLog_d, {
+			platformMutexUnLock(client->config.userData, &client->msgHandleLock);
+			goto __next;
+		});
 
 		// 解析服务端授权 QoS（0,1,2）或失败(0x80)
-		subscriptionQos = pStatusStart[ackMsgIndex];
-		ackMsgIndex++;
+		subscriptionQos = pStatusStart[ackMsgIndex++];
 		switch (subscriptionQos)
 		{
 		case RyanMqttQos0:
@@ -352,12 +355,12 @@ static RyanMqttError_e RyanMqttSubackHandler(RyanMqttClient_t *client, MQTTPacke
 		case RyanMqttQos2:
 
 			// 到这里说明订阅成功，更新 QoS 并清除临时 packetId
-			platformMutexLock(client->config.userData, &client->msgHandleLock);
 			msgHandler->qos = subscriptionQos;
 			msgHandler->packetId = RyanMqttMsgInvalidPacketId;
 			platformMutexUnLock(client->config.userData, &client->msgHandleLock);
 
-			RyanMqttEventMachine(client, RyanMqttEventSubscribed, (void *)msgHandler); // mqtt回调函数
+			// mqtt回调函数
+			RyanMqttEventMachine(client, RyanMqttEventSubscribed, (void *)ackHandler->msgHandler);
 			break;
 
 		case RyanMqttSubFail:
@@ -365,6 +368,7 @@ static RyanMqttError_e RyanMqttSubackHandler(RyanMqttClient_t *client, MQTTPacke
 			// 订阅失败，服务器拒绝；删除并通知失败
 			RyanMqttMsgHandlerRemoveToMsgList(client, msgHandler);
 			RyanMqttMsgHandlerDestroy(client, msgHandler);
+			platformMutexUnLock(client->config.userData, &client->msgHandleLock);
 
 			// mqtt事件回调
 			RyanMqttEventMachine(client, RyanMqttEventSubscribedFailed, (void *)ackHandler->msgHandler);
@@ -417,11 +421,11 @@ static RyanMqttError_e RyanMqttUnSubackHandler(RyanMqttClient_t *client, MQTTPac
 		}
 
 		// 查找当前主题是否已经订阅,进行取消订阅
-		result = RyanMqttMsgHandlerFind(client, ackHandler->msgHandler, RyanMqttFalse, &subMsgHandler);
+		result = RyanMqttMsgHandlerFind(client, ackHandler->msgHandler, RyanMqttFalse, &subMsgHandler,
+						RyanMqttTrue);
 		if (RyanMqttSuccessError == result)
 		{
 			ackHandler->msgHandler->qos = subMsgHandler->qos;
-			RyanMqttMsgHandlerRemoveToMsgList(client, subMsgHandler);
 			RyanMqttMsgHandlerDestroy(client, subMsgHandler);
 		}
 

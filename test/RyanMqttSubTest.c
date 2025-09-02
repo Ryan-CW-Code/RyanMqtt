@@ -95,7 +95,6 @@ static RyanMqttError_e RyanMqttSubscribeCheckMsgHandle(RyanMqttClient_t *client)
 	delay(100);
 	for (int32_t i = 0; i < 600; i++)
 	{
-
 		result = RyanMqttGetSubscribeSafe(client, &msgHandles, &subscribeNum);
 		if (RyanMqttSuccessError != result)
 		{
@@ -103,6 +102,20 @@ static RyanMqttError_e RyanMqttSubscribeCheckMsgHandle(RyanMqttClient_t *client)
 		}
 		else
 		{
+			for (int32_t j = 0; j < subscribeNum; j++)
+			{
+				RyanMqttCheckCodeNoReturn(
+					NULL != msgHandles[j].topic &&
+						RyanMqttStrlen(msgHandles[j].topic) == msgHandles[j].topicLen,
+					RyanMqttFailedError, RyanMqttLog_e, {
+						RyanMqttLog_e("topic: %s, topicLen: %d, topicLen2: %d",
+							      msgHandles[j].topic, RyanMqttStrlen(msgHandles[j].topic),
+							      msgHandles[j].topicLen);
+						result = RyanMqttFailedError;
+						goto __exit;
+					});
+			}
+
 			RyanMqttLog_i("mqtt客户端已订阅的主题数: %d, 应该订阅主题数: %d", subscribeNum, subTestCount);
 			// for (int32_t i = 0; i < subscribeNum; i++)
 			//     RyanMqttLog_i("已经订阅主题: %d, topic: %s, QOS: %d", i, msgHandles[i].topic,
