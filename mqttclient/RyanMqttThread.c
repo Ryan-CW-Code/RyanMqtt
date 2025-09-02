@@ -48,6 +48,7 @@ static RyanMqttError_e RyanMqttKeepalive(RyanMqttClient_t *client)
 	if (timeRemain > (uint32_t)(client->config.recvTimeout + 100))
 	{
 		// 当没有到达 keepaliveTimeoutS 的 0.9 倍时间时不进行发送心跳包
+		// timeRemain 是剩余时间，所以 timeRemain > RyanMqttKeepAliveMultiplier - 0.9 就是还没有到达0.9倍时间
 		if (timeRemain > client->config.keepaliveTimeoutS * 1000 * (RyanMqttKeepAliveMultiplier - 0.9))
 		{
 			return RyanMqttSuccessError;
@@ -300,8 +301,8 @@ static RyanMqttError_e RyanMqttConnectBroker(RyanMqttClient_t *client, RyanMqttC
 
 	// 申请数据包的空间
 	fixedBuffer.pBuffer = platformMemoryMalloc(fixedBuffer.size);
-	RyanMqttCheckCodeNoReturn(NULL != fixedBuffer.pBuffer, RyanMqttNoRescourceError, RyanMqttLog_d, {
-		result = RyanMqttNoRescourceError;
+	RyanMqttCheckCodeNoReturn(NULL != fixedBuffer.pBuffer, RyanMqttNotEnoughMemError, RyanMqttLog_d, {
+		result = RyanMqttNotEnoughMemError;
 		*connectState = RyanMqttConnectFailedError;
 		goto __exit;
 	});

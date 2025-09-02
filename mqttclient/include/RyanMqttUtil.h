@@ -63,6 +63,8 @@ extern RyanMqttError_e RyanMqttAckListAddToUserAckList(RyanMqttClient_t *client,
 extern RyanMqttError_e RyanMqttAckListRemoveToUserAckList(RyanMqttClient_t *client, RyanMqttAckHandler_t *ackHandler);
 extern void RyanMqttClearAckSession(RyanMqttClient_t *client, uint8_t packetType, uint16_t packetId);
 
+extern uint16_t RyanMqttGetNextPacketId(RyanMqttClient_t *client);
+
 #ifdef __cplusplus
 }
 #endif

@@ -5,6 +5,7 @@
 extern "C" {
 #endif
 
+#define _GNU_SOURCE // 必须放在所有头文件之前
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
@@ -13,6 +14,7 @@ extern "C" {
 #include <unistd.h>
 #include <semaphore.h>
 #include <pthread.h>
+#include <sched.h>
 #include "valloc.h"
 #define malloc  v_malloc
 #define calloc  v_calloc
@@ -82,6 +84,7 @@ extern RyanMqttError_e RyanMqttSubTest(void);
 extern RyanMqttError_e RyanMqttWildcardTest(void);
 extern RyanMqttError_e RyanMqttMultiThreadMultiClientTest(void);
 extern RyanMqttError_e RyanMqttMultiThreadSafetyTest(void);
+extern RyanMqttError_e RyanMqttPublicApiParamCheckTest(void);
 
 #ifdef __cplusplus
 }

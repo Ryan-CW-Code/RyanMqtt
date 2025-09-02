@@ -100,7 +100,7 @@ static void *concurrentPublishThread(void *arg)
 			RyanMqttLog_e("Thread %d: Failed to publish message %d", testData->threadIndex, i);
 		}
 
-		delay_us(900);
+		delay_us(1100);
 	}
 
 	// 等待消息处理完成

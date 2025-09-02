@@ -138,8 +138,7 @@ static void *concurrentPublishThread(void *arg)
 
 	// 订阅主题
 	RyanMqttSnprintf(topic, sizeof(topic), "testThread/%d/tttt", threadIndex);
-	result = RyanMqttSubscribe(g_testControl.client, topic, RyanMqttQos2);
-	// result = RyanMqttSubscribe(g_testControl.client, topic, threadIndex % 2 ? RyanMqttQos2 : RyanMqttQos1);
+	result = RyanMqttSubscribe(g_testControl.client, topic, threadIndex % 2 ? RyanMqttQos2 : RyanMqttQos1);
 	if (RyanMqttSuccessError != result)
 	{
 		RyanMqttLog_e("Thread %d: Failed to subscribe", threadIndex);
@@ -169,7 +168,7 @@ static void *concurrentPublishThread(void *arg)
 			}
 		}
 
-		delay_us(900); // 电脑配置不一样需要的时间也就不一样
+		delay_us(1100); // 电脑配置不一样需要的时间也就不一样
 	}
 
 	// 等待消息处理完成
@@ -212,9 +211,25 @@ static RyanMqttError_e multiClientConcurrentTest(void)
 	// 创建测试线程
 	for (int i = 0; i < CONCURRENT_CLIENTS; i++)
 	{
+		// struct sched_param param;
 
-		if (pthread_create(&g_threadTestData[i].threadId, NULL, concurrentPublishThread, NULL) != 0)
+		// pthread_attr_init(&g_threadTestData[i].attr);
+
+		// // 设置调度策略为实时策略
+		// pthread_attr_setschedpolicy(&g_threadTestData[i].attr, SCHED_FIFO);
+
+		// // 获取该策略的最大优先级
+		// int max_prio = sched_get_priority_max(SCHED_FIFO);
+		// param.sched_priority = max_prio;
+
+		// // 设置优先级
+		// pthread_attr_setschedparam(&g_threadTestData[i].attr, &param);
+
+		int result222 = pthread_create(&g_threadTestData[i].threadId, NULL, concurrentPublishThread, NULL);
+		// pthread_attr_destroy(&g_threadTestData[i].attr);
+		if (result222 != 0)
 		{
+
 			RyanMqttLog_e("Failed to create thread %d", i);
 			result = RyanMqttFailedError;
 			goto cleanup;

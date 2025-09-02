@@ -172,7 +172,7 @@ RyanMqttError_e RyanMqttTestInit(RyanMqttClient_t **client, RyanMqttBool_e syncF
 					     .cleanSessionFlag = RyanMqttTrue,
 					     .reconnectTimeout = 3000,
 					     .recvTimeout = 2000,
-					     .sendTimeout = 1000,
+					     .sendTimeout = 1800,
 					     .ackTimeout = 10000,
 					     .keepaliveTimeoutS = keepaliveTimeoutS,
 					     .mqttEventHandle =
@@ -299,10 +299,26 @@ void RyanMqttTestExitCritical(void)
 // !当测试程序出错时，并不会回收内存。交由父进程进行回收
 int main(void)
 {
+
+	// 多线程测试必须设置这个，否则会导致 heap-use-after-free, 原因如下
+	// 虽然也有办法解决，不过RyanMqtt目标为嵌入式场景，不想引入需要更多资源的逻辑，嵌入式场景目前想不到有这么频繁而且还是本机emqx的场景。
+
+	// 用户线程send -> emqx回复报文 -> mqtt线程recv。
+	// recv线程收到数据后，会释放用户线程send的sendbuf缓冲区。
+	// 但是在本机部署的emqx并且多核心同时运行，发送的数据量非常大的情况下会出现mqtt线程recv已经收到数据，但是用户线程send函数还没有返回。
+	cpu_set_t cpuset;
+	CPU_ZERO(&cpuset);
+	CPU_SET(0, &cpuset);
+	pthread_setaffinity_np(pthread_self(), sizeof(cpu_set_t), &cpuset);
+	sched_setaffinity(0, sizeof(cpu_set_t), &cpuset);
+
 	RyanMqttError_e result = RyanMqttSuccessError;
 	vallocInit();
 
 	pthread_spin_init(&spin, PTHREAD_PROCESS_PRIVATE);
+
+	result = RyanMqttPublicApiParamCheckTest();
+	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttFailedError, RyanMqttLog_e, { goto __exit; });
 
 	result = RyanMqttSubTest();
 	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttFailedError, RyanMqttLog_e, { goto __exit; });

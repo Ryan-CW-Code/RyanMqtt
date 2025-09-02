@@ -477,7 +477,8 @@ RyanMqttError_e RyanMqttGetPacketInfo(RyanMqttClient_t *client, MQTTPacketInfo_t
 		if (pIncomingPacket->remainingLength > 0)
 		{
 			pIncomingPacket->pRemainingData = platformMemoryMalloc(pIncomingPacket->remainingLength);
-			RyanMqttCheck(NULL != pIncomingPacket->pRemainingData, RyanMqttNoRescourceError, RyanMqttLog_d);
+			RyanMqttCheck(NULL != pIncomingPacket->pRemainingData, RyanMqttNotEnoughMemError,
+				      RyanMqttLog_d);
 		}
 	}
 	else if (MQTTNoDataAvailable == status)

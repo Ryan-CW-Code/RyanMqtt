@@ -326,6 +326,30 @@ uint32_t RyanMqttTimerRemain(RyanMqttTimer_t *platformTimer)
 	return platformTimer->timeOut - elapsed;
 }
 
+/**
+ * @brief 获取报文标识符，报文标识符不可为0
+ * 都在sendbuf锁内调用
+ * @param client
+ * @return uint16_t
+ */
+uint16_t RyanMqttGetNextPacketId(RyanMqttClient_t *client)
+{
+	uint16_t packetId;
+	RyanMqttAssert(NULL != client);
+	platformCriticalEnter(client->config.userData, &client->criticalLock);
+	if (client->packetId >= RyanMqttMaxPacketId || client->packetId < 1)
+	{
+		client->packetId = 1;
+	}
+	else
+	{
+		client->packetId++;
+	}
+	packetId = client->packetId;
+	platformCriticalExit(client->config.userData, &client->criticalLock);
+	return packetId;
+}
+
 const char *RyanMqttStrError(int32_t state)
 {
 	const char *str;
