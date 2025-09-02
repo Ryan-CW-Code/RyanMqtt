@@ -145,7 +145,7 @@ RyanMqttError_e RyanMqttStart(RyanMqttClient_t *client)
 	RyanMqttCheckCode(RyanMqttSuccessError == result, RyanMqttNoRescourceError, RyanMqttLog_d,
 			  { RyanMqttSetClientState(client, RyanMqttInitState); });
 
-	return RyanMqttSuccessError;
+	return result;
 }
 
 /**
@@ -217,7 +217,7 @@ RyanMqttError_e RyanMqttReconnect(RyanMqttClient_t *client)
 	result = platformThreadStart(client->config.userData, &client->mqttThread);
 	RyanMqttCheck(RyanMqttSuccessError == result, result, RyanMqttLog_d);
 
-	return RyanMqttSuccessError;
+	return result;
 }
 
 /**
@@ -601,7 +601,7 @@ RyanMqttError_e RyanMqttPublishAndUserData(RyanMqttClient_t *client, char *topic
 		});
 	}
 
-	return RyanMqttSuccessError;
+	return result;
 }
 
 /**
@@ -834,27 +834,27 @@ static RyanMqttError_e RyanMqttClientConfigDeepCopy(RyanMqttClientConfig_t *dest
 	destConfig->host = NULL;
 	destConfig->taskName = NULL;
 
-	result = RyanMqttStringCopy(&destConfig->clientId, srcConfig->clientId, RyanMqttStrlen(srcConfig->clientId));
+	result = RyanMqttDupString(&destConfig->clientId, srcConfig->clientId, RyanMqttStrlen(srcConfig->clientId));
 	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, result, RyanMqttLog_d, { goto __exit; });
 
 	if (NULL != srcConfig->userName)
 	{
-		result = RyanMqttStringCopy(&destConfig->userName, srcConfig->userName,
-					    RyanMqttStrlen(srcConfig->userName));
+		result = RyanMqttDupString(&destConfig->userName, srcConfig->userName,
+					   RyanMqttStrlen(srcConfig->userName));
 		RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, result, RyanMqttLog_d, { goto __exit; });
 	}
 
 	if (NULL != srcConfig->password)
 	{
-		result = RyanMqttStringCopy(&destConfig->password, srcConfig->password,
-					    RyanMqttStrlen(srcConfig->password));
+		result = RyanMqttDupString(&destConfig->password, srcConfig->password,
+					   RyanMqttStrlen(srcConfig->password));
 		RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, result, RyanMqttLog_d, { goto __exit; });
 	}
 
-	result = RyanMqttStringCopy(&destConfig->host, srcConfig->host, RyanMqttStrlen(srcConfig->host));
+	result = RyanMqttDupString(&destConfig->host, srcConfig->host, RyanMqttStrlen(srcConfig->host));
 	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, result, RyanMqttLog_d, { goto __exit; });
 
-	result = RyanMqttStringCopy(&destConfig->taskName, srcConfig->taskName, RyanMqttStrlen(srcConfig->taskName));
+	result = RyanMqttDupString(&destConfig->taskName, srcConfig->taskName, RyanMqttStrlen(srcConfig->taskName));
 	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, result, RyanMqttLog_d, { goto __exit; });
 
 __exit:
@@ -1022,7 +1022,7 @@ RyanMqttError_e RyanMqttSetLwt(RyanMqttClient_t *client, char *topicName, char *
 
 	if (payloadLen > 0)
 	{
-		result = RyanMqttStringCopy(&client->lwtOptions->payload, payload, payloadLen);
+		result = RyanMqttDupString(&client->lwtOptions->payload, payload, payloadLen);
 		RyanMqttCheckCode(RyanMqttSuccessError == result, result, RyanMqttLog_d, { goto __exit; });
 	}
 	else
@@ -1030,7 +1030,7 @@ RyanMqttError_e RyanMqttSetLwt(RyanMqttClient_t *client, char *topicName, char *
 		client->lwtOptions->payload = NULL;
 	}
 
-	result = RyanMqttStringCopy(&client->lwtOptions->topic, topicName, RyanMqttStrlen(topicName));
+	result = RyanMqttDupString(&client->lwtOptions->topic, topicName, RyanMqttStrlen(topicName));
 	RyanMqttCheckCode(RyanMqttSuccessError == result, result, RyanMqttLog_d, { goto __exit; });
 
 	client->lwtOptions->lwtFlag = RyanMqttTrue;

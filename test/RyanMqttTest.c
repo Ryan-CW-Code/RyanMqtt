@@ -223,6 +223,7 @@ RyanMqttError_e RyanMqttTestInit(RyanMqttClient_t **client, RyanMqttBool_e syncF
 
 	if (RyanMqttConnectState != RyanMqttGetState(*client))
 	{
+		// 不处理错误,测试代码
 		RyanMqttLog_e("Connection timeout after %d ms", timeout_ms);
 		return RyanMqttFailedError;
 	}
@@ -253,19 +254,28 @@ RyanMqttError_e checkAckList(RyanMqttClient_t *client)
 	RyanMqttLog_w("等待检查ack链表，等待 recvTime: %d", client->config.recvTimeout);
 	delay(client->config.recvTimeout + 500);
 
-	if (!RyanMqttListIsEmpty(&client->ackHandlerList))
+	platformMutexLock(client->config.userData, &client->ackHandleLock);
+	int ackEmpty = RyanMqttListIsEmpty(&client->ackHandlerList);
+	platformMutexUnLock(client->config.userData, &client->ackHandleLock);
+	if (!ackEmpty)
 	{
 		RyanMqttLog_e("mqtt空间 ack链表不为空");
 		return RyanMqttFailedError;
 	}
 
-	if (!RyanMqttListIsEmpty(&client->userAckHandlerList))
+	platformMutexLock(client->config.userData, &client->userSessionLock);
+	int userAckEmpty = RyanMqttListIsEmpty(&client->userAckHandlerList);
+	platformMutexUnLock(client->config.userData, &client->userSessionLock);
+	if (!userAckEmpty)
 	{
 		RyanMqttLog_e("用户空间 ack链表不为空");
 		return RyanMqttFailedError;
 	}
 
-	if (!RyanMqttListIsEmpty(&client->msgHandlerList))
+	platformMutexLock(client->config.userData, &client->msgHandleLock);
+	int msgEmpty = RyanMqttListIsEmpty(&client->msgHandlerList);
+	platformMutexUnLock(client->config.userData, &client->msgHandleLock);
+	if (!msgEmpty)
 	{
 		RyanMqttLog_e("mqtt空间 msg链表不为空");
 		return RyanMqttFailedError;
@@ -299,6 +309,10 @@ void RyanMqttTestExitCritical(void)
 // !当测试程序出错时，并不会回收内存。交由父进程进行回收
 int main(void)
 {
+	RyanMqttError_e result = RyanMqttSuccessError;
+	vallocInit();
+
+	pthread_spin_init(&spin, PTHREAD_PROCESS_PRIVATE);
 
 	// 多线程测试必须设置这个，否则会导致 heap-use-after-free, 原因如下
 	// 虽然也有办法解决，不过RyanMqtt目标为嵌入式场景，不想引入需要更多资源的逻辑，嵌入式场景目前想不到有这么频繁而且还是本机emqx的场景。
@@ -311,11 +325,6 @@ int main(void)
 	CPU_SET(0, &cpuset);
 	pthread_setaffinity_np(pthread_self(), sizeof(cpu_set_t), &cpuset);
 	sched_setaffinity(0, sizeof(cpu_set_t), &cpuset);
-
-	RyanMqttError_e result = RyanMqttSuccessError;
-	vallocInit();
-
-	pthread_spin_init(&spin, PTHREAD_PROCESS_PRIVATE);
 
 	result = RyanMqttPublicApiParamCheckTest();
 	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttFailedError, RyanMqttLog_e, { goto __exit; });

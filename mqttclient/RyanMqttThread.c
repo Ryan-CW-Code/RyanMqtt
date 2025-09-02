@@ -166,7 +166,10 @@ static void RyanMqttAckListScan(RyanMqttClient_t *client, RyanMqttBool_e waitFla
 		case MQTT_PACKET_TYPE_PUBCOMP: // 理论不会出现，冗余措施
 		{
 			// 设置重发标志位
-			MQTT_UpdateDuplicatePublishFlag(ackHandler->packet, true);
+			if (ackHandler->packet && 0 == ackHandler->repeatCount)
+			{
+				MQTT_UpdateDuplicatePublishFlag(ackHandler->packet, true);
+			}
 
 			// 重发数据事件回调
 			RyanMqttEventMachine(client, RyanMqttEventRepeatPublishPacket, (void *)ackHandler);
@@ -406,9 +409,9 @@ void RyanMqttEventMachine(RyanMqttClient_t *client, RyanMqttEventId_e eventId, v
 	switch (eventId)
 	{
 	case RyanMqttEventConnected: // 第一次连接成功
+		RyanMqttSetClientState(client, RyanMqttConnectState);
 		RyanMqttRefreshKeepaliveTime(client);
 		RyanMqttAckListScan(client, RyanMqttFalse); // 扫描确认列表，销毁已超时的确认处理程序或重新发送它们
-		RyanMqttSetClientState(client, RyanMqttConnectState);
 		break;
 
 	case RyanMqttEventDisconnected: // 断开连接事件

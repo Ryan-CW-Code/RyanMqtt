@@ -9,15 +9,17 @@
  * @brief 字符串拷贝，需要手动释放内存
  *
  * @param dest
- * @param rest
+ * @param src
  * @param strLen
  * @return RyanMqttError_e
  */
-RyanMqttError_e RyanMqttStringCopy(char **dest, const char *rest, uint32_t strLen)
+RyanMqttError_e RyanMqttDupString(char **dest, const char *src, uint32_t strLen)
 {
 	RyanMqttAssert(NULL != dest);
-	RyanMqttAssert(NULL != rest);
-	// RyanMqttCheck(0 != strLen, RyanMqttFailedError, RyanMqttLog_d);
+	RyanMqttAssert(NULL != src);
+	RyanMqttCheck(0 != strLen, RyanMqttFailedError, RyanMqttLog_d);
+
+	*dest = NULL;
 
 	char *s = (char *)platformMemoryMalloc(strLen + 1);
 	if (NULL == s)
@@ -25,7 +27,7 @@ RyanMqttError_e RyanMqttStringCopy(char **dest, const char *rest, uint32_t strLe
 		return RyanMqttNotEnoughMemError;
 	}
 
-	RyanMqttMemcpy(s, rest, strLen);
+	RyanMqttMemcpy(s, src, strLen);
 	s[strLen] = '\0';
 
 	*dest = s;

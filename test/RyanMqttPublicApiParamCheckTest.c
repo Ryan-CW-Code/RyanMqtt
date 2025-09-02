@@ -1,6 +1,6 @@
 #include "RyanMqttTest.h"
 
-static RyanMqttQos_e invaildQos()
+static RyanMqttQos_e invalidQos()
 {
 	static bool aa = true;
 
@@ -11,7 +11,7 @@ static RyanMqttQos_e invaildQos()
 		return (RyanMqttQos_e)(uintptr_t)10;
 	}
 
-	aa = false;
+	aa = true;
 	return RyanMqttSubFail;
 }
 
@@ -123,7 +123,7 @@ static RyanMqttError_e RyanMqttLwtApiParamCheckTest(void)
 	RyanMqttCheckCodeNoReturn(RyanMqttParamInvalidError == result, result, RyanMqttLog_e, { goto __exit; });
 
 	// 无效QoS
-	result = RyanMqttSetLwt(validClient, "test/lwt", "offline", 7, invaildQos(), RyanMqttTrue);
+	result = RyanMqttSetLwt(validClient, "test/lwt", "offline", 7, invalidQos(), RyanMqttTrue);
 	RyanMqttCheckCodeNoReturn(RyanMqttParamInvalidError == result, result, RyanMqttLog_e, { goto __exit; });
 
 	// 无效retain
@@ -272,7 +272,7 @@ static RyanMqttError_e RyanMqttSubApiParamCheckTest(void)
 	RyanMqttCheckCodeNoReturn(RyanMqttParamInvalidError == result, result, RyanMqttLog_e, { goto __exit; });
 
 	// 无效QoS级别
-	result = RyanMqttSubscribe(validClient, "test/topic", invaildQos());
+	result = RyanMqttSubscribe(validClient, "test/topic", invalidQos());
 	RyanMqttCheckCodeNoReturn(RyanMqttParamInvalidError == result, result, RyanMqttLog_e, { goto __exit; });
 
 	// 分配测试数据
@@ -317,7 +317,7 @@ static RyanMqttError_e RyanMqttSubApiParamCheckTest(void)
 		// subscribeData 内数据无效
 		subscribeData[i].topic = "test/topic2";
 		subscribeData[i].topicLen = strlen("test/topic2");
-		subscribeData[i].qos = invaildQos();
+		subscribeData[i].qos = invalidQos();
 		result = RyanMqttSubscribeMany(validClient, 2, subscribeData);
 		RyanMqttCheckCodeNoReturn(RyanMqttParamInvalidError == result, result, RyanMqttLog_e, { goto __exit; });
 
@@ -354,24 +354,24 @@ static RyanMqttError_e RyanMqttSubApiParamCheckTest(void)
 	result = RyanMqttUnSubscribeMany(validClient, 2, NULL);
 	RyanMqttCheckCodeNoReturn(RyanMqttParamInvalidError == result, result, RyanMqttLog_e, { goto __exit; });
 
-	for (uint32_t i = 0; i < getArraySize(subscribeData); i++)
+	for (uint32_t i = 0; i < getArraySize(unsubscribeData); i++)
 	{
-		// subscribeData 内数据无效
-		subscribeData[i].topic = NULL;
-		subscribeData[i].topicLen = strlen("test/topic2");
+		// unsubscribeData 内数据无效
+		unsubscribeData[i].topic = NULL;
+		unsubscribeData[i].topicLen = strlen("test/topic2");
 
-		result = RyanMqttSubscribeMany(validClient, 2, subscribeData);
+		result = RyanMqttUnSubscribeMany(validClient, 2, unsubscribeData);
 		RyanMqttCheckCodeNoReturn(RyanMqttParamInvalidError == result, result, RyanMqttLog_e, { goto __exit; });
 
-		// subscribeData 内数据无效
-		subscribeData[i].topic = "test/topic2";
-		subscribeData[i].topicLen = 0;
-		result = RyanMqttSubscribeMany(validClient, 2, subscribeData);
+		// unsubscribeData 内数据无效
+		unsubscribeData[i].topic = "test/topic2";
+		unsubscribeData[i].topicLen = 0;
+		result = RyanMqttUnSubscribeMany(validClient, 2, unsubscribeData);
 		RyanMqttCheckCodeNoReturn(RyanMqttParamInvalidError == result, result, RyanMqttLog_e, { goto __exit; });
 
-		// 恢复 subscribeData 内数据
-		subscribeData[i].topic = "test/topic2";
-		subscribeData[i].topicLen = strlen("test/topic2");
+		// 恢复 unsubscribeData 内数据
+		unsubscribeData[i].topic = "test/topic2";
+		unsubscribeData[i].topicLen = strlen("test/topic2");
 	}
 
 	RyanMqttMsgHandler_t *msgHandles = NULL;
@@ -444,7 +444,7 @@ static RyanMqttError_e RyanMqttPubApiParamCheckTest(void)
 	RyanMqttCheckCodeNoReturn(RyanMqttParamInvalidError == result, result, RyanMqttLog_e, { goto __exit; });
 
 	// 无效QoS级别
-	result = RyanMqttPublish(validClient, "test/topic", "payload", 7, invaildQos(), RyanMqttFalse);
+	result = RyanMqttPublish(validClient, "test/topic", "payload", 7, invalidQos(), RyanMqttFalse);
 	RyanMqttCheckCodeNoReturn(RyanMqttParamInvalidError == result, result, RyanMqttLog_e, { goto __exit; });
 
 	// 超大负载长度
@@ -466,7 +466,7 @@ static RyanMqttError_e RyanMqttPubApiParamCheckTest(void)
 	RyanMqttCheckCodeNoReturn(RyanMqttParamInvalidError == result, result, RyanMqttLog_e, { goto __exit; });
 
 	// 无效QoS级别
-	result = RyanMqttPublishAndUserData(validClient, "test/topic", strlen("test/topic"), "payload", 7, invaildQos(),
+	result = RyanMqttPublishAndUserData(validClient, "test/topic", strlen("test/topic"), "payload", 7, invalidQos(),
 					    RyanMqttFalse, NULL);
 	RyanMqttCheckCodeNoReturn(RyanMqttParamInvalidError == result, result, RyanMqttLog_e,
 				  { goto __exit; }); // 清理资源

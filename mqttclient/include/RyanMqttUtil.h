@@ -27,7 +27,7 @@ int32_t coreMqttTransportRecv(NetworkContext_t *pNetworkContext, void *pBuffer, 
 
 extern void RyanMqttSetClientState(RyanMqttClient_t *client, RyanMqttState_e state);
 extern RyanMqttState_e RyanMqttGetClientState(RyanMqttClient_t *client);
-extern RyanMqttError_e RyanMqttStringCopy(char **dest, const char *rest, uint32_t strLen);
+extern RyanMqttError_e RyanMqttDupString(char **dest, const char *src, uint32_t strLen);
 extern void RyanMqttPurgeSession(RyanMqttClient_t *client);
 extern void RyanMqttPurgeConfig(RyanMqttClientConfig_t *clientConfig);
 

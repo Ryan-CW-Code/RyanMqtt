@@ -46,6 +46,7 @@
         "platformnetwork.h": "c",
         "inttypes.h": "c",
         "memory": "c",
-        "stdbool.h": "c"
+        "stdbool.h": "c",
+        "ryanmqttutil.h": "c"
     },
 }
