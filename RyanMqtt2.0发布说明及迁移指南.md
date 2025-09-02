@@ -4,15 +4,15 @@
 
 ## 🌟 核心亮点
 
-| 维度                   | 变更类型                                                                                                                                    | 核心价值                                                                                                                  |
-| ---------------------- | :------------------------------------------------------------------------------------------------------------------------------------------ | :------------------------------------------------------------------------------------------------------------------------ |
-| **协议栈**             | **[Paho MQTT Embedded](https://github.com/eclipse-paho/paho.mqtt.embedded-c)** → **[coreMQTT](https://github.com/FreeRTOS/coreMQTT)**       | 社区维护活跃、测试覆盖完善，为未来 [**MQTT 5.0**](https://docs.oasis-open.org/mqtt/mqtt/v5.0/mqtt-v5.0.html) 支持奠定基础 |
-| **运行时安全分析验证** | 使用 **[Sanitizer](https://clang.llvm.org/docs/index.html#sanitizers)** 进行运行时安全分析                                                  | 调试阶段捕获内存越界、Use-after-free、数据竞争、未定义行为、内存泄漏等问题，大幅提升**代码健壮性与安全性**                |
-| **高质量代码保障**     | 引入 **[clang-tidy](https://clang.llvm.org/extra/clang-tidy/#clang-tidy)** 和 **[Cppcheck](https://cppcheck.sourceforge.io/)** 进行静态分析 | **高质量代码保障**，接近语法级"**零缺陷**"，显著提升可维护性                                                              |
-| **AI 辅助开发与审查**  | 使用 **[coderabbitai](https://www.coderabbit.ai)** 和 **[Copilot](https://github.com/features/copilot)** 辅助编码与代码审查                 | **AI 辅助开发与审查**，持续提升代码质量，构筑安全防线                                                                     |
-| **内存管理优化**       | 固定缓冲区 → **动态按需分配**                                                                                                               | 采用**按需动态分配**，降低运行内存占用                                                                                    |
-| **线程安全强化**       | 更完善的线程安全                                                                                                                            | 支撑复杂线程应用场景，杜绝竞态风险                                                                                        |
-| **测试体系升级**       | 新增 7 大专项测试                                                                                                                           | 覆盖广泛场景，全链路内存泄漏检测，强化稳定性与可靠性                                                                      |
+| 维度                   | 变更类型                                                     | 核心价值                                                     |
+| ---------------------- | :----------------------------------------------------------- | :----------------------------------------------------------- |
+| **协议栈**             | **[Paho MQTT Embedded](https://github.com/eclipse-paho/paho.mqtt.embedded-c)** → **[coreMQTT](https://github.com/FreeRTOS/coreMQTT)** | 社区维护活跃、测试覆盖完善，为未来 [**MQTT 5.0**](https://docs.oasis-open.org/mqtt/mqtt/v5.0/mqtt-v5.0.html) 支持奠定基础 |
+| **运行时安全分析验证** | 使用 **[Sanitizer](https://clang.llvm.org/docs/index.html#sanitizers)** 进行运行时安全分析验证 | 调试阶段捕获内存越界、Use-after-free、数据竞争、未定义行为、内存泄漏等问题，提升**代码健壮性与安全性** |
+| **高质量代码保障**     | 引入 **[clang-tidy](https://clang.llvm.org/extra/clang-tidy/#clang-tidy)** 和 **[Cppcheck](https://cppcheck.sourceforge.io/)** 进行静态分析 | **高质量代码保障**，接近语法级"**零缺陷**"，显著提升可维护性 |
+| **AI 辅助开发与审查**  | 使用 **[coderabbitai](https://www.coderabbit.ai)** 和 **[Copilot](https://github.com/features/copilot)** 辅助编码与代码审查 | **AI 辅助开发与审查**，持续提升代码质量，构筑安全防线        |
+| **内存管理优化**       | 固定缓冲区 → **动态按需分配**                                | 采用**按需动态分配**，降低运行内存占用                       |
+| **线程安全强化**       | 更完善的线程安全                                             | 支撑复杂线程应用场景，杜绝竞态风险                           |
+| **测试体系升级**       | 新增专项测试                                                 | 覆盖广泛场景，全链路内存泄漏检测，强化稳定性与可靠性         |
 
 ## 📈 公共 API 变化
 
@@ -30,7 +30,7 @@ extern RyanMqttError_e RyanMqttPublishAndUserData(RyanMqttClient_t *client, char
         char *payload, uint32_t payloadLen, RyanMqttQos_e qos,
         RyanMqttBool_e retain, void *userData);
 
-// 线程安全的订阅查询，仅可通过 RyanMqttSafeFreeSubscribeResources 释放。
+// 线程安全的订阅查询，仅可通过 RyanMqttSafeFreeSubscribeResources 进行安全释放。
 extern RyanMqttError_e RyanMqttGetSubscribeSafe(RyanMqttClient_t *client, RyanMqttMsgHandler_t **msgHandles,
       int32_t *subscribeNum);
 extern RyanMqttError_e RyanMqttSafeFreeSubscribeResources(RyanMqttMsgHandler_t *msgHandles, int32_t subscribeNum);
@@ -38,9 +38,8 @@ extern RyanMqttError_e RyanMqttSafeFreeSubscribeResources(RyanMqttMsgHandler_t *
 // 订阅数量查询
 extern RyanMqttError_e RyanMqttGetSubscribeTotalCount(RyanMqttClient_t *client, int32_t *subscribeTotalCount);
 
-// 获取 MQTT Config 信息
+// 获取 MQTT Config 信息，仅可通过 RyanMqttFreeConfigFromGet 进行安全释放。
 extern RyanMqttError_e RyanMqttGetConfig(RyanMqttClient_t *client, RyanMqttClientConfig_t **pclientConfig);
-// 安全释放由 Get 返回的 MQTT Config（禁止直接 free()）
 extern RyanMqttError_e RyanMqttFreeConfigFromGet(RyanMqttClientConfig_t *clientConfig);
 ```
 
@@ -72,7 +71,7 @@ uint32_t platformUptimeMs(void);
 
 ## 🧪 测试体系全面升级
 
-新增 **7 大类专项测试用例**，覆盖从基础功能到极限压力场景的全流程验证：
+新增 **8 大类专项测试用例**，覆盖从基础功能到极限压力场景的全流程验证：
 
 | 测试类别                                                  | 测试目标                          |
 | --------------------------------------------------------- | --------------------------------- |
@@ -83,6 +82,7 @@ uint32_t platformUptimeMs(void);
 | 5. 批量/重复订阅一致性                                    | 订阅表一致性、内存安全、去重逻辑  |
 | 6. 多客户端高并发                                         | 20+ 客户端并发运行稳定性          |
 | 7. 单客户端多线程共享（20 线程 × 各 1000 条 QoS1/2 消息） | 锁机制、数据一致性、竞态防护      |
+| 8. 公共API参数校验                                        | 提升接口健壮性与可用性            |
 
 #### 📊 测试覆盖范围
 
@@ -132,7 +132,7 @@ uint32_t platformUptimeMs(void);
 
 2. **架构更清晰**：模块高度解耦，抽象设计更合理
 
-3. **质量更可信**：7 类专项测试 + 静态分析 + AI 审查构筑强大防线
+3. **质量更可信**：专项测试 + 静态分析 + AI 审查构筑强大防线
 
 4. **性能再优化**：更低资源占用、更高吞吐效率
 
@@ -142,7 +142,7 @@ uint32_t platformUptimeMs(void);
 
 > RyanMqtt 2.0 在设计上尽量减少破坏性变更。升级过程极为简单：
 
-从 **V1.x** 升级到 **V2.x** 时，仅需在 `RyanMqttClientConfig_t` 结构体中**移除以下四个已废弃字段**：
+从 **V1.x** 升级到 **V2.x** 时，需在 `RyanMqttClientConfig_t` 结构体中**移除以下四个已废弃字段**：
 
 ```c
 char *recvBuffer;        // MQTT 接收缓冲区（已废弃）
@@ -151,10 +151,13 @@ uint32_t recvBufferSize; // 接收缓冲区大小（已废弃）
 uint32_t sendBufferSize; // 发送缓冲区大小（已废弃）
 ```
 
-受影响的主要接口只有一个（其余接口原则上兼容，如有差异以头文件为准）：
+受影响的主要接口（其余接口原则上兼容，如有差异以头文件为准）：
 
 ```c
 RyanMqttError_e RyanMqttSetConfig(RyanMqttClient_t *client, RyanMqttClientConfig_t *clientConfig);
+
+// packetType 不再使用enum msgTypes, 新类型请参考 RyanMqttPublic.h 文件内MQTT packet types宏定义
+RyanMqttError_e RyanMqttDiscardAckHandler(RyanMqttClient_t *client, uint8_t packetType, uint16_t packetId);
 ```
 
 > 其余 API 与配置保持兼容，无需额外修改即可完成迁移。若编译期出现不兼容，请以 `mqttclient/include/*.h` 中的最新签名为准。

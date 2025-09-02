@@ -107,7 +107,7 @@ RyanMqttError_e RyanMqttRecvPacket(RyanMqttClient_t *client, uint8_t *recvBuf, u
 		return RyanSocketFailedError;
 	}
 
-	// 发送超时
+	// 读取超时
 	if (offset != recvLen)
 	{
 		return RyanMqttRecvPacketTimeOutError;

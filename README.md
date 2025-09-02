@@ -18,13 +18,13 @@
 
 - ✅ **严格遵循  [MQTT 3.1.1](https://docs.oasis-open.org/mqtt/mqtt/v3.1.1/mqtt-v3.1.1.html)  协议标准**，确保与各类服务器的高度兼容性
 
-- ✅ **运行时安全分析验证**，使用 **[Sanitizer](https://clang.llvm.org/docs/index.html#sanitizers)** 系列工具（如 AddressSanitizer、ThreadSanitizer、UndefinedBehaviorSanitizer、LeakSanitizer 等），在调试阶段捕获内存越界、Use-after-free、数据竞争、未定义行为、内存泄漏等问题，大幅提升代码健壮性与安全性
+- ✅ **运行时安全分析验证**，使用 **[Sanitizer](https://clang.llvm.org/docs/index.html#sanitizers)** 系列工具，捕获内存越界、Use-after-free、数据竞争、未定义行为、内存泄漏等问题，提升代码健壮性与安全性
 
 - ✅ **高质量代码保障** ， 引入 **[clang-tidy](https://clang.llvm.org/extra/clang-tidy/#clang-tidy)** 与 **[Cppcheck](https://cppcheck.sourceforge.io/)** 进行静态分析，实现接近语法级的"**零缺陷**"，显著提升可维护性与可读性
 
 - ✅ **AI 辅助开发与审查**，结合  **[coderabbitai](https://www.coderabbit.ai)** 与 **[Copilot](https://github.com/features/copilot)** ，在编码与代码审查阶段持续优化代码质量，构建多层安全防线
 
-- ✅ **7 大类专项测试用例**，覆盖广泛场景，全链路内存泄漏检测，强化稳定性与可靠性
+- ✅ **8 大类专项测试用例**，覆盖广泛场景，全链路内存泄漏检测，强化稳定性与可靠性
 
 - ✅ **支持多客户端实例**，满足复杂业务场景下的多连接需求
 

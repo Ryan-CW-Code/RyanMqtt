@@ -670,7 +670,7 @@ RyanMqttError_e RyanMqttGetSubscribe(RyanMqttClient_t *client, RyanMqttMsgHandle
 }
 
 /**
- * @brief 安全的获取已订阅主题列表
+ * @brief 安全的获取已订阅主题列表，仅可通过 RyanMqttSafeFreeSubscribeResources 进行安全释放。
  *
  * @param client
  * @param msgHandles

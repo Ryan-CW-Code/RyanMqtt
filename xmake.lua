@@ -39,9 +39,9 @@ target("RyanMqtt",function()
     -- 编译器警告与静态分析（开发期错误检测）
     add_cxflags(
         "-flto", -- 链接时优化（可选）
-        "-pedantic",  
-        "-Wall",
-        "-Wextra",
+        "-pedantic", -- 强制遵循 ISO C/C++ 标准
+        "-Wall", -- 启用大多数常见警告
+        "-Wextra", -- 启用额外警告
         "-fanalyzer", -- 启用 gcc 静态分析器
         "-Wno-unused-parameter",
         "-Wfloat-equal", -- 浮点直接比较
