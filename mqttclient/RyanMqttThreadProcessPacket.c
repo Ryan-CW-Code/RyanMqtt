@@ -104,6 +104,7 @@ static RyanMqttError_e RyanMqttPubrecPacketHandler(RyanMqttClient_t *client, MQT
 		RyanMqttCheck(RyanMqttSuccessError == result, RyanMqttInvalidPacketError, RyanMqttLog_d);
 	}
 
+	// 可以安全的发送重传pubrel
 	uint8_t buffer[MQTT_PUBLISH_ACK_PACKET_SIZE];
 	MQTTFixedBuffer_t fixedBuffer = {.pBuffer = buffer, .size = sizeof(buffer)};
 
@@ -498,7 +499,7 @@ RyanMqttError_e RyanMqttGetPacketInfo(RyanMqttClient_t *client, MQTTPacketInfo_t
 			goto __next;
 		}
 
-		readIndex += needReadSize;
+		readIndex += needReadSize; // 更新读取位置
 
 		// 尝试解析
 		status = MQTT_ProcessIncomingPacketTypeAndLength(pBuffer, &readIndex, pIncomingPacket);

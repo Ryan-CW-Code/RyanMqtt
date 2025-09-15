@@ -135,11 +135,11 @@ static RyanMqttError_e RyanMqttPublishTest(RyanMqttQos_e qos, int32_t count, uin
 	{
 		char *pubTopic = RyanMqttPubTestPubTopic;
 		uint32_t randNumber = RyanRand(1, 10);
-		result = RyanMqttPublishWithUserData(
-			client, pubTopic, RyanMqttStrlen(pubTopic), (0 == count % randNumber) ? pubStr2 : pubStr,
-			(0 == count % randNumber) ? pubStr2Len : pubStrLen, qos, RyanMqttFalse,
-			// NOLINTNEXTLINE(performance-no-int-to-ptr)
-			(void *)qos);
+		result = RyanMqttPublishWithUserData(client, pubTopic, RyanMqttStrlen(pubTopic),
+						     (0 == i % randNumber) ? pubStr2 : pubStr,
+						     (0 == i % randNumber) ? pubStr2Len : pubStrLen, qos, RyanMqttFalse,
+						     // NOLINTNEXTLINE(performance-no-int-to-ptr)
+						     (void *)qos);
 		RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttFailedError, RyanMqttLog_e,
 					  { goto __exit; });
 
@@ -259,8 +259,8 @@ static RyanMqttError_e RyanMqttPublishHybridTest(int32_t count, uint32_t delayms
 		char *pubTopic = RyanMqttPubHybridTestPubTopic;
 		uint32_t randNumber = RyanRand(1, 10);
 		result = RyanMqttPublishWithUserData(
-			client, pubTopic, RyanMqttStrlen(pubTopic), (0 == count % randNumber) ? pubStr2 : pubStr,
-			(0 == count % randNumber) ? pubStr2Len : pubStrLen, i % 3, RyanMqttFalse,
+			client, pubTopic, RyanMqttStrlen(pubTopic), (0 == i % randNumber) ? pubStr2 : pubStr,
+			(0 == i % randNumber) ? pubStr2Len : pubStrLen, i % 3, RyanMqttFalse,
 			// NOLINTNEXTLINE(clang-diagnostic-int-to-void-pointer-cast,performance-no-int-to-ptr)
 			(void *)(uintptr_t)(i % 3));
 		RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttFailedError, RyanMqttLog_e,

@@ -462,14 +462,19 @@ static RyanMqttError_e RyanMqttPubApiParamCheckTest(void)
 
 	// 主题长度为0
 	result = RyanMqttPublishWithUserData(validClient, "test/topic", 0, "payload", 7, RyanMqttQos1, RyanMqttFalse,
-					    NULL);
+					     NULL);
 	RyanMqttCheckCodeNoReturn(RyanMqttParamInvalidError == result, result, RyanMqttLog_e, { goto __exit; });
 
 	// 无效QoS级别
-	result = RyanMqttPublishWithUserData(validClient, "test/topic", strlen("test/topic"), "payload", 7, invalidQos(),
-					    RyanMqttFalse, NULL);
+	result = RyanMqttPublishWithUserData(validClient, "test/topic", strlen("test/topic"), "payload", 7,
+					     invalidQos(), RyanMqttFalse, NULL);
 	RyanMqttCheckCodeNoReturn(RyanMqttParamInvalidError == result, result, RyanMqttLog_e,
 				  { goto __exit; }); // 清理资源
+
+	// 负载长度>0但负载指针为NULL
+	result = RyanMqttPublishWithUserData(validClient, "test/topic", strlen("test/topic"), NULL, 7, RyanMqttQos1,
+					     RyanMqttFalse, NULL);
+	RyanMqttCheckCodeNoReturn(RyanMqttParamInvalidError == result, result, RyanMqttLog_e, { goto __exit; });
 	if (validClient)
 	{
 		RyanMqttTestDestroyClient(validClient);

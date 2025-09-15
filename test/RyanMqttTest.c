@@ -31,7 +31,7 @@ uint32_t RyanRand(int32_t min, int32_t max)
 {
 	static uint32_t isSeed = 0;
 	static uint32_t seedp = 0;
-	if (isSeed > 1024)
+	if (isSeed > 1024 || 0 == seedp)
 	{
 		seedp = platformUptimeMs();
 		isSeed = 0;
@@ -317,7 +317,7 @@ static void RyanMqttTestScheduleFreeAfterMs(void *ptr, uint32_t delayMs)
 
 	// 毫秒转秒和纳秒
 	its.it_value.tv_sec = delayMs / 1000;
-	its.it_value.tv_nsec = (uint32_t)((delayMs % 1000) * 1000);
+	its.it_value.tv_nsec = (uint32_t)((delayMs % 1000) * 1000000);
 
 	if (0 != timer_settime(timerid, 0, &its, NULL))
 	{

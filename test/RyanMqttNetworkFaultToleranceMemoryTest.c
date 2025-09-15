@@ -35,7 +35,7 @@ static RyanMqttError_e RyanMqttNetworkFaultPublishHybridTest(int32_t count, uint
 
 		char *pubTopic = RyanMqttPubHybridTestPubTopic;
 		RyanMqttPublishWithUserData(client, pubTopic, RyanMqttStrlen(pubTopic), pubStr, pubStrLen, i % 3,
-					   RyanMqttFalse, NULL);
+					    RyanMqttFalse, NULL);
 
 		if (delayms)
 		{
@@ -57,7 +57,7 @@ static RyanMqttError_e RyanMqttNetworkFaultSubscribeHybridTest(int32_t count, in
 	RyanMqttError_e result = RyanMqttSuccessError;
 	RyanMqttClient_t *client;
 	RyanMqttUnSubscribeData_t *unSubscribeManyData = NULL;
-	static RyanMqttSubscribeData_t *subscribeManyData = NULL;
+	RyanMqttSubscribeData_t *subscribeManyData = NULL;
 
 	result = RyanMqttTestInit(&client, RyanMqttTrue, RyanMqttTrue, 120, NULL, NULL);
 	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttFailedError, RyanMqttLog_e, { goto __exit; });

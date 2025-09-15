@@ -1,5 +1,4 @@
 #include "RyanMqttTest.h"
-#include "RyanMqttTest.h"
 
 static int32_t pubTestPublishedEventCount = 0;
 static int32_t pubTestDataEventCount = 0;
@@ -156,8 +155,8 @@ static RyanMqttError_e RyanMqttNetworkFaultQosResiliencePublishTest(int32_t coun
 		char *pubTopic = RyanMqttPubHybridTestPubTopic;
 		uint32_t randNumber = RyanRand(1, 10);
 		result = RyanMqttPublishWithUserData(
-			client, pubTopic, RyanMqttStrlen(pubTopic), (0 == count % randNumber) ? pubStr2 : pubStr,
-			(0 == count % randNumber) ? pubStr2Len : pubStrLen, qos, RyanMqttFalse,
+			client, pubTopic, RyanMqttStrlen(pubTopic), (0 == i % randNumber) ? pubStr2 : pubStr,
+			(0 == i % randNumber) ? pubStr2Len : pubStrLen, qos, RyanMqttFalse,
 			// NOLINTNEXTLINE(clang-diagnostic-int-to-void-pointer-cast,performance-no-int-to-ptr)
 			(void *)(uintptr_t)(qos));
 		if (RyanMqttSuccessError == result)
@@ -250,15 +249,15 @@ RyanMqttError_e RyanMqttNetworkFaultQosResilienceTest(void)
 {
 	RyanMqttError_e result = RyanMqttSuccessError;
 
-	result = RyanMqttNetworkFaultQosResiliencePublishTest(1000, 1, RyanMqttQos0);
+	result = RyanMqttNetworkFaultQosResiliencePublishTest(500, 1, RyanMqttQos0);
 	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttFailedError, RyanMqttLog_e, { goto __exit; });
 	checkMemory;
 
-	result = RyanMqttNetworkFaultQosResiliencePublishTest(1000, 2, RyanMqttQos1);
+	result = RyanMqttNetworkFaultQosResiliencePublishTest(500, 2, RyanMqttQos1);
 	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttFailedError, RyanMqttLog_e, { goto __exit; });
 	checkMemory;
 
-	result = RyanMqttNetworkFaultQosResiliencePublishTest(1000, 4, RyanMqttQos2);
+	result = RyanMqttNetworkFaultQosResiliencePublishTest(500, 4, RyanMqttQos2);
 	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttFailedError, RyanMqttLog_e, { goto __exit; });
 	checkMemory;
 

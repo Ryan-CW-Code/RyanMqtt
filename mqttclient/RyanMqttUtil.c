@@ -56,10 +56,17 @@ RyanMqttError_e RyanMqttRecvPacket(RyanMqttClient_t *client, uint8_t *recvBuf, u
 	RyanMqttAssert(NULL != recvBuf);
 	RyanMqttAssert(0 != recvLen);
 
-	// 如果需要处理ack，就缩短读取超时时间，避免阻塞太久
+	// 如果需要处理ack，就缩短读取超时时间，避免阻塞太久（保留用户配置的上限）
 	if (RyanMqttTrue == client->pendingAckFlag)
 	{
-		timeOut = 100;
+		if (client->config.recvTimeout > 100)
+		{
+			timeOut = 100;
+		}
+		else
+		{
+			timeOut = client->config.recvTimeout;
+		}
 	}
 
 	RyanMqttTimerCutdown(&timer, timeOut);
