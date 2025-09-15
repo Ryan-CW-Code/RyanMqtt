@@ -1,12 +1,13 @@
 #include "RyanMqttTest.h"
 
-static RyanMqttError_e RyanMqttConnectDestroy(uint32_t count, uint32_t delayms)
+static RyanMqttError_e RyanMqttConnectDestroy(uint32_t count)
 {
 	for (uint32_t i = 0; i < count; i++)
 	{
-		RyanMqttClient_t *client;
+		RyanMqttClient_t *client = NULL;
 
-		RyanMqttTestInit(&client, i == count - 1 ? RyanMqttTrue : RyanMqttFalse, RyanMqttTrue, 120, NULL, NULL);
+		RyanMqttTestInit(&client, (i == count - 1) ? RyanMqttTrue : RyanMqttFalse, RyanMqttTrue, 120, NULL,
+				 NULL);
 
 		// 增加一些测试量
 		RyanMqttSubscribe(client, "testlinux/pub3", RyanMqttQos2);
@@ -19,17 +20,13 @@ static RyanMqttError_e RyanMqttConnectDestroy(uint32_t count, uint32_t delayms)
 		RyanMqttPublish(client, "testlinux/pub1", "helloworld", RyanMqttStrlen("helloworld"), RyanMqttQos0,
 				RyanMqttFalse);
 
-		if (delayms)
+		// 偶尔让订阅主题全部订阅成功
+		if (i % 7 == 0)
 		{
-			delay(delayms);
+			delay(2);
 		}
 
 		RyanMqttTestDestroyClient(client);
-
-		if (i == count - 1) // 最后一次同步释放
-		{
-			delay(100);
-		}
 	}
 
 	return RyanMqttSuccessError;
@@ -38,7 +35,7 @@ static RyanMqttError_e RyanMqttConnectDestroy(uint32_t count, uint32_t delayms)
 RyanMqttError_e RyanMqttDestroyTest(void)
 {
 	RyanMqttError_e result = RyanMqttSuccessError;
-	result = RyanMqttConnectDestroy(100, 0);
+	result = RyanMqttConnectDestroy(100);
 	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttFailedError, RyanMqttLog_e, { goto __exit; });
 	checkMemory;
 

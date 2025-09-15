@@ -453,20 +453,20 @@ static RyanMqttError_e RyanMqttPubApiParamCheckTest(void)
 	RyanMqttCheckCodeNoReturn(RyanMqttParamInvalidError == result, result, RyanMqttLog_e, { goto __exit; });
 
 	// NULL客户端指针
-	result = RyanMqttPublishAndUserData(NULL, "test/topic", 10, "payload", 7, RyanMqttQos1, RyanMqttFalse, NULL);
+	result = RyanMqttPublishWithUserData(NULL, "test/topic", 10, "payload", 7, RyanMqttQos1, RyanMqttFalse, NULL);
 	RyanMqttCheckCodeNoReturn(RyanMqttParamInvalidError == result, result, RyanMqttLog_e, { goto __exit; });
 
 	// NULL主题指针
-	result = RyanMqttPublishAndUserData(validClient, NULL, 10, "payload", 7, RyanMqttQos1, RyanMqttFalse, NULL);
+	result = RyanMqttPublishWithUserData(validClient, NULL, 10, "payload", 7, RyanMqttQos1, RyanMqttFalse, NULL);
 	RyanMqttCheckCodeNoReturn(RyanMqttParamInvalidError == result, result, RyanMqttLog_e, { goto __exit; });
 
 	// 主题长度为0
-	result = RyanMqttPublishAndUserData(validClient, "test/topic", 0, "payload", 7, RyanMqttQos1, RyanMqttFalse,
+	result = RyanMqttPublishWithUserData(validClient, "test/topic", 0, "payload", 7, RyanMqttQos1, RyanMqttFalse,
 					    NULL);
 	RyanMqttCheckCodeNoReturn(RyanMqttParamInvalidError == result, result, RyanMqttLog_e, { goto __exit; });
 
 	// 无效QoS级别
-	result = RyanMqttPublishAndUserData(validClient, "test/topic", strlen("test/topic"), "payload", 7, invalidQos(),
+	result = RyanMqttPublishWithUserData(validClient, "test/topic", strlen("test/topic"), "payload", 7, invalidQos(),
 					    RyanMqttFalse, NULL);
 	RyanMqttCheckCodeNoReturn(RyanMqttParamInvalidError == result, result, RyanMqttLog_e,
 				  { goto __exit; }); // 清理资源
