@@ -26,7 +26,7 @@ extern RyanMqttError_e RyanMqttUnSubscribeMany(RyanMqttClient_t *client, int32_t
             RyanMqttUnSubscribeData_t unSubscribeManyData[]);
 
 // 带用户数据的发布
-extern RyanMqttError_e RyanMqttPublishAndUserData(RyanMqttClient_t *client, char *topic, uint16_t topicLen,
+extern RyanMqttError_e RyanMqttPublishWithUserData(RyanMqttClient_t *client, char *topic, uint16_t topicLen,
         char *payload, uint32_t payloadLen, RyanMqttQos_e qos,
         RyanMqttBool_e retain, void *userData);
 

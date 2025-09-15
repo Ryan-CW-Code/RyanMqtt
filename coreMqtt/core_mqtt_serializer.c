@@ -924,14 +924,23 @@ static bool incomingPacketValid( uint8_t packetType )
     {
         /* Valid incoming packet types. */
         case MQTT_PACKET_TYPE_CONNACK:
-        case MQTT_PACKET_TYPE_PUBLISH:
         case MQTT_PACKET_TYPE_PUBACK:
         case MQTT_PACKET_TYPE_PUBREC:
         case MQTT_PACKET_TYPE_PUBCOMP:
         case MQTT_PACKET_TYPE_SUBACK:
         case MQTT_PACKET_TYPE_UNSUBACK:
         case MQTT_PACKET_TYPE_PINGRESP:
-            status = true;
+            if( ( packetType & 0x0FU ) == 0U )
+            {
+                status = true;
+            }
+            break;
+
+        case MQTT_PACKET_TYPE_PUBLISH:
+            if( ( packetType & 0x06U ) != 0x06U )
+            {
+                status = true;
+            }
             break;
 
         case ( MQTT_PACKET_TYPE_PUBREL & 0xF0U ):
