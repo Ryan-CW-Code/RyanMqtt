@@ -1,7 +1,7 @@
 #include "RyanMqttTest.h"
 
 static pthread_spinlock_t spin;
-uint32_t destoryCount = 0;
+uint32_t destroyCount = 0;
 
 uint32_t randomCount = 0;
 uint32_t sendRandomCount = 0;
@@ -64,7 +64,7 @@ void mqttEventBaseHandle(void *pclient, RyanMqttEventId_e event, const void *eve
 		RyanMqttLog_i("mqtt连接成功回调 %d", *(int32_t *)eventData);
 		break;
 
-	case RyanMqttEventDisconnected: RyanMqttLog_e("mqtt断开连接回调 %d", *(int32_t *)eventData); break;
+	case RyanMqttEventDisconnected: RyanMqttLog_w("mqtt断开连接回调 %d", *(int32_t *)eventData); break;
 
 	case RyanMqttEventSubscribed: {
 		RyanMqttMsgHandler_t *msgHandler = (RyanMqttMsgHandler_t *)eventData;
@@ -150,7 +150,7 @@ void mqttEventBaseHandle(void *pclient, RyanMqttEventId_e event, const void *eve
 	}
 
 	case RyanMqttEventDestroyBefore:
-		RyanMqttLog_e("销毁mqtt客户端前回调");
+		RyanMqttLog_w("销毁mqtt客户端前回调");
 
 		RyanMqttClient_t *client = (RyanMqttClient_t *)pclient;
 		struct RyanMqttTestEventUserData *eventUserData =
@@ -291,14 +291,14 @@ static void RyanMqttTestFreeTimerCallback(union sigval arg)
 	platformMemoryFree(ptr);
 
 	RyanMqttTestEnableCritical();
-	destoryCount--;
+	destroyCount--;
 	RyanMqttTestExitCritical();
 }
 
 static void RyanMqttTestScheduleFreeAfterMs(void *ptr, uint32_t delayMs)
 {
 	RyanMqttTestEnableCritical();
-	destoryCount++;
+	destroyCount++;
 	RyanMqttTestExitCritical();
 
 	timer_t timerid;
@@ -334,6 +334,8 @@ RyanMqttError_e RyanMqttTestDestroyClient(RyanMqttClient_t *client)
 	{
 		RyanMqttLog_e("eventUserData野指针");
 	}
+
+	RyanMqttDisconnect(client, RyanMqttTrue);
 
 	// 启动mqtt客户端线程
 	RyanMqttDestroy(client);
@@ -433,49 +435,46 @@ int main(void)
 
 	pthread_spin_init(&spin, PTHREAD_PROCESS_PRIVATE);
 
-	result = RyanMqttPublicApiParamCheckTest();
-	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, result, RyanMqttLog_e, { goto __exit; });
+	uint32_t testRunCount = 0;
+	uint32_t funcStartMs;
+#define runTestWithLogAndTimer(fun)                                                                                    \
+	do                                                                                                             \
+	{                                                                                                              \
+		testRunCount++;                                                                                        \
+		RyanMqttLog_raw("┌── [TEST %d] 开始执行: " #fun "()\r\n", testRunCount);                               \
+		funcStartMs = platformUptimeMs();                                                                      \
+		result = fun();                                                                                        \
+		RyanMqttLog_raw("└── [TEST %d] 结束执行: 返回值 = %d %s | 耗时: %d ms\x1b[0m\r\n\r\n\r\n",             \
+				testRunCount, result, (result == RyanMqttSuccessError) ? "✅" : "❌",                  \
+				platformUptimeMs() - funcStartMs);                                                     \
+		RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, result, RyanMqttLog_e, { goto __exit; });    \
+	} while (0)
 
-	result = RyanMqttSubTest();
-	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, result, RyanMqttLog_e, { goto __exit; });
-
-	result = RyanMqttPubTest();
-	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, result, RyanMqttLog_e, { goto __exit; });
-
-	result = RyanMqttDestroyTest();
-	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, result, RyanMqttLog_e, { goto __exit; });
-
-	result = RyanMqttNetworkFaultToleranceMemoryTest();
-	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, result, RyanMqttLog_e, { goto __exit; });
-
-	result = RyanMqttNetworkFaultQosResilienceTest();
-	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, result, RyanMqttLog_e, { goto __exit; });
-
-	result = RyanMqttMultiThreadMultiClientTest();
-	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, result, RyanMqttLog_e, { goto __exit; });
-
-	result = RyanMqttMultiThreadSafetyTest();
-	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, result, RyanMqttLog_e, { goto __exit; });
-
-	result = RyanMqttReconnectTest();
-	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, result, RyanMqttLog_e, { goto __exit; });
-
-	result = RyanMqttKeepAliveTest();
-	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, result, RyanMqttLog_e, { goto __exit; });
-
-	// result = RyanMqttWildcardTest();
-	// RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, result, RyanMqttLog_e, { goto __exit; });
+	uint32_t totalElapsedStartMs = platformUptimeMs();
+	runTestWithLogAndTimer(RyanMqttPublicApiParamCheckTest);
+	runTestWithLogAndTimer(RyanMqttSubTest);
+	runTestWithLogAndTimer(RyanMqttPubTest);
+	runTestWithLogAndTimer(RyanMqttDestroyTest);
+	runTestWithLogAndTimer(RyanMqttNetworkFaultToleranceMemoryTest);
+	runTestWithLogAndTimer(RyanMqttNetworkFaultQosResilienceTest);
+	runTestWithLogAndTimer(RyanMqttMultiThreadMultiClientTest);
+	runTestWithLogAndTimer(RyanMqttMultiThreadSafetyTest);
+	runTestWithLogAndTimer(RyanMqttReconnectTest);
+	runTestWithLogAndTimer(RyanMqttKeepAliveTest);
+	// runTestWithLogAndTimer(RyanMqttWildcardTest);
 
 __exit:
 	pthread_spin_destroy(&spin);
 
+	RyanMqttLog_raw("测试总耗时: %.3f S\r\n", (platformUptimeMs() - totalElapsedStartMs) / 1000.0);
+
 	if (RyanMqttSuccessError == result)
 	{
-		RyanMqttLog_i("测试成功---------------------------");
+		RyanMqttLog_raw("测试成功---------------------------\r\n");
 	}
 	else
 	{
-		RyanMqttLog_e("测试失败---------------------------");
+		RyanMqttLog_raw("测试失败---------------------------\r\n");
 	}
 
 	for (uint32_t i = 0; i < 3; i++)

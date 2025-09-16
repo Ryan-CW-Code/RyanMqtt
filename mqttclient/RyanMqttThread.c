@@ -541,6 +541,7 @@ void RyanMqttThread(void *argument)
 
 		case RyanMqttConnectState: // 连接状态
 			RyanMqttLog_d("连接状态");
+            // 不对返回值进行处理
 			RyanMqttProcessPacketHandler(client);
 			RyanMqttAckListScan(client, RyanMqttTrue);
 			RyanMqttKeepalive(client);

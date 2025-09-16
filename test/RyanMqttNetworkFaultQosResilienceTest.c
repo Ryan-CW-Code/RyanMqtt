@@ -212,6 +212,7 @@ static RyanMqttError_e RyanMqttNetworkFaultQosResiliencePublishTest(int32_t coun
 			goto __exit;
 		}
 
+		// 测试代码可以临时访问ack链表
 		platformMutexLock(client->config.userData, &client->ackHandleLock);
 		if (RyanMqttListIsEmpty(&client->ackHandlerList))
 		{
@@ -250,15 +251,15 @@ RyanMqttError_e RyanMqttNetworkFaultQosResilienceTest(void)
 	RyanMqttError_e result = RyanMqttSuccessError;
 
 	result = RyanMqttNetworkFaultQosResiliencePublishTest(500, 1, RyanMqttQos0);
-	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttFailedError, RyanMqttLog_e, { goto __exit; });
+	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, result, RyanMqttLog_e, { goto __exit; });
 	checkMemory;
 
 	result = RyanMqttNetworkFaultQosResiliencePublishTest(500, 2, RyanMqttQos1);
-	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttFailedError, RyanMqttLog_e, { goto __exit; });
+	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, result, RyanMqttLog_e, { goto __exit; });
 	checkMemory;
 
 	result = RyanMqttNetworkFaultQosResiliencePublishTest(500, 4, RyanMqttQos2);
-	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttFailedError, RyanMqttLog_e, { goto __exit; });
+	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, result, RyanMqttLog_e, { goto __exit; });
 	checkMemory;
 
 	return RyanMqttSuccessError;

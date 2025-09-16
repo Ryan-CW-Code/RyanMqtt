@@ -411,7 +411,7 @@ RyanMqttError_e RyanMqttUnSubscribeMany(RyanMqttClient_t *client, int32_t count,
 	RyanMqttCheck(NULL != unSubscriptionList, RyanMqttNotEnoughMemError, RyanMqttLog_d);
 	for (int32_t i = 0; i < count; i++)
 	{
-		unSubscriptionList[i].qos = (MQTTQoS_t)RyanMqttSubFail; // 无效数据，仅当占位符
+		unSubscriptionList[i].qos = (MQTTQoS_t)RyanMqttSubFail; // 无效数据，仅用作占位符
 		unSubscriptionList[i].pTopicFilter = unSubscribeManyData[i].topic;
 		unSubscriptionList[i].topicFilterLength = unSubscribeManyData[i].topicLen;
 	}

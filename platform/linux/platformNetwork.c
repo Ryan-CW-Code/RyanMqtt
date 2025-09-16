@@ -1,4 +1,5 @@
-#define RyanMqttLogLevel (RyanMqttLogLevelDebug) // 日志打印等级
+#define RyanMqttLogLevel (RyanMqttLogLevelAssert) // 日志打印等级
+// #define RyanMqttLogLevel (RyanMqttLogLevelDebug) // 日志打印等级
 
 #include "RyanMqttPlatform.h"
 #include "RyanMqttLog.h"

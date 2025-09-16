@@ -48,7 +48,7 @@ extern "C" {
 #define delay(ms)         usleep((ms) * 1000)
 #define delay_us(us)      usleep((us))
 #define getArraySize(arr) ((int32_t)(sizeof(arr) / sizeof((arr)[0])))
-extern uint32_t destoryCount;
+extern uint32_t destroyCount;
 
 #define checkMemory                                                                                                    \
 	do                                                                                                             \
@@ -56,7 +56,7 @@ extern uint32_t destoryCount;
 		for (uint32_t aaa = 0;; aaa++)                                                                         \
 		{                                                                                                      \
 			RyanMqttTestEnableCritical();                                                                  \
-			uint32_t destoryCount2 = destoryCount;                                                         \
+			uint32_t destoryCount2 = destroyCount;                                                         \
 			RyanMqttTestExitCritical();                                                                    \
 			if (0 == destoryCount2) break;                                                                 \
 			if (aaa > 10 * 1000)                                                                           \
