@@ -30,7 +30,7 @@ RyanMqttError_e RyanMqttAckHandlerCreate(RyanMqttClient_t *client, uint8_t packe
 	// 为非预分配的数据包分配额外空间
 	if (RyanMqttTrue != packetAllocatedExternally)
 	{
-		mallocSize += packetLen + 1;
+		mallocSize += packetLen;
 	}
 
 	// 为非预分配包申请额外空间

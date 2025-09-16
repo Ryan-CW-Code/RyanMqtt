@@ -39,6 +39,7 @@ RyanMqtt是一个严格遵循 [MQTT 3.1.1](https://docs.oasis-open.org/mqtt/mqtt
 - RyanMqtt心跳使用1.5倍时间，当心跳周期到达设置的0.9倍后会发送心跳包，如果超过1.5倍就通知用户断开连接
 
 ## 代码格式
+- 可以使用中文进行注释
 - 所有代码须符合项目 `.clang-format` 配置
 
 ## 最佳实践

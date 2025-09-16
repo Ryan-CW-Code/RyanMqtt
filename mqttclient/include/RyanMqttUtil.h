@@ -17,11 +17,6 @@ extern "C" {
 // 定义枚举类型
 
 // 定义结构体类型
-struct NetworkContext
-{
-	RyanMqttClient_t *client;
-};
-int32_t coreMqttTransportRecv(NetworkContext_t *pNetworkContext, void *pBuffer, size_t bytesToRecv);
 
 /* extern variables-----------------------------------------------------------*/
 
@@ -42,7 +37,7 @@ extern void RyanMqttMsgHandlerDestroy(RyanMqttClient_t *client, RyanMqttMsgHandl
 extern RyanMqttError_e RyanMqttMsgHandlerFind(RyanMqttClient_t *client, RyanMqttMsgHandler_t *msgMatchCriteria,
 					      RyanMqttBool_e isTopicMatchedFlag, RyanMqttMsgHandler_t **pMsgHandler,
 					      RyanMqttBool_e removeOnMatch);
-extern void RyanMqttMsgHandlerFindAndDestroyByPackId(RyanMqttClient_t *client, RyanMqttMsgHandler_t *msgMatchCriteria,
+extern void RyanMqttMsgHandlerFindAndDestroyByPacketId(RyanMqttClient_t *client, RyanMqttMsgHandler_t *msgMatchCriteria,
 						     RyanMqttBool_e skipSamePacketId);
 extern RyanMqttError_e RyanMqttMsgHandlerAddToMsgList(RyanMqttClient_t *client, RyanMqttMsgHandler_t *msgHandler);
 extern RyanMqttError_e RyanMqttMsgHandlerRemoveToMsgList(RyanMqttClient_t *client, RyanMqttMsgHandler_t *msgHandler);

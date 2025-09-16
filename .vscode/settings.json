@@ -47,6 +47,10 @@
         "inttypes.h": "c",
         "memory": "c",
         "stdbool.h": "c",
-        "ryanmqttutil.h": "c"
+        "ryanmqttutil.h": "c",
+        "cstdlib": "c",
+        "stdatomic.h": "c",
+        "atomic": "c",
+        "cstdint": "c"
     },
 }

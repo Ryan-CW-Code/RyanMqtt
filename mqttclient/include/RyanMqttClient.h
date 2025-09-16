@@ -40,25 +40,25 @@ typedef struct
 
 typedef struct
 {
-	RyanMqttBool_e packetAllocatedExternally; // packet 是外部分配的
-	uint8_t packetType;                       // 期望接收到的ack报文类型
-	uint16_t repeatCount;                     // 当前ack超时重发次数
-	uint16_t packetId;                        // 报文标识符 系统生成，用户勿动
-	uint32_t packetLen;                       // 报文长度
-	RyanMqttList_t list;                      // 链表节点，用户勿动
-	RyanMqttTimer_t timer;                    // ack超时定时器，用户勿动
-	RyanMqttMsgHandler_t *msgHandler;         // msg信息
+	RyanMqttBool_e packetAllocatedExternally: 1; // packet 是外部分配的
+	uint8_t packetType;                          // 期望接收到的ack报文类型
+	uint16_t repeatCount;                        // 当前ack超时重发次数
+	uint16_t packetId;                           // 报文标识符 系统生成，用户勿动
+	uint32_t packetLen;                          // 报文长度
+	RyanMqttList_t list;                         // 链表节点，用户勿动
+	RyanMqttTimer_t timer;                       // ack超时定时器，用户勿动
+	RyanMqttMsgHandler_t *msgHandler;            // msg信息
 	uint8_t *packet; // 没有收到期望ack，重新发送的原始报文,不要求必须是最后一位,但最好保持这样
 } RyanMqttAckHandler_t;
 
 typedef struct
 {
-	RyanMqttBool_e lwtFlag; // 遗嘱标志位
-	RyanMqttBool_e retain;  // 遗嘱保留标志位
-	RyanMqttQos_e qos;      // 遗嘱qos等级
-	uint32_t payloadLen;    // 消息长度
-	char *topic;            // 遗嘱主题
-	char *payload;          // 遗嘱消息
+	RyanMqttBool_e lwtFlag: 1; // 遗嘱标志位
+	RyanMqttBool_e retain: 1;  // 遗嘱保留标志位
+	RyanMqttQos_e qos;         // 遗嘱qos等级
+	uint32_t payloadLen;       // 消息长度
+	char *topic;               // 遗嘱主题
+	char *payload;             // 遗嘱消息
 } lwtOptions_t;
 
 typedef struct
@@ -87,8 +87,8 @@ typedef struct
 	uint16_t taskPrio;  // mqtt线程优先级
 	uint16_t taskStack; // 线程栈大小
 
-	RyanMqttBool_e autoReconnectFlag; // 自动重连标志位
-	RyanMqttBool_e cleanSessionFlag;  // 清除会话标志位
+	RyanMqttBool_e autoReconnectFlag: 1; // 自动重连标志位
+	RyanMqttBool_e cleanSessionFlag: 1;  // 清除会话标志位
 
 	// ack重发超过这个数值后触发事件回调,根据实际硬件选择。典型值为 5
 	uint16_t ackHandlerRepeatCountWarning;
@@ -101,7 +101,7 @@ typedef struct
 	uint16_t sendTimeout;       // mqtt发送命令超时时间, 根据实际硬件选择。单位ms
 	uint16_t ackTimeout;        // mqtt ack 等待回复的超时时间, 典型值为5 - 60秒。单位ms
 	uint16_t keepaliveTimeoutS; // mqtt心跳时间间隔。单位S
-	uint16_t reconnectTimeout;  // mqtt重连间隔时间。单位S
+	uint16_t reconnectTimeout;  // mqtt重连间隔时间。单位ms
 
 	RyanMqttEventHandle mqttEventHandle; // mqtt事件回调函数
 	void *userData;                      // 用户自定义数据,用户需要保证指针指向内容的持久性
@@ -109,11 +109,12 @@ typedef struct
 
 typedef struct
 {
-	RyanMqttBool_e destroyFlag;  // 销毁标志位
-	uint16_t ackHandlerCount;    // 等待ack的记录个数
-	uint16_t packetId;           // mqtt报文标识符,控制报文必须包含一个非零的 16 位报文标识符
-	uint32_t eventFlag;          // 事件标志位
-	RyanMqttState_e clientState; // mqtt客户端的状态
+	RyanMqttBool_e destroyFlag: 1;    // 销毁标志位
+	RyanMqttBool_e pendingAckFlag: 1; // 需要处理ack, 缩短recv超时时间，避免阻塞太久
+	uint16_t ackHandlerCount;         // 等待ack的记录个数
+	uint16_t packetId;                // mqtt报文标识符,控制报文必须包含一个非零的 16 位报文标识符
+	uint32_t eventFlag;               // 事件标志位
+	RyanMqttState_e clientState;      // mqtt客户端的状态
 
 	// 维护消息处理列表，这是mqtt协议必须实现的内容，所有来自服务器的publish报文都会被处理（前提是订阅了对应的消息，或者设置了拦截器）
 	RyanMqttList_t msgHandlerList;
@@ -141,12 +142,13 @@ extern RyanMqttError_e RyanMqttStart(RyanMqttClient_t *client);
 extern RyanMqttError_e RyanMqttDisconnect(RyanMqttClient_t *client, RyanMqttBool_e sendDiscFlag);
 extern RyanMqttError_e RyanMqttReconnect(RyanMqttClient_t *client);
 
-extern RyanMqttError_e RyanMqttPublishAndUserData(RyanMqttClient_t *client, char *topic, uint16_t topicLen,
-						  char *payload, uint32_t payloadLen, RyanMqttQos_e qos,
-						  RyanMqttBool_e retain, void *userData);
-// !推荐使用 RyanMqttPublishAndUserData , RyanMqttPublish不能正确处理topic结尾为0的情况
+extern RyanMqttError_e RyanMqttPublishWithUserData(RyanMqttClient_t *client, char *topic, uint16_t topicLen,
+						   char *payload, uint32_t payloadLen, RyanMqttQos_e qos,
+						   RyanMqttBool_e retain, void *userData);
+// !推荐使用 RyanMqttPublishWithUserData , RyanMqttPublish不能正确处理topic结尾为0的情况
 extern RyanMqttError_e RyanMqttPublish(RyanMqttClient_t *client, char *topic, char *payload, uint32_t payloadLen,
 				       RyanMqttQos_e qos, RyanMqttBool_e retain);
+#define RyanMqttPublishAndUserData RyanMqttPublishWithUserData // 兼容旧版本
 
 // !推荐使用 RyanMqttSubscribeMany , RyanMqttSubscribe不能正确处理topic结尾为0的情况
 extern RyanMqttError_e RyanMqttSubscribe(RyanMqttClient_t *client, char *topic, RyanMqttQos_e qos);
@@ -173,6 +175,8 @@ extern RyanMqttError_e RyanMqttSetLwt(RyanMqttClient_t *client, char *topicName,
 				      RyanMqttQos_e qos, RyanMqttBool_e retain);
 
 extern RyanMqttError_e RyanMqttDiscardAckHandler(RyanMqttClient_t *client, uint8_t packetType, uint16_t packetId);
+
+extern RyanMqttError_e RyanMqttGetEventId(RyanMqttClient_t *client, RyanMqttEventId_e *eventId);
 extern RyanMqttError_e RyanMqttRegisterEventId(RyanMqttClient_t *client, RyanMqttEventId_e eventId);
 extern RyanMqttError_e RyanMqttCancelEventId(RyanMqttClient_t *client, RyanMqttEventId_e eventId);
 

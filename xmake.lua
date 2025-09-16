@@ -2,7 +2,7 @@ add_rules("plugin.compile_commands.autoupdate", {outputdir = ".vscode"})
 target("RyanMqtt",function()
     set_kind("binary")
 
-    add_syslinks("pthread")
+    add_syslinks("pthread","rt")
     set_toolchains("gcc")  -- 确保使用 GCC
     -- set_toolchains("clang-20")  
     set_languages("gnu99") -- 启用 GNU 扩展
@@ -88,11 +88,13 @@ target("RyanMqtt",function()
     add_includedirs('./platform/linux', {public = true})
     add_includedirs('./platform/linux/valloc', {public = true})
 
-    add_files('./test/*.c', {public = true})
     add_files('./common/*.c', {public = true})
     add_files('./coreMqtt/*.c', {public = true})
     add_files('./mqttclient/*.c', {public = true})
     add_files('./platform/linux/*.c', {public = true})
     add_files('./platform/linux/valloc/*.c', {public = true})
+
+    add_includedirs('./test', {public = true})
+    add_files('./test/*.c', {public = true})
 
 end)

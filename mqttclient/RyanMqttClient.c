@@ -1,5 +1,5 @@
 #define RyanMqttLogLevel (RyanMqttLogLevelAssert) // 日志打印等级
-// #define RyanMqttLogLevel (RyanMqttLogLevelError) // 日志打印等级
+// #define RyanMqttLogLevel (RyanMqttLogLevelError)  // 日志打印等级
 // #define RyanMqttLogLevel (RyanMqttLogLevelDebug) // 日志打印等级
 
 #include "RyanMqttClient.h"
@@ -350,7 +350,7 @@ __exit:
 			msgMatchCriteria.topicLen = subscriptionList[i].topicFilterLength;
 			msgMatchCriteria.packetId = packetId;
 
-			RyanMqttMsgHandlerFindAndDestroyByPackId(client, &msgMatchCriteria, RyanMqttFalse);
+			RyanMqttMsgHandlerFindAndDestroyByPacketId(client, &msgMatchCriteria, RyanMqttFalse);
 		}
 	}
 
@@ -407,13 +407,13 @@ RyanMqttError_e RyanMqttUnSubscribeMany(RyanMqttClient_t *client, int32_t count,
 	}
 
 	// 申请 coreMqtt 支持的topic格式空间
-	MQTTSubscribeInfo_t *subscriptionList = platformMemoryMalloc(sizeof(MQTTSubscribeInfo_t) * count);
-	RyanMqttCheck(NULL != subscriptionList, RyanMqttNotEnoughMemError, RyanMqttLog_d);
+	MQTTSubscribeInfo_t *unSubscriptionList = platformMemoryMalloc(sizeof(MQTTSubscribeInfo_t) * count);
+	RyanMqttCheck(NULL != unSubscriptionList, RyanMqttNotEnoughMemError, RyanMqttLog_d);
 	for (int32_t i = 0; i < count; i++)
 	{
-		subscriptionList[i].qos = (MQTTQoS_t)RyanMqttQos0; // 无效数据，仅当占位符
-		subscriptionList[i].pTopicFilter = unSubscribeManyData[i].topic;
-		subscriptionList[i].topicFilterLength = unSubscribeManyData[i].topicLen;
+		unSubscriptionList[i].qos = (MQTTQoS_t)RyanMqttSubFail; // 无效数据，仅用作占位符
+		unSubscriptionList[i].pTopicFilter = unSubscribeManyData[i].topic;
+		unSubscriptionList[i].topicFilterLength = unSubscribeManyData[i].topicLen;
 	}
 
 	// 序列化数据包
@@ -422,19 +422,19 @@ RyanMqttError_e RyanMqttUnSubscribeMany(RyanMqttClient_t *client, int32_t count,
 
 		// 获取数据包大小
 		MQTTStatus_t status =
-			MQTT_GetUnsubscribePacketSize(subscriptionList, count, &remainingLength, &fixedBuffer.size);
+			MQTT_GetUnsubscribePacketSize(unSubscriptionList, count, &remainingLength, &fixedBuffer.size);
 		RyanMqttAssert(MQTTSuccess == status);
 
 		// 申请数据包的空间
 		fixedBuffer.pBuffer = platformMemoryMalloc(fixedBuffer.size);
 		RyanMqttCheckCode(NULL != fixedBuffer.pBuffer, RyanMqttNotEnoughMemError, RyanMqttLog_d,
-				  { platformMemoryFree(subscriptionList); });
+				  { platformMemoryFree(unSubscriptionList); });
 
 		// 序列化数据包
 		packetId = RyanMqttGetNextPacketId(client);
-		status = MQTT_SerializeUnsubscribe(subscriptionList, count, packetId, remainingLength, &fixedBuffer);
+		status = MQTT_SerializeUnsubscribe(unSubscriptionList, count, packetId, remainingLength, &fixedBuffer);
 		RyanMqttCheckCode(MQTTSuccess == status, RyanMqttSerializePacketError, RyanMqttLog_d, {
-			platformMemoryFree(subscriptionList);
+			platformMemoryFree(unSubscriptionList);
 			platformMemoryFree(fixedBuffer.pBuffer);
 		});
 	}
@@ -443,20 +443,23 @@ RyanMqttError_e RyanMqttUnSubscribeMany(RyanMqttClient_t *client, int32_t count,
 	for (int32_t i = 0; i < count; i++)
 	{
 		// ?不判断是否订阅，统一都发送取消
-		RyanMqttMsgHandler_t msgMatchCriteria = {.topic = (char *)subscriptionList[i].pTopicFilter,
-							 .topicLen = subscriptionList[i].topicFilterLength};
+		RyanMqttMsgHandler_t msgMatchCriteria = {.topic = (char *)unSubscriptionList[i].pTopicFilter,
+							 .topicLen = unSubscriptionList[i].topicFilterLength};
+
+		platformMutexLock(client->config.userData, &client->msgHandleLock);
 		result =
 			RyanMqttMsgHandlerFind(client, &msgMatchCriteria, RyanMqttFalse, &subMsgHandler, RyanMqttFalse);
 		if (RyanMqttSuccessError == result)
 		{
 			// !有线程安全问题,subMsgHandler是指针，但用户层只要不是特别的混乱重复取消订阅这里应该就问题，暂时不管成本太高
 			// 同步msg qos等级，之后unsub回调使用
-			subscriptionList[i].qos = (MQTTQoS_t)subMsgHandler->qos;
+			unSubscriptionList[i].qos = (MQTTQoS_t)subMsgHandler->qos;
 		}
+		platformMutexUnLock(client->config.userData, &client->msgHandleLock);
 
-		result = RyanMqttMsgHandlerCreate(client, subscriptionList[i].pTopicFilter,
-						  subscriptionList[i].topicFilterLength, RyanMqttMsgInvalidPacketId,
-						  (RyanMqttQos_e)subscriptionList[i].qos, NULL, &msgHandler);
+		result = RyanMqttMsgHandlerCreate(client, unSubscriptionList[i].pTopicFilter,
+						  unSubscriptionList[i].topicFilterLength, packetId,
+						  (RyanMqttQos_e)unSubscriptionList[i].qos, NULL, &msgHandler);
 		RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, result, RyanMqttLog_d,
 					  { goto __RyanMqttUnSubCreateAckErrorExit; });
 
@@ -473,7 +476,7 @@ RyanMqttError_e RyanMqttUnSubscribeMany(RyanMqttClient_t *client, int32_t count,
 
 __RyanMqttUnSubCreateAckErrorExit:
 		RyanMqttClearAckSession(client, MQTT_PACKET_TYPE_UNSUBACK, packetId);
-		platformMemoryFree(subscriptionList);
+		platformMemoryFree(unSubscriptionList);
 		platformMemoryFree(fixedBuffer.pBuffer);
 		return RyanMqttNotEnoughMemError;
 	}
@@ -484,11 +487,11 @@ __RyanMqttUnSubCreateAckErrorExit:
 	RyanMqttCheckCode(RyanMqttSuccessError == result, result, RyanMqttLog_d, {
 		RyanMqttClearAckSession(client, MQTT_PACKET_TYPE_UNSUBACK, packetId);
 
-		platformMemoryFree(subscriptionList);
+		platformMemoryFree(unSubscriptionList);
 		platformMemoryFree(fixedBuffer.pBuffer);
 	});
 
-	platformMemoryFree(subscriptionList);
+	platformMemoryFree(unSubscriptionList);
 	platformMemoryFree(fixedBuffer.pBuffer);
 	return result;
 }
@@ -508,9 +511,9 @@ RyanMqttError_e RyanMqttUnSubscribe(RyanMqttClient_t *client, char *topic)
 	return RyanMqttUnSubscribeMany(client, 1, &subscribeManyData);
 }
 
-RyanMqttError_e RyanMqttPublishAndUserData(RyanMqttClient_t *client, char *topic, uint16_t topicLen, char *payload,
-					   uint32_t payloadLen, RyanMqttQos_e qos, RyanMqttBool_e retain,
-					   void *userData)
+RyanMqttError_e RyanMqttPublishWithUserData(RyanMqttClient_t *client, char *topic, uint16_t topicLen, char *payload,
+					    uint32_t payloadLen, RyanMqttQos_e qos, RyanMqttBool_e retain,
+					    void *userData)
 {
 	RyanMqttError_e result = RyanMqttSuccessError;
 	uint16_t packetId;
@@ -595,7 +598,8 @@ RyanMqttError_e RyanMqttPublishAndUserData(RyanMqttClient_t *client, char *topic
 		RyanMqttAckListAddToUserAckList(client, userAckHandler);
 
 		result = RyanMqttSendPacket(client, userAckHandler->packet, userAckHandler->packetLen);
-		RyanMqttCheckCode(RyanMqttSuccessError == result, result, RyanMqttLog_d, {
+		RyanMqttCheckCode(RyanMqttSuccessError == result, result, RyanMqttLog_e, {
+			RyanMqttLog_e("RyanMqttSendPacket failed, clear user ack session");
 			// userAck 必须通过这个执行，因为可能已经复制到mqtt内核空间了
 			RyanMqttClearAckSession(client, packetType, packetId);
 		});
@@ -620,7 +624,8 @@ RyanMqttError_e RyanMqttPublish(RyanMqttClient_t *client, char *topic, char *pay
 {
 	RyanMqttCheck(NULL != topic, RyanMqttParamInvalidError, RyanMqttLog_d);
 
-	return RyanMqttPublishAndUserData(client, topic, RyanMqttStrlen(topic), payload, payloadLen, qos, retain, NULL);
+	return RyanMqttPublishWithUserData(client, topic, RyanMqttStrlen(topic), payload, payloadLen, qos, retain,
+					   NULL);
 }
 
 /**
@@ -748,8 +753,8 @@ RyanMqttError_e RyanMqttSafeFreeSubscribeResources(RyanMqttMsgHandler_t *msgHand
 {
 	RyanMqttError_e result = RyanMqttSuccessError;
 	RyanMqttCheck(NULL != msgHandles, RyanMqttParamInvalidError, RyanMqttLog_d);
-	// RyanMqttGetSubscribeSafe 返回地址的话 subscribeNum 一定大于0,这里就是要判断大于0才行
-	RyanMqttCheck(subscribeNum > 0, RyanMqttParamInvalidError, RyanMqttLog_d);
+	// RyanMqttGetSubscribeTotalCount 内部调用的时候可以会等于0
+	RyanMqttCheck(subscribeNum >= 0, RyanMqttParamInvalidError, RyanMqttLog_d);
 
 	for (int32_t i = 0; i < subscribeNum; i++)
 	{
@@ -1082,6 +1087,17 @@ RyanMqttError_e RyanMqttDiscardAckHandler(RyanMqttClient_t *client, uint8_t pack
 		RyanMqttAckHandlerDestroy(client, ackHandler);
 	}
 	return result;
+}
+
+RyanMqttError_e RyanMqttGetEventId(RyanMqttClient_t *client, RyanMqttEventId_e *eventId)
+{
+	RyanMqttCheck(NULL != client, RyanMqttParamInvalidError, RyanMqttLog_d);
+	RyanMqttCheck(NULL != eventId, RyanMqttParamInvalidError, RyanMqttLog_d);
+
+	platformCriticalEnter(client->config.userData, &client->criticalLock);
+	*eventId = client->eventFlag;
+	platformCriticalExit(client->config.userData, &client->criticalLock);
+	return RyanMqttSuccessError;
 }
 
 RyanMqttError_e RyanMqttRegisterEventId(RyanMqttClient_t *client, RyanMqttEventId_e eventId)

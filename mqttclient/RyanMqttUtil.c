@@ -5,6 +5,10 @@
 #include "RyanMqttLog.h"
 #include "RyanMqttThread.h"
 
+#ifdef RyanMqttLinuxTestEnable
+#include "RyanMqttTest.h"
+#endif
+
 /**
  * @brief 字符串拷贝，需要手动释放内存
  *
@@ -35,33 +39,6 @@ RyanMqttError_e RyanMqttDupString(char **dest, const char *src, uint32_t strLen)
 }
 
 /**
- * @brief RyanMqtt 针对 coreMqtt 特殊场景专用
- *
- * @param pNetworkContext
- * @param pBuffer
- * @param bytesToRecv
- * @return int32_t
- */
-int32_t coreMqttTransportRecv(NetworkContext_t *pNetworkContext, void *pBuffer, size_t bytesToRecv)
-{
-	RyanMqttAssert(NULL != pNetworkContext);
-	RyanMqttAssert(NULL != pNetworkContext->client);
-	RyanMqttAssert(NULL != pBuffer);
-	RyanMqttAssert(bytesToRecv > 0);
-
-	RyanMqttError_e result = RyanMqttRecvPacket(pNetworkContext->client, pBuffer, bytesToRecv);
-
-	switch (result)
-	{
-	case RyanMqttRecvPacketTimeOutError: return 0;
-	case RyanMqttSuccessError: return (int32_t)bytesToRecv;
-
-	case RyanSocketFailedError:
-	default: return -1;
-	}
-}
-
-/**
  * @brief mqtt读取报文,此函数仅Mqtt线程进行调用
  *
  * @param client
@@ -78,6 +55,19 @@ RyanMqttError_e RyanMqttRecvPacket(RyanMqttClient_t *client, uint8_t *recvBuf, u
 	RyanMqttAssert(NULL != client);
 	RyanMqttAssert(NULL != recvBuf);
 	RyanMqttAssert(0 != recvLen);
+
+	// 如果需要处理ack，就缩短读取超时时间，避免阻塞太久（保留用户配置的上限）
+	if (RyanMqttTrue == client->pendingAckFlag)
+	{
+		if (client->config.recvTimeout > 100)
+		{
+			timeOut = 100;
+		}
+		else
+		{
+			timeOut = client->config.recvTimeout;
+		}
+	}
 
 	RyanMqttTimerCutdown(&timer, timeOut);
 
@@ -113,6 +103,22 @@ RyanMqttError_e RyanMqttRecvPacket(RyanMqttClient_t *client, uint8_t *recvBuf, u
 		return RyanMqttRecvPacketTimeOutError;
 	}
 
+#ifdef RyanMqttLinuxTestEnable
+	RyanMqttTestEnableCritical();
+	if (RyanMqttTrue == isEnableRandomNetworkFault)
+	{
+		randomCount++;
+		if (randomCount >= RyanRand(10, 100))
+		{
+			randomCount = 0;
+			RyanMqttTestExitCritical();
+			// printf("模拟接收超时\r\n");
+			return RyanMqttRecvPacketTimeOutError;
+		}
+	}
+	RyanMqttTestExitCritical();
+#endif
+
 	return RyanMqttSuccessError;
 }
 
@@ -133,6 +139,23 @@ RyanMqttError_e RyanMqttSendPacket(RyanMqttClient_t *client, uint8_t *sendBuf, u
 	RyanMqttAssert(NULL != client);
 	RyanMqttAssert(NULL != sendBuf);
 	RyanMqttAssert(0 != sendLen);
+
+#ifdef RyanMqttLinuxTestEnable
+	RyanMqttTestEnableCritical();
+	if (RyanMqttTrue == isEnableRandomNetworkFault)
+	{
+		sendRandomCount++;
+		if (sendRandomCount >= RyanRand(1, 10))
+		{
+			sendRandomCount = 0;
+			RyanMqttTestExitCritical();
+
+			// printf("模拟发送超时\r\n");
+			return RyanMqttSendPacketTimeOutError;
+		}
+	}
+	RyanMqttTestExitCritical();
+#endif
 
 	RyanMqttTimerCutdown(&timer, timeOut);
 

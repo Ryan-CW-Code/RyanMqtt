@@ -2,6 +2,10 @@
 #include "platformSystem.h"
 #include "RyanMqttPlatform.h"
 
+#ifdef RyanMqttLinuxTestEnable
+#include "RyanMqttTest.h"
+#endif
+
 /**
  * @brief 申请内存
  *
@@ -10,6 +14,22 @@
  */
 inline void *platformMemoryMalloc(size_t size)
 {
+#ifdef RyanMqttLinuxTestEnable
+	RyanMqttTestEnableCritical();
+	if (RyanMqttTrue == isEnableRandomMemoryFault)
+	{
+		memoryRandomCount++;
+		if (memoryRandomCount >= RyanRand(10, 100))
+		{
+			memoryRandomCount = 0;
+			RyanMqttTestExitCritical();
+			// printf("模拟没有空闲内存\r\n");
+			return NULL;
+		}
+	}
+	RyanMqttTestExitCritical();
+#endif
+
 	return malloc(size);
 }
 

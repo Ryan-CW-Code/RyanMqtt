@@ -1,4 +1,5 @@
 #define RyanMqttLogLevel (RyanMqttLogLevelAssert) // 日志打印等级
+// #define RyanMqttLogLevel (RyanMqttLogLevelError) // 日志打印等级
 // #define RyanMqttLogLevel (RyanMqttLogLevelDebug) // 日志打印等级
 
 #include "RyanMqttThread.h"
@@ -34,16 +35,6 @@ static RyanMqttError_e RyanMqttKeepalive(RyanMqttClient_t *client)
 
 	uint32_t timeRemain = RyanMqttTimerRemain(&client->keepaliveTimer);
 
-	// 超过设置的 1.5 倍心跳周期，主动通知用户断开连接
-	if (0 == timeRemain)
-	{
-		RyanMqttConnectStatus_e connectState = RyanMqttKeepaliveTimeout;
-		RyanMqttEventMachine(client, RyanMqttEventDisconnected, (void *)&connectState);
-		RyanMqttLog_d("ErrorCode: %d, strError: %s", RyanMqttKeepaliveTimeout,
-			      RyanMqttStrError(RyanMqttKeepaliveTimeout));
-		return RyanMqttFailedError;
-	}
-
 	// 当剩余时间大于 recvtimeout 并且小于 keepaliveTimeoutS 的 0.9 倍时间时不进行发送心跳包
 	if (timeRemain > (uint32_t)(client->config.recvTimeout + 100))
 	{
@@ -59,6 +50,16 @@ static RyanMqttError_e RyanMqttKeepalive(RyanMqttClient_t *client)
 		{
 			return RyanMqttSuccessError;
 		}
+	}
+
+	// 超过设置的 1.5 倍心跳周期，主动通知用户断开连接
+	if (0 == timeRemain)
+	{
+		RyanMqttConnectStatus_e connectState = RyanMqttKeepaliveTimeout;
+		RyanMqttEventMachine(client, RyanMqttEventDisconnected, (void *)&connectState);
+		RyanMqttLog_d("ErrorCode: %d, strError: %s", RyanMqttKeepaliveTimeout,
+			      RyanMqttStrError(RyanMqttKeepaliveTimeout));
+		return RyanMqttFailedError;
 	}
 
 	// 发送mqtt心跳包
@@ -81,7 +82,6 @@ static RyanMqttError_e RyanMqttKeepalive(RyanMqttClient_t *client)
 	return RyanMqttSuccessError;
 }
 
-// todo 也可以考虑有ack链表的时候recvTime可以短一些，有坑点
 // todo 也可以考虑将发送操作独立出去,异步发送,目前没有遇到性能瓶颈,需要超高性能的时候再考虑吧
 /**
  * @brief 遍历ack链表，进行相应的处理
@@ -96,7 +96,7 @@ static void RyanMqttAckListScan(RyanMqttClient_t *client, RyanMqttBool_e waitFla
 	RyanMqttList_t *curr, *next;
 	RyanMqttAckHandler_t *ackHandler;
 	RyanMqttTimer_t ackScanRemainTimer;
-	uint32_t ackScanThrottleTime = 1000; // 最长一秒
+	uint32_t ackScanThrottleTime = 1000; // ack扫描节流最长一秒
 	RyanMqttAssert(NULL != client);
 
 	// mqtt没有连接就退出
@@ -166,7 +166,7 @@ static void RyanMqttAckListScan(RyanMqttClient_t *client, RyanMqttBool_e waitFla
 		case MQTT_PACKET_TYPE_PUBCOMP: // 理论不会出现，冗余措施
 		{
 			// 设置重发标志位
-			if (ackHandler->packet && 0 == ackHandler->repeatCount)
+			if (0 == ackHandler->repeatCount && ackHandler->packet)
 			{
 				MQTT_UpdateDuplicatePublishFlag(ackHandler->packet, true);
 			}
@@ -192,7 +192,7 @@ static void RyanMqttAckListScan(RyanMqttClient_t *client, RyanMqttBool_e waitFla
 		// 订阅 / 取消订阅超时就认为失败
 		case MQTT_PACKET_TYPE_SUBACK: {
 			RyanMqttMsgHandler_t *msgMatchCriteria = ackHandler->msgHandler;
-			RyanMqttMsgHandlerFindAndDestroyByPackId(client, msgMatchCriteria, RyanMqttFalse);
+			RyanMqttMsgHandlerFindAndDestroyByPacketId(client, msgMatchCriteria, RyanMqttFalse);
 			RyanMqttEventMachine(client, RyanMqttEventSubscribedFailed, (void *)ackHandler->msgHandler);
 			RyanMqttAckListRemoveToAckList(client, ackHandler);
 			RyanMqttAckHandlerDestroy(client, ackHandler); // 清除句柄
@@ -220,6 +220,11 @@ static void RyanMqttAckListScan(RyanMqttClient_t *client, RyanMqttBool_e waitFla
 	{
 		// 启动ack scan节流定时器
 		RyanMqttTimerCutdown(&client->ackScanThrottleTimer, ackScanThrottleTime);
+		client->pendingAckFlag = RyanMqttFalse;
+	}
+	else
+	{
+		client->pendingAckFlag = RyanMqttTrue;
 	}
 }
 
@@ -536,6 +541,7 @@ void RyanMqttThread(void *argument)
 
 		case RyanMqttConnectState: // 连接状态
 			RyanMqttLog_d("连接状态");
+            // 不对返回值进行处理
 			RyanMqttProcessPacketHandler(client);
 			RyanMqttAckListScan(client, RyanMqttTrue);
 			RyanMqttKeepalive(client);

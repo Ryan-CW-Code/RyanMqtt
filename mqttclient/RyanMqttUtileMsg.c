@@ -220,7 +220,7 @@ RyanMqttError_e RyanMqttMsgHandlerCreate(RyanMqttClient_t *client, const char *t
 	RyanMqttAssert(NULL != client);
 	RyanMqttAssert(NULL != topic);
 	RyanMqttAssert(NULL != pMsgHandler);
-	RyanMqttAssert(RyanMqttQos0 == qos || RyanMqttQos1 == qos || RyanMqttQos2 == qos);
+	RyanMqttAssert(RyanMqttQos0 == qos || RyanMqttQos1 == qos || RyanMqttQos2 == qos || RyanMqttSubFail == qos);
 
 	uint32_t mallocSize = sizeof(RyanMqttMsgHandler_t) + topicLen + 1;
 	RyanMqttMsgHandler_t *msgHandler = (RyanMqttMsgHandler_t *)platformMemoryMalloc(mallocSize);
@@ -233,7 +233,7 @@ RyanMqttError_e RyanMqttMsgHandlerCreate(RyanMqttClient_t *client, const char *t
 	msgHandler->userData = userData;
 	msgHandler->topic = (char *)msgHandler + sizeof(RyanMqttMsgHandler_t);
 	RyanMqttMemcpy(msgHandler->topic, topic, topicLen);
-	msgHandler->topic[topicLen] = '\0';
+	msgHandler->topic[topicLen] = '\0'; // 兼容旧版本
 
 	*pMsgHandler = msgHandler;
 	return RyanMqttSuccessError;
@@ -309,8 +309,8 @@ __exit:
  * @param msgMatchCriteria
  * @param skipSamePacketId
  */
-void RyanMqttMsgHandlerFindAndDestroyByPackId(RyanMqttClient_t *client, RyanMqttMsgHandler_t *msgMatchCriteria,
-					      RyanMqttBool_e skipSamePacketId)
+void RyanMqttMsgHandlerFindAndDestroyByPacketId(RyanMqttClient_t *client, RyanMqttMsgHandler_t *msgMatchCriteria,
+						RyanMqttBool_e skipSamePacketId)
 {
 	RyanMqttList_t *curr, *next;
 	RyanMqttMsgHandler_t *msgHandler;

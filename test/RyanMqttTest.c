@@ -1,7 +1,5 @@
 #include "RyanMqttTest.h"
 
-static pthread_spinlock_t spin;
-
 /**
  * @brief mqtt事件回调处理函数
  * 事件的详细定义可以查看枚举定义
@@ -12,7 +10,6 @@ static pthread_spinlock_t spin;
  */
 void mqttEventBaseHandle(void *pclient, RyanMqttEventId_e event, const void *eventData)
 {
-	RyanMqttClient_t *client = (RyanMqttClient_t *)pclient;
 
 	switch (event)
 	{
@@ -70,7 +67,7 @@ void mqttEventBaseHandle(void *pclient, RyanMqttEventId_e event, const void *eve
 			      ackHandler->packetType, ackHandler->packetId, ackHandler->msgHandler->topic,
 			      ackHandler->msgHandler->qos);
 
-		printfArrStr(ackHandler->packet, ackHandler->packetLen, "重发数据: ");
+		// printfArrStr(ackHandler->packet, ackHandler->packetLen, "重发数据: ");
 		break;
 	}
 
@@ -90,6 +87,7 @@ void mqttEventBaseHandle(void *pclient, RyanMqttEventId_e event, const void *eve
 
 	case RyanMqttEventAckRepeatCountWarning: // 重发次数到达警戒值事件
 	{
+		RyanMqttClient_t *client = (RyanMqttClient_t *)pclient;
 		// 这里选择直接丢弃该消息
 		RyanMqttAckHandler_t *ackHandler = (RyanMqttAckHandler_t *)eventData;
 		RyanMqttLog_e("ack重发次数超过警戒值回调 packetType: %d, packetId: %d, topic: %s, qos: %d",
@@ -107,13 +105,22 @@ void mqttEventBaseHandle(void *pclient, RyanMqttEventId_e event, const void *eve
 	}
 
 	case RyanMqttEventDestroyBefore:
-		RyanMqttLog_e("销毁mqtt客户端前回调");
+		RyanMqttLog_w("销毁mqtt客户端前回调");
+
+		RyanMqttClient_t *client = (RyanMqttClient_t *)pclient;
 		struct RyanMqttTestEventUserData *eventUserData =
 			(struct RyanMqttTestEventUserData *)client->config.userData;
+		if (RyanMqttTestEventUserDataMagic != eventUserData->magic)
+		{
+			RyanMqttLog_e("eventUserData野指针");
+			break;
+		}
+
 		if (eventUserData->syncFlag)
 		{
 			sem_post(&eventUserData->sem);
 		}
+
 		break;
 
 	case RyanMqttEventUnsubscribedData: {
@@ -141,7 +148,7 @@ RyanMqttError_e RyanMqttTestInit(RyanMqttClient_t **client, RyanMqttBool_e syncF
 	RyanMqttSnprintf(aaa, sizeof(aaa), "%s%d", RyanMqttClientId, count);
 
 	struct RyanMqttTestEventUserData *eventUserData =
-		(struct RyanMqttTestEventUserData *)platformMemoryMalloc(sizeof(struct RyanMqttTestEventUserData));
+		(struct RyanMqttTestEventUserData *)malloc(sizeof(struct RyanMqttTestEventUserData));
 	if (NULL == eventUserData)
 	{
 		RyanMqttLog_e("内存不足");
@@ -149,6 +156,8 @@ RyanMqttError_e RyanMqttTestInit(RyanMqttClient_t **client, RyanMqttBool_e syncF
 	}
 
 	RyanMqttMemset(eventUserData, 0, sizeof(struct RyanMqttTestEventUserData));
+
+	eventUserData->magic = RyanMqttTestEventUserDataMagic;
 	eventUserData->syncFlag = syncFlag;
 	eventUserData->userData = userData;
 	if (eventUserData->syncFlag)
@@ -166,14 +175,14 @@ RyanMqttError_e RyanMqttTestInit(RyanMqttClient_t **client, RyanMqttBool_e syncF
 					     .taskPrio = 16,
 					     .taskStack = 4096,
 					     .mqttVersion = 4,
-					     .ackHandlerRepeatCountWarning = 6,
+					     .ackHandlerRepeatCountWarning = 600,
 					     .ackHandlerCountWarning = 60000,
 					     .autoReconnectFlag = autoReconnectFlag,
 					     .cleanSessionFlag = RyanMqttTrue,
-					     .reconnectTimeout = 3000,
-					     .recvTimeout = 2000,
-					     .sendTimeout = 1800,
-					     .ackTimeout = 10000,
+					     .reconnectTimeout = RyanMqttReconnectTimeout,
+					     .recvTimeout = RyanMqttRecvTimeout,
+					     .sendTimeout = RyanMqttSendTimeout,
+					     .ackTimeout = RyanMqttAckTimeout,
 					     .keepaliveTimeoutS = keepaliveTimeoutS,
 					     .mqttEventHandle =
 						     mqttEventCallback ? mqttEventCallback : mqttEventBaseHandle,
@@ -231,9 +240,85 @@ RyanMqttError_e RyanMqttTestInit(RyanMqttClient_t **client, RyanMqttBool_e syncF
 	return RyanMqttSuccessError;
 }
 
+typedef struct
+{
+	void *ptr;
+	timer_t timerid;
+} FreeTimerArg;
+
+static void RyanMqttTestFreeTimerCallback(union sigval arg)
+{
+	FreeTimerArg *fta = arg.sival_ptr;
+	free(fta->ptr);
+
+	RyanMqttTestEnableCritical();
+	destroyCount--;
+	RyanMqttTestExitCritical();
+
+	timer_t timerid = fta->timerid;
+	free(fta); // 释放参数结构
+
+	if (0 != timer_delete(timerid))
+	{
+		RyanMqttLog_e("timer_delete failed");
+	}
+}
+
+static void RyanMqttTestScheduleFreeAfterMs(void *ptr, uint32_t delayMs)
+{
+	RyanMqttTestEnableCritical();
+	destroyCount++;
+	RyanMqttTestExitCritical();
+
+	timer_t timerid;
+	struct sigevent sev = {0};
+	struct itimerspec its = {0};
+
+	FreeTimerArg *fta = malloc(sizeof(FreeTimerArg));
+	fta->ptr = ptr;
+
+	sev.sigev_notify = SIGEV_THREAD;
+	sev.sigev_value.sival_ptr = fta;                           // 传递给回调的参数
+	sev.sigev_notify_function = RyanMqttTestFreeTimerCallback; // 定时到期时调用的函数
+
+	if (0 != timer_create(CLOCK_MONOTONIC, &sev, &timerid))
+	{
+		RyanMqttLog_e("timer_create failed");
+		free(fta);
+		return;
+	}
+
+	fta->timerid = timerid;
+
+	// 毫秒转秒和纳秒
+	its.it_value.tv_sec = delayMs / 1000;
+	its.it_value.tv_nsec = (uint32_t)((delayMs % 1000) * 1000000);
+
+	if (0 != timer_settime(timerid, 0, &its, NULL))
+	{
+		RyanMqttLog_e("timer_settime failed");
+
+		if (0 != timer_delete(timerid))
+		{
+			RyanMqttLog_e("timer_delete failed");
+		}
+
+		free(fta);
+		return;
+	}
+}
+
 RyanMqttError_e RyanMqttTestDestroyClient(RyanMqttClient_t *client)
 {
 	struct RyanMqttTestEventUserData *eventUserData = (struct RyanMqttTestEventUserData *)client->config.userData;
+
+	if (RyanMqttTestEventUserDataMagic != eventUserData->magic)
+	{
+		RyanMqttLog_e("eventUserData野指针");
+	}
+
+	RyanMqttDisconnect(client, RyanMqttTrue);
+
 	// 启动mqtt客户端线程
 	RyanMqttDestroy(client);
 
@@ -241,18 +326,22 @@ RyanMqttError_e RyanMqttTestDestroyClient(RyanMqttClient_t *client)
 	{
 		sem_wait(&eventUserData->sem);
 		sem_destroy(&eventUserData->sem);
+
+		delay(20); // 等待mqtt线程回收资源
+		free(eventUserData);
+	}
+	else
+	{
+		RyanMqttTestScheduleFreeAfterMs(eventUserData, RyanMqttRecvTimeout + 20);
 	}
 
-	// RyanMqttEventDestroyBefore 后mqtt客户端还要执行清除操作
-	delay(10);
-	platformMemoryFree(eventUserData);
 	return RyanMqttSuccessError;
 }
 
 RyanMqttError_e checkAckList(RyanMqttClient_t *client)
 {
 	RyanMqttLog_w("等待检查ack链表，等待 recvTime: %d", client->config.recvTimeout);
-	delay(client->config.recvTimeout + 500);
+	delay(RyanMqttRecvTimeout + 50);
 
 	platformMutexLock(client->config.userData, &client->ackHandleLock);
 	int ackEmpty = RyanMqttListIsEmpty(&client->ackHandlerList);
@@ -284,92 +373,71 @@ RyanMqttError_e checkAckList(RyanMqttClient_t *client)
 	return RyanMqttSuccessError;
 }
 
-void printfArrStr(uint8_t *buf, uint32_t len, char *userData)
-{
-	RyanMqttLog_raw("%s", userData);
-	for (uint32_t i = 0; i < len; i++)
-	{
-		RyanMqttLog_raw("%x", buf[i]);
-	}
-
-	RyanMqttLog_raw("\r\n");
-}
-
-void RyanMqttTestEnableCritical(void)
-{
-	pthread_spin_lock(&spin);
-}
-
-void RyanMqttTestExitCritical(void)
-{
-	pthread_spin_unlock(&spin);
-}
-
+// 注意测试代码只有特定emqx服务器才可以通过，用户的emqx服务器大概率通过不了，
+// 因为有些依赖emqx的配置，比如消息重试间隔，最大飞行窗口，最大消息队列等
 // todo 增加session测试
 // !当测试程序出错时，并不会回收内存。交由父进程进行回收
 int main(void)
 {
+	RyanMqttTestUtileInit();
+
 	RyanMqttError_e result = RyanMqttSuccessError;
-	vallocInit();
 
-	pthread_spin_init(&spin, PTHREAD_PROCESS_PRIVATE);
+	uint32_t testRunCount = 0;
+	uint32_t funcStartMs;
+#define runTestWithLogAndTimer(fun)                                                                                    \
+	do                                                                                                             \
+	{                                                                                                              \
+		testRunCount++;                                                                                        \
+		RyanMqttLog_raw("┌── [TEST %d] 开始执行: " #fun "()\r\n", testRunCount);                               \
+		funcStartMs = platformUptimeMs();                                                                      \
+		result = fun();                                                                                        \
+		RyanMqttLog_raw("└── [TEST %d] 结束执行: 返回值 = %d %s | 耗时: %d ms\x1b[0m\r\n\r\n", testRunCount,   \
+				result, (result == RyanMqttSuccessError) ? "✅" : "❌",                                \
+				platformUptimeMs() - funcStartMs);                                                     \
+		RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, result, RyanMqttLog_e, { goto __exit; });    \
+	} while (0)
 
-	// 多线程测试必须设置这个，否则会导致 heap-use-after-free, 原因如下
-	// 虽然也有办法解决，不过RyanMqtt目标为嵌入式场景，不想引入需要更多资源的逻辑，嵌入式场景目前想不到有这么频繁而且还是本机emqx的场景。
+	uint32_t totalElapsedStartMs = platformUptimeMs();
+	runTestWithLogAndTimer(RyanMqttPublicApiParamCheckTest);
+	runTestWithLogAndTimer(RyanMqttMemoryFaultToleranceTest);
 
-	// 用户线程send -> emqx回复报文 -> mqtt线程recv。
-	// recv线程收到数据后，会释放用户线程send的sendbuf缓冲区。
-	// 但是在本机部署的emqx并且多核心同时运行，发送的数据量非常大的情况下会出现mqtt线程recv已经收到数据，但是用户线程send函数还没有返回。
-	cpu_set_t cpuset;
-	CPU_ZERO(&cpuset);
-	CPU_SET(0, &cpuset);
-	pthread_setaffinity_np(pthread_self(), sizeof(cpu_set_t), &cpuset);
-	sched_setaffinity(0, sizeof(cpu_set_t), &cpuset);
+	runTestWithLogAndTimer(RyanMqttSubTest);
+	runTestWithLogAndTimer(RyanMqttPubTest);
 
-	result = RyanMqttPublicApiParamCheckTest();
-	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttFailedError, RyanMqttLog_e, { goto __exit; });
+	runTestWithLogAndTimer(RyanMqttDestroyTest);
 
-	result = RyanMqttSubTest();
-	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttFailedError, RyanMqttLog_e, { goto __exit; });
+	runTestWithLogAndTimer(RyanMqttNetworkFaultToleranceMemoryTest);
+	runTestWithLogAndTimer(RyanMqttNetworkFaultQosResilienceTest);
 
-	result = RyanMqttPubTest();
-	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttFailedError, RyanMqttLog_e, { goto __exit; });
+	runTestWithLogAndTimer(RyanMqttMultiThreadMultiClientTest);
+	runTestWithLogAndTimer(RyanMqttMultiThreadSafetyTest);
 
-	result = RyanMqttDestroyTest();
-	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttFailedError, RyanMqttLog_e, { goto __exit; });
+	runTestWithLogAndTimer(RyanMqttReconnectTest);
+	runTestWithLogAndTimer(RyanMqttKeepAliveTest);
 
-	result = RyanMqttMultiThreadMultiClientTest();
-	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttFailedError, RyanMqttLog_e, { goto __exit; });
-
-	result = RyanMqttMultiThreadSafetyTest();
-	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttFailedError, RyanMqttLog_e, { goto __exit; });
-
-	result = RyanMqttReconnectTest();
-	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttFailedError, RyanMqttLog_e, { goto __exit; });
-
-	result = RyanMqttKeepAliveTest();
-	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttFailedError, RyanMqttLog_e, { goto __exit; });
-
-	// result = RyanMqttWildcardTest();
-	// RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttFailedError, RyanMqttLog_e, { goto __exit;
-	// });
+	// 暂时不开放出来
+	// runTestWithLogAndTimer(RyanMqttWildcardTest);
 
 __exit:
-	pthread_spin_destroy(&spin);
+
+	RyanMqttLog_raw("测试总耗时: %.3f S\r\n", (platformUptimeMs() - totalElapsedStartMs) / 1000.0);
 
 	if (RyanMqttSuccessError == result)
 	{
-		RyanMqttLog_i("测试成功---------------------------");
+		RyanMqttLog_raw("测试成功---------------------------\r\n");
 	}
 	else
 	{
-		RyanMqttLog_e("测试失败---------------------------");
+		RyanMqttLog_raw("测试失败---------------------------\r\n");
 	}
 
-	for (uint32_t i = 0; i < 5; i++)
+	for (uint32_t i = 0; i < 3; i++)
 	{
 		displayMem();
-		delay(2 * 1000);
+		delay(300);
 	}
+
+	RyanMqttTestUtileDeInit();
 	return 0;
 }

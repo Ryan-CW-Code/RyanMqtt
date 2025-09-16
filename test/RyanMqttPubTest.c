@@ -4,6 +4,8 @@ static int32_t pubTestPublishedEventCount = 0;
 static int32_t pubTestDataEventCount = 0;
 static char *pubStr = NULL;
 static int32_t pubStrLen = 0;
+static char *pubStr2 = "a";
+static int32_t pubStr2Len = 1;
 static RyanMqttQos_e exportQos = RyanMqttSubFail;
 
 static int32_t pubTestDataEventCountNotQos0 = 0;
@@ -41,7 +43,10 @@ static void RyanMqttPublishEventHandle(void *pclient, RyanMqttEventId_e event, c
 			return;
 		}
 
-		if ((msgData->payloadLen == (uint32_t)pubStrLen) && (0 == memcmp(msgData->payload, pubStr, pubStrLen)))
+		if (((msgData->payloadLen == (uint32_t)pubStrLen) &&
+		     0 == memcmp(msgData->payload, pubStr, pubStrLen)) ||
+		    ((msgData->payloadLen == (uint32_t)pubStr2Len) &&
+		     0 == memcmp(msgData->payload, pubStr2, pubStr2Len)))
 		{
 			pubTestDataEventCount++;
 
@@ -78,7 +83,6 @@ static RyanMqttError_e RyanMqttPublishTest(RyanMqttQos_e qos, int32_t count, uin
 #define RyanMqttPubTestSubTopic "testlinux/+/pub"
 	RyanMqttError_e result = RyanMqttSuccessError;
 	RyanMqttClient_t *client;
-	time_t timeStampNow = 0;
 
 	exportQos = qos;
 	result = RyanMqttTestInit(&client, RyanMqttTrue, RyanMqttTrue, 120, RyanMqttPublishEventHandle, NULL);
@@ -112,20 +116,14 @@ static RyanMqttError_e RyanMqttPublishTest(RyanMqttQos_e qos, int32_t count, uin
 
 	// 生成随机的数据包大小
 	{
-		// NOLINTNEXTLINE(cert-err33-c)
-		time(&timeStampNow);
-
-		pubStr = (char *)platformMemoryMalloc(2048);
+		pubStr = (char *)malloc(2048);
 		RyanMqttCheck(NULL != pubStr, RyanMqttNotEnoughMemError, RyanMqttLog_e);
 		RyanMqttMemset(pubStr, 0, 2048);
 
-		// NOLINTNEXTLINE(cert-msc32-c,cert-msc51-cpp)
-		srand(timeStampNow);
-		// NOLINTNEXTLINE(concurrency-mt-unsafe,cert-msc30-c,cert-msc50-cpp)
-		for (uint32_t i = 0; i < (uint32_t)(rand() % 250 + 1 + 100); i++)
+		for (uint32_t i = 0; i < RyanRand(100, 220); i++)
 		{
-			// NOLINTNEXTLINE(concurrency-mt-unsafe,cert-msc30-c,cert-msc50-cpp)
-			snprintf(pubStr + 4 * i, 2048 - 4 * i, "%04d", rand());
+			snprintf(pubStr + 4 * i, 2048 - 4 * i, "%c%c%c%c", (char)RyanRand(32, 126),
+				 (char)RyanRand(32, 126), (char)RyanRand(32, 126), (char)RyanRand(32, 126));
 		}
 		pubStrLen = (int32_t)RyanMqttStrlen(pubStr);
 	}
@@ -136,10 +134,10 @@ static RyanMqttError_e RyanMqttPublishTest(RyanMqttQos_e qos, int32_t count, uin
 	for (int32_t i = 0; i < count; i++)
 	{
 		char *pubTopic = RyanMqttPubTestPubTopic;
-		result = RyanMqttPublishAndUserData(client, pubTopic, RyanMqttStrlen(pubTopic), pubStr, pubStrLen, qos,
-						    RyanMqttFalse,
-						    // NOLINTNEXTLINE(performance-no-int-to-ptr)
-						    (void *)qos);
+		uint32_t randNumber = RyanRand(1, 10);
+		result = RyanMqttPublishWithUserData(
+			client, pubTopic, RyanMqttStrlen(pubTopic), (0 == i % randNumber) ? pubStr2 : pubStr,
+			(0 == i % randNumber) ? pubStr2Len : pubStrLen, qos, RyanMqttFalse, (void *)(uintptr_t)qos);
 		RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttFailedError, RyanMqttLog_e,
 					  { goto __exit; });
 
@@ -183,7 +181,7 @@ static RyanMqttError_e RyanMqttPublishTest(RyanMqttQos_e qos, int32_t count, uin
 	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttFailedError, RyanMqttLog_e, { goto __exit; });
 
 __exit:
-	platformMemoryFree(pubStr);
+	free(pubStr);
 	pubStr = NULL;
 	RyanMqttLog_i("mqtt 发布测试，销毁mqtt客户端");
 	RyanMqttTestDestroyClient(client);
@@ -205,7 +203,6 @@ static RyanMqttError_e RyanMqttPublishHybridTest(int32_t count, uint32_t delayms
 
 	RyanMqttError_e result = RyanMqttSuccessError;
 	RyanMqttClient_t *client;
-	time_t timeStampNow = 0;
 	int32_t sendNeedAckCount = 0;
 
 	result = RyanMqttTestInit(&client, RyanMqttTrue, RyanMqttTrue, 120, RyanMqttPublishEventHandle, NULL);
@@ -240,20 +237,14 @@ static RyanMqttError_e RyanMqttPublishHybridTest(int32_t count, uint32_t delayms
 
 	// 生成随机的数据包大小
 	{
-		// NOLINTNEXTLINE(cert-err33-c)
-		time(&timeStampNow);
-
-		pubStr = (char *)platformMemoryMalloc(2048);
+		pubStr = (char *)malloc(2048);
 		RyanMqttCheck(NULL != pubStr, RyanMqttNotEnoughMemError, RyanMqttLog_e);
 		RyanMqttMemset(pubStr, 0, 2048);
 
-		// NOLINTNEXTLINE(cert-msc32-c,cert-msc51-cpp)
-		srand(timeStampNow);
-		// NOLINTNEXTLINE(concurrency-mt-unsafe,cert-msc30-c,cert-msc50-cpp)
-		for (uint32_t i = 0; i < (uint32_t)(rand() % 250 + 1 + 100); i++)
+		for (uint32_t i = 0; i < RyanRand(100, 220); i++)
 		{
-			// NOLINTNEXTLINE(concurrency-mt-unsafe,cert-msc30-c,cert-msc50-cpp)
-			snprintf(pubStr + 4 * i, 2048 - 4 * i, "%04d", rand());
+			snprintf(pubStr + 4 * i, 2048 - 4 * i, "%c%c%c%c", (char)RyanRand(32, 126),
+				 (char)RyanRand(32, 126), (char)RyanRand(32, 126), (char)RyanRand(32, 126));
 		}
 		pubStrLen = (int32_t)RyanMqttStrlen(pubStr);
 	}
@@ -264,8 +255,10 @@ static RyanMqttError_e RyanMqttPublishHybridTest(int32_t count, uint32_t delayms
 	for (int32_t i = 0; i < count; i++)
 	{
 		char *pubTopic = RyanMqttPubHybridTestPubTopic;
-		result = RyanMqttPublishAndUserData(
-			client, pubTopic, RyanMqttStrlen(pubTopic), pubStr, pubStrLen, i % 3, RyanMqttFalse,
+		uint32_t randNumber = RyanRand(1, 10);
+		result = RyanMqttPublishWithUserData(
+			client, pubTopic, RyanMqttStrlen(pubTopic), (0 == i % randNumber) ? pubStr2 : pubStr,
+			(0 == i % randNumber) ? pubStr2Len : pubStrLen, i % 3, RyanMqttFalse,
 			// NOLINTNEXTLINE(clang-diagnostic-int-to-void-pointer-cast,performance-no-int-to-ptr)
 			(void *)(uintptr_t)(i % 3));
 		RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttFailedError, RyanMqttLog_e,
@@ -310,7 +303,7 @@ static RyanMqttError_e RyanMqttPublishHybridTest(int32_t count, uint32_t delayms
 	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttFailedError, RyanMqttLog_e, { goto __exit; });
 
 __exit:
-	platformMemoryFree(pubStr);
+	free(pubStr);
 	pubStr = NULL;
 	RyanMqttLog_i("mqtt 发布测试，销毁mqtt客户端");
 	RyanMqttTestDestroyClient(client);
@@ -334,7 +327,7 @@ RyanMqttError_e RyanMqttPubTest(void)
 	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttFailedError, RyanMqttLog_e, { goto __exit; });
 	checkMemory;
 
-	result = RyanMqttPublishHybridTest(1000, 5);
+	result = RyanMqttPublishHybridTest(1000, 1);
 	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttFailedError, RyanMqttLog_e, { goto __exit; });
 	checkMemory;
 
