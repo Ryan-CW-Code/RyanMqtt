@@ -114,11 +114,11 @@ static RyanMqttError_e RyanMqttNetworkFaultQosResiliencePublishTest(int32_t coun
 		delay(1);
 	}
 
-	exportQos = RyanMqttSubFail;
+	exportQos = qos;
 
 	// 生成随机的数据包大小
 	{
-		pubStr = (char *)platformMemoryMalloc(2048);
+		pubStr = (char *)malloc(2048);
 		RyanMqttCheck(NULL != pubStr, RyanMqttNotEnoughMemError, RyanMqttLog_e);
 		RyanMqttMemset(pubStr, 0, 2048);
 
@@ -191,8 +191,7 @@ static RyanMqttError_e RyanMqttNetworkFaultQosResiliencePublishTest(int32_t coun
 		{
 			if (pubTestPublishedEventCount >= sendNeedAckCount
 			    // 不要求接收数据也全部到达，跟emqx服务器关系太大了
-			    //   &&  pubTestDataEventCount >= sendNeedAckCount
-			)
+			    && pubTestDataEventCount >= sendNeedAckCount)
 			{
 				break;
 			}
@@ -234,7 +233,7 @@ static RyanMqttError_e RyanMqttNetworkFaultQosResiliencePublishTest(int32_t coun
 
 __exit:
 	disableRandomNetworkFault();
-	platformMemoryFree(pubStr);
+	free(pubStr);
 	pubStr = NULL;
 	RyanMqttLog_i("mqtt 测试，销毁mqtt客户端");
 	RyanMqttTestDestroyClient(client);
@@ -250,15 +249,15 @@ RyanMqttError_e RyanMqttNetworkFaultQosResilienceTest(void)
 {
 	RyanMqttError_e result = RyanMqttSuccessError;
 
-	result = RyanMqttNetworkFaultQosResiliencePublishTest(500, 1, RyanMqttQos0);
+	result = RyanMqttNetworkFaultQosResiliencePublishTest(700, 0, RyanMqttQos0);
 	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, result, RyanMqttLog_e, { goto __exit; });
 	checkMemory;
 
-	result = RyanMqttNetworkFaultQosResiliencePublishTest(500, 2, RyanMqttQos1);
+	result = RyanMqttNetworkFaultQosResiliencePublishTest(1300, 2, RyanMqttQos1);
 	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, result, RyanMqttLog_e, { goto __exit; });
 	checkMemory;
 
-	result = RyanMqttNetworkFaultQosResiliencePublishTest(500, 4, RyanMqttQos2);
+	result = RyanMqttNetworkFaultQosResiliencePublishTest(1700, 4, RyanMqttQos2);
 	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, result, RyanMqttLog_e, { goto __exit; });
 	checkMemory;
 

@@ -116,7 +116,7 @@ static RyanMqttError_e RyanMqttPublishTest(RyanMqttQos_e qos, int32_t count, uin
 
 	// 生成随机的数据包大小
 	{
-		pubStr = (char *)platformMemoryMalloc(2048);
+		pubStr = (char *)malloc(2048);
 		RyanMqttCheck(NULL != pubStr, RyanMqttNotEnoughMemError, RyanMqttLog_e);
 		RyanMqttMemset(pubStr, 0, 2048);
 
@@ -183,7 +183,7 @@ static RyanMqttError_e RyanMqttPublishTest(RyanMqttQos_e qos, int32_t count, uin
 	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttFailedError, RyanMqttLog_e, { goto __exit; });
 
 __exit:
-	platformMemoryFree(pubStr);
+	free(pubStr);
 	pubStr = NULL;
 	RyanMqttLog_i("mqtt 发布测试，销毁mqtt客户端");
 	RyanMqttTestDestroyClient(client);
@@ -239,7 +239,7 @@ static RyanMqttError_e RyanMqttPublishHybridTest(int32_t count, uint32_t delayms
 
 	// 生成随机的数据包大小
 	{
-		pubStr = (char *)platformMemoryMalloc(2048);
+		pubStr = (char *)malloc(2048);
 		RyanMqttCheck(NULL != pubStr, RyanMqttNotEnoughMemError, RyanMqttLog_e);
 		RyanMqttMemset(pubStr, 0, 2048);
 
@@ -305,7 +305,7 @@ static RyanMqttError_e RyanMqttPublishHybridTest(int32_t count, uint32_t delayms
 	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttFailedError, RyanMqttLog_e, { goto __exit; });
 
 __exit:
-	platformMemoryFree(pubStr);
+	free(pubStr);
 	pubStr = NULL;
 	RyanMqttLog_i("mqtt 发布测试，销毁mqtt客户端");
 	RyanMqttTestDestroyClient(client);

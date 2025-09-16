@@ -23,8 +23,10 @@ static RyanMqttError_e RyanMqttNetworkFaultPublishHybridTest(int32_t count, uint
 
 	// 等待订阅主题成功
 	RyanMqttSubscribe(client, RyanMqttPubHybridTestSubTopic, RyanMqttQos2);
+	RyanMqttSubscribe(client, RyanMqttPubHybridTestPubTopic, RyanMqttQos2);
 	delay(2);
 
+	enableRandomNetworkFault();
 	for (int32_t i = 0; i < count; i++)
 	{
 		if (RyanMqttConnectState != RyanMqttGetState(client))
@@ -46,7 +48,7 @@ static RyanMqttError_e RyanMqttNetworkFaultPublishHybridTest(int32_t count, uint
 	RyanMqttUnSubscribe(client, RyanMqttPubHybridTestSubTopic);
 
 __exit:
-
+	disableRandomNetworkFault();
 	RyanMqttLog_i("mqtt 发布测试，销毁mqtt客户端");
 	RyanMqttTestDestroyClient(client);
 	return result;
@@ -64,8 +66,7 @@ static RyanMqttError_e RyanMqttNetworkFaultSubscribeHybridTest(int32_t count, in
 
 	// 生成需要订阅的主题数据
 	{
-		subscribeManyData =
-			(RyanMqttSubscribeData_t *)platformMemoryMalloc(sizeof(RyanMqttSubscribeData_t) * count);
+		subscribeManyData = (RyanMqttSubscribeData_t *)malloc(sizeof(RyanMqttSubscribeData_t) * count);
 		if (NULL == subscribeManyData)
 		{
 			RyanMqttLog_e("内存不足");
@@ -76,7 +77,7 @@ static RyanMqttError_e RyanMqttNetworkFaultSubscribeHybridTest(int32_t count, in
 		for (int32_t i = 0; i < count; i++)
 		{
 			subscribeManyData[i].qos = i % 3;
-			char *topic = (char *)platformMemoryMalloc(64);
+			char *topic = (char *)malloc(64);
 			if (NULL == topic)
 			{
 				RyanMqttLog_e("内存不足");
@@ -90,7 +91,7 @@ static RyanMqttError_e RyanMqttNetworkFaultSubscribeHybridTest(int32_t count, in
 	}
 
 	// 生成取消所有订阅消息
-	unSubscribeManyData = platformMemoryMalloc(sizeof(RyanMqttUnSubscribeData_t) * count);
+	unSubscribeManyData = malloc(sizeof(RyanMqttUnSubscribeData_t) * count);
 	if (NULL == unSubscribeManyData)
 	{
 		RyanMqttLog_e("内存不足");
@@ -99,7 +100,7 @@ static RyanMqttError_e RyanMqttNetworkFaultSubscribeHybridTest(int32_t count, in
 	}
 	for (int32_t i = 0; i < count; i++)
 	{
-		char *topic = (char *)platformMemoryMalloc(64);
+		char *topic = (char *)malloc(64);
 		if (NULL == topic)
 		{
 			RyanMqttLog_e("内存不足");
@@ -111,6 +112,7 @@ static RyanMqttError_e RyanMqttNetworkFaultSubscribeHybridTest(int32_t count, in
 		unSubscribeManyData[i].topicLen = RyanMqttStrlen(topic);
 	}
 
+	enableRandomNetworkFault();
 	for (int32_t testCount2 = 0; testCount2 < testCount; testCount2++)
 	{
 		// 订阅全部主题
@@ -134,28 +136,29 @@ static RyanMqttError_e RyanMqttNetworkFaultSubscribeHybridTest(int32_t count, in
 	}
 
 __exit:
+	disableRandomNetworkFault();
 	// 删除
 	for (int32_t i = 0; i < count; i++)
 	{
 		if (NULL != subscribeManyData && NULL != subscribeManyData[i].topic)
 		{
-			platformMemoryFree(subscribeManyData[i].topic);
+			free(subscribeManyData[i].topic);
 		}
 
 		if (NULL != unSubscribeManyData && NULL != unSubscribeManyData[i].topic)
 		{
-			platformMemoryFree(unSubscribeManyData[i].topic);
+			free(unSubscribeManyData[i].topic);
 		}
 	}
 
 	if (NULL != subscribeManyData)
 	{
-		platformMemoryFree(subscribeManyData);
+		free(subscribeManyData);
 	}
 
 	if (NULL != unSubscribeManyData)
 	{
-		platformMemoryFree(unSubscribeManyData);
+		free(unSubscribeManyData);
 	}
 
 	RyanMqttLog_i("mqtt 订阅测试，销毁mqtt客户端");
@@ -171,7 +174,6 @@ __exit:
 RyanMqttError_e RyanMqttNetworkFaultToleranceMemoryTest(void)
 {
 	RyanMqttError_e result = RyanMqttSuccessError;
-	enableRandomNetworkFault();
 
 	result = RyanMqttNetworkFaultPublishHybridTest(2000, 1);
 	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttFailedError, RyanMqttLog_e, { goto __exit; });
@@ -181,10 +183,8 @@ RyanMqttError_e RyanMqttNetworkFaultToleranceMemoryTest(void)
 	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttFailedError, RyanMqttLog_e, { goto __exit; });
 	checkMemory;
 
-	disableRandomNetworkFault();
 	return RyanMqttSuccessError;
 
 __exit:
-	disableRandomNetworkFault();
 	return RyanMqttFailedError;
 }

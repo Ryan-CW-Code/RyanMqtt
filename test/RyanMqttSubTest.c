@@ -177,7 +177,7 @@ static RyanMqttError_e RyanMqttSubscribeHybridTest(int32_t count, int32_t testCo
 	// 生成需要订阅的主题数据
 	{
 		subscribeManyData =
-			(RyanMqttSubscribeData_t *)platformMemoryMalloc(sizeof(RyanMqttSubscribeData_t) * count);
+			(RyanMqttSubscribeData_t *)malloc(sizeof(RyanMqttSubscribeData_t) * count);
 		if (NULL == subscribeManyData)
 		{
 			RyanMqttLog_e("内存不足");
@@ -188,7 +188,7 @@ static RyanMqttError_e RyanMqttSubscribeHybridTest(int32_t count, int32_t testCo
 		for (int32_t i = 0; i < count; i++)
 		{
 			subscribeManyData[i].qos = i % 3;
-			char *topic = (char *)platformMemoryMalloc(32);
+			char *topic = (char *)malloc(32);
 			if (NULL == topic)
 			{
 				RyanMqttLog_e("内存不足");
@@ -202,7 +202,7 @@ static RyanMqttError_e RyanMqttSubscribeHybridTest(int32_t count, int32_t testCo
 	}
 
 	// 生成取消所有订阅消息
-	unSubscribeManyData = platformMemoryMalloc(sizeof(RyanMqttUnSubscribeData_t) * count);
+	unSubscribeManyData = malloc(sizeof(RyanMqttUnSubscribeData_t) * count);
 	if (NULL == unSubscribeManyData)
 	{
 		RyanMqttLog_e("内存不足");
@@ -211,7 +211,7 @@ static RyanMqttError_e RyanMqttSubscribeHybridTest(int32_t count, int32_t testCo
 	}
 	for (int32_t i = 0; i < count; i++)
 	{
-		char *topic = (char *)platformMemoryMalloc(32);
+		char *topic = (char *)malloc(32);
 		if (NULL == topic)
 		{
 			RyanMqttLog_e("内存不足");
@@ -267,6 +267,12 @@ static RyanMqttError_e RyanMqttSubscribeHybridTest(int32_t count, int32_t testCo
 		RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttFailedError, RyanMqttLog_e,
 					  { goto __exit; });
 
+		// !emqx服务器有时候会误判新的订阅请求为重复订阅主题，导致订阅失败
+		// 重复取消订阅主题
+		result = RyanMqttUnSubscribeMany(client, count / 2, unSubscribeManyData);
+		RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttFailedError, RyanMqttLog_e,
+					  { goto __exit; });
+
 		for (int32_t i = 0; i < 600; i++)
 		{
 			delay(100);
@@ -285,14 +291,8 @@ static RyanMqttError_e RyanMqttSubscribeHybridTest(int32_t count, int32_t testCo
 			}
 		}
 
-		// !emqx服务器有时候会误判新的订阅请求为重复订阅主题，导致订阅失败
-		// // 重复取消订阅主题
-		// result = RyanMqttUnSubscribeMany(client, count / 2, unSubscribeManyData);
-		// RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttFailedError, RyanMqttLog_e,
-		// 			  { goto __exit; });
-
-		// // 有重复取消订阅主题，增加延时，防止emqx服务器误判新的订阅请求
-		// delay(300);
+		// 有重复取消订阅主题，增加延时，防止emqx服务器误判新的订阅请求
+		delay(100);
 	}
 
 	result = checkAckList(client);
@@ -305,23 +305,23 @@ __exit:
 	{
 		if (NULL != subscribeManyData && NULL != subscribeManyData[i].topic)
 		{
-			platformMemoryFree(subscribeManyData[i].topic);
+			free(subscribeManyData[i].topic);
 		}
 
 		if (NULL != unSubscribeManyData && NULL != unSubscribeManyData[i].topic)
 		{
-			platformMemoryFree(unSubscribeManyData[i].topic);
+			free(unSubscribeManyData[i].topic);
 		}
 	}
 
 	if (NULL != subscribeManyData)
 	{
-		platformMemoryFree(subscribeManyData);
+		free(subscribeManyData);
 	}
 
 	if (NULL != unSubscribeManyData)
 	{
-		platformMemoryFree(unSubscribeManyData);
+		free(unSubscribeManyData);
 	}
 
 	RyanMqttLog_i("mqtt 订阅测试，销毁mqtt客户端");

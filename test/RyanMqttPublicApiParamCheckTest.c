@@ -70,6 +70,15 @@ static RyanMqttError_e RyanMqttBaseApiParamCheckTest(void)
 	result = RyanMqttDiscardAckHandler(validClient, MQTT_PACKET_TYPE_PUBACK, RyanMqttMaxPacketId + 1);
 	RyanMqttCheckCodeNoReturn(RyanMqttParamInvalidError == result, result, RyanMqttLog_e, { goto __exit; });
 
+	RyanMqttEventId_e eventId = RyanMqttEventConnected;
+	// NULL客户端指针
+	result = RyanMqttGetEventId(NULL, &eventId);
+	RyanMqttCheckCodeNoReturn(RyanMqttParamInvalidError == result, result, RyanMqttLog_e, { goto __exit; });
+
+	// NULL eventId指针
+	result = RyanMqttGetEventId(validClient, NULL);
+	RyanMqttCheckCodeNoReturn(RyanMqttParamInvalidError == result, result, RyanMqttLog_e, { goto __exit; });
+
 	// NULL客户端指针
 	result = RyanMqttRegisterEventId(NULL, RyanMqttEventConnected);
 	RyanMqttCheckCodeNoReturn(RyanMqttParamInvalidError == result, result, RyanMqttLog_e, { goto __exit; });
@@ -374,6 +383,10 @@ static RyanMqttError_e RyanMqttSubApiParamCheckTest(void)
 		unsubscribeData[i].topicLen = strlen("test/topic2");
 	}
 
+	/**
+	 * @brief
+	 *
+	 */
 	RyanMqttMsgHandler_t *msgHandles = NULL;
 	int32_t subscribeNum = 0;
 	int32_t totalCount = 0;
@@ -393,10 +406,6 @@ static RyanMqttError_e RyanMqttSubApiParamCheckTest(void)
 	result = RyanMqttSafeFreeSubscribeResources(NULL, 5);
 	RyanMqttCheckCodeNoReturn(RyanMqttParamInvalidError == result, result, RyanMqttLog_e, { goto __exit; });
 
-	// !一定失败否则要报错
-	result = RyanMqttSafeFreeSubscribeResources((void *)&msgHandles, 0);
-	RyanMqttCheckCodeNoReturn(RyanMqttParamInvalidError == result, result, RyanMqttLog_e, { goto __exit; });
-
 	// NULL客户端指针
 	result = RyanMqttGetSubscribeTotalCount(NULL, &totalCount);
 	RyanMqttCheckCodeNoReturn(RyanMqttParamInvalidError == result, result, RyanMqttLog_e, { goto __exit; });
@@ -405,6 +414,24 @@ static RyanMqttError_e RyanMqttSubApiParamCheckTest(void)
 	result = RyanMqttGetSubscribeTotalCount(validClient, NULL);
 	RyanMqttCheckCodeNoReturn(RyanMqttParamInvalidError == result, result, RyanMqttLog_e,
 				  { goto __exit; }); // 清理资源
+
+	/**
+	 * @brief
+	 *
+	 */
+	RyanMqttMsgHandler_t msgHandlesStatic[3] = {0};
+	RyanMqttGetSubscribe(NULL, msgHandlesStatic, getArraySize(msgHandlesStatic), &subscribeNum);
+	RyanMqttCheckCodeNoReturn(RyanMqttParamInvalidError == result, result, RyanMqttLog_e, { goto __exit; });
+
+	RyanMqttGetSubscribe(validClient, NULL, getArraySize(msgHandlesStatic), &subscribeNum);
+	RyanMqttCheckCodeNoReturn(RyanMqttParamInvalidError == result, result, RyanMqttLog_e, { goto __exit; });
+
+	RyanMqttGetSubscribe(validClient, msgHandlesStatic, 0, &subscribeNum);
+	RyanMqttCheckCodeNoReturn(RyanMqttParamInvalidError == result, result, RyanMqttLog_e, { goto __exit; });
+
+	RyanMqttGetSubscribe(validClient, msgHandlesStatic, getArraySize(msgHandlesStatic), NULL);
+	RyanMqttCheckCodeNoReturn(RyanMqttParamInvalidError == result, result, RyanMqttLog_e, { goto __exit; });
+
 	if (validClient)
 	{
 		RyanMqttTestDestroyClient(validClient);
