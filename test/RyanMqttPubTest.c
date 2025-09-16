@@ -135,11 +135,9 @@ static RyanMqttError_e RyanMqttPublishTest(RyanMqttQos_e qos, int32_t count, uin
 	{
 		char *pubTopic = RyanMqttPubTestPubTopic;
 		uint32_t randNumber = RyanRand(1, 10);
-		result = RyanMqttPublishWithUserData(client, pubTopic, RyanMqttStrlen(pubTopic),
-						     (0 == i % randNumber) ? pubStr2 : pubStr,
-						     (0 == i % randNumber) ? pubStr2Len : pubStrLen, qos, RyanMqttFalse,
-						     // NOLINTNEXTLINE(performance-no-int-to-ptr)
-						     (void *)qos);
+		result = RyanMqttPublishWithUserData(
+			client, pubTopic, RyanMqttStrlen(pubTopic), (0 == i % randNumber) ? pubStr2 : pubStr,
+			(0 == i % randNumber) ? pubStr2Len : pubStrLen, qos, RyanMqttFalse, (void *)(uintptr_t)qos);
 		RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, RyanMqttFailedError, RyanMqttLog_e,
 					  { goto __exit; });
 

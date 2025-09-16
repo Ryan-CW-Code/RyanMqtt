@@ -31,7 +31,8 @@ static RyanMqttError_e RyanMqttNetworkFaultPublishHybridTest(int32_t count, uint
 	{
 		if (RyanMqttConnectState != RyanMqttGetState(client))
 		{
-			RyanMqttLog_e("mqtt 发布测试，销毁mqtt客户端aaaaaaaaaaaaa %d", i);
+			RyanMqttLog_e("mqtt 发布测试，销毁mqtt客户端 %d", i);
+			result = RyanMqttFailedError;
 			goto __exit;
 		}
 

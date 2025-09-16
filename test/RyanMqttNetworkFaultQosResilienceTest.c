@@ -139,6 +139,7 @@ static RyanMqttError_e RyanMqttNetworkFaultQosResiliencePublishTest(int32_t coun
 		if (RyanMqttConnectState != RyanMqttGetState(client))
 		{
 			RyanMqttLog_e("mqtt 发布测试，销毁mqtt客户端 %d", i);
+			result = RyanMqttFailedError;
 			goto __exit;
 		}
 
@@ -189,9 +190,7 @@ static RyanMqttError_e RyanMqttNetworkFaultQosResiliencePublishTest(int32_t coun
 		}
 		else if (RyanMqttQos1 == qos)
 		{
-			if (pubTestPublishedEventCount >= sendNeedAckCount
-			    // 不要求接收数据也全部到达，跟emqx服务器关系太大了
-			    && pubTestDataEventCount >= sendNeedAckCount)
+			if (pubTestPublishedEventCount >= sendNeedAckCount && pubTestDataEventCount >= sendNeedAckCount)
 			{
 				break;
 			}

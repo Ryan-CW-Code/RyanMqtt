@@ -281,7 +281,7 @@ static void RyanMqttTestScheduleFreeAfterMs(void *ptr, uint32_t delayMs)
 	sev.sigev_value.sival_ptr = fta;                           // 传递给回调的参数
 	sev.sigev_notify_function = RyanMqttTestFreeTimerCallback; // 定时到期时调用的函数
 
-	if (0 != timer_create(CLOCK_REALTIME, &sev, &timerid))
+	if (0 != timer_create(CLOCK_MONOTONIC, &sev, &timerid))
 	{
 		RyanMqttLog_e("timer_create failed");
 		free(fta);

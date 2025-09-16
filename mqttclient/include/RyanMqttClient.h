@@ -101,7 +101,7 @@ typedef struct
 	uint16_t sendTimeout;       // mqtt发送命令超时时间, 根据实际硬件选择。单位ms
 	uint16_t ackTimeout;        // mqtt ack 等待回复的超时时间, 典型值为5 - 60秒。单位ms
 	uint16_t keepaliveTimeoutS; // mqtt心跳时间间隔。单位S
-	uint16_t reconnectTimeout;  // mqtt重连间隔时间。单位S
+	uint16_t reconnectTimeout;  // mqtt重连间隔时间。单位ms
 
 	RyanMqttEventHandle mqttEventHandle; // mqtt事件回调函数
 	void *userData;                      // 用户自定义数据,用户需要保证指针指向内容的持久性
