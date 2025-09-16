@@ -1,5 +1,5 @@
 #define RyanMqttLogLevel (RyanMqttLogLevelAssert) // 日志打印等级
-// #define RyanMqttLogLevel (RyanMqttLogLevelError) // 日志打印等级
+// #define RyanMqttLogLevel (RyanMqttLogLevelError)  // 日志打印等级
 // #define RyanMqttLogLevel (RyanMqttLogLevelDebug) // 日志打印等级
 
 #include "RyanMqttClient.h"
@@ -753,8 +753,8 @@ RyanMqttError_e RyanMqttSafeFreeSubscribeResources(RyanMqttMsgHandler_t *msgHand
 {
 	RyanMqttError_e result = RyanMqttSuccessError;
 	RyanMqttCheck(NULL != msgHandles, RyanMqttParamInvalidError, RyanMqttLog_d);
-	// RyanMqttGetSubscribeSafe 返回地址的话 subscribeNum 一定大于0,这里就是要判断大于0才行
-	RyanMqttCheck(subscribeNum > 0, RyanMqttParamInvalidError, RyanMqttLog_d);
+	// RyanMqttGetSubscribeTotalCount 内部调用的时候可以会等于0
+	RyanMqttCheck(subscribeNum >= 0, RyanMqttParamInvalidError, RyanMqttLog_d);
 
 	for (int32_t i = 0; i < subscribeNum; i++)
 	{
@@ -1087,6 +1087,17 @@ RyanMqttError_e RyanMqttDiscardAckHandler(RyanMqttClient_t *client, uint8_t pack
 		RyanMqttAckHandlerDestroy(client, ackHandler);
 	}
 	return result;
+}
+
+RyanMqttError_e RyanMqttGetEventId(RyanMqttClient_t *client, RyanMqttEventId_e *eventId)
+{
+	RyanMqttCheck(NULL != client, RyanMqttParamInvalidError, RyanMqttLog_d);
+	RyanMqttCheck(NULL != eventId, RyanMqttParamInvalidError, RyanMqttLog_d);
+
+	platformCriticalEnter(client->config.userData, &client->criticalLock);
+	*eventId = client->eventFlag;
+	platformCriticalExit(client->config.userData, &client->criticalLock);
+	return RyanMqttSuccessError;
 }
 
 RyanMqttError_e RyanMqttRegisterEventId(RyanMqttClient_t *client, RyanMqttEventId_e eventId)

@@ -175,6 +175,8 @@ extern RyanMqttError_e RyanMqttSetLwt(RyanMqttClient_t *client, char *topicName,
 				      RyanMqttQos_e qos, RyanMqttBool_e retain);
 
 extern RyanMqttError_e RyanMqttDiscardAckHandler(RyanMqttClient_t *client, uint8_t packetType, uint16_t packetId);
+
+extern RyanMqttError_e RyanMqttGetEventId(RyanMqttClient_t *client, RyanMqttEventId_e *eventId);
 extern RyanMqttError_e RyanMqttRegisterEventId(RyanMqttClient_t *client, RyanMqttEventId_e eventId);
 extern RyanMqttError_e RyanMqttCancelEventId(RyanMqttClient_t *client, RyanMqttEventId_e eventId);
 
