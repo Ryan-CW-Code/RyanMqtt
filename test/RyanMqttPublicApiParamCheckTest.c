@@ -135,10 +135,6 @@ static RyanMqttError_e RyanMqttLwtApiParamCheckTest(void)
 	result = RyanMqttSetLwt(validClient, "test/lwt", "offline", 7, invalidQos(), RyanMqttTrue);
 	RyanMqttCheckCodeNoReturn(RyanMqttParamInvalidError == result, result, RyanMqttLog_e, { goto __exit; });
 
-	// 无效retain
-	// NOLINTNEXTLINE(clang-analyzer-optin.core.EnumCastOutOfRange)
-	result = RyanMqttSetLwt(validClient, "test/lwt", "offline", 7, RyanMqttQos1, 200);
-	RyanMqttCheckCodeNoReturn(RyanMqttParamInvalidError == result, result, RyanMqttLog_e, { goto __exit; });
 	// 清理资源
 	if (validClient)
 	{

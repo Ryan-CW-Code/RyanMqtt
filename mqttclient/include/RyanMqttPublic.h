@@ -7,6 +7,7 @@ extern "C" {
 
 #include <stdio.h>
 #include <stdint.h>
+#include <stdbool.h>
 
 // 允许的mqtt packetId最大值，协议标准为1-65534的非零16位数
 #define RyanMqttMaxPacketId   (UINT16_MAX - 1U)
@@ -74,11 +75,9 @@ typedef enum
 	RyanMqttBit0 = 0x00000001,
 } RyanMqttBit_e;
 
-typedef enum
-{
-	RyanMqttFalse = 0,
-	RyanMqttTrue = 1
-} RyanMqttBool_e;
+#define RyanMqttFalse (false)
+#define RyanMqttTrue  (true)
+typedef bool RyanMqttBool_e;
 
 typedef enum
 {
@@ -233,7 +232,7 @@ typedef enum
 	RyanMqttFailedError,                // 失败
 	RyanMqttInvalidPacketError,         // 收到非法的报文
 	RyanMqttSuccessError = 0x0000,      // 成功
-	RyanMqttErrorForceInt32 = INT32_MAX // 强制编译器使用int32_t类型
+					    // RyanMqttErrorForceInt32 = INT32_MAX // 强制编译器使用int32_t类型
 } RyanMqttError_e;
 
 typedef enum
@@ -247,17 +246,17 @@ typedef enum
 	RyanMqttConnectRefusedNotAuthorized = 5,   // 连接已拒绝，未授权
 
 	// mqtt非标准定义
-	RyanMqttConnectClientInvalid = 200,         // 客户端处于无效状态
-	RyanMqttConnectNetWorkFail,                 // 网络错误
-	RyanMqttConnectDisconnected,                // mqtt客户端断开连接
-	RyanMqttKeepaliveTimeout,                   // 心跳超时断开连接
-	RyanMqttConnectUserDisconnected,            // 用户手动断开连接
-	RyanMqttConnectTimeout,                     // 超时断开
-	RyanMqttConnectFirstPackNotConnack,         // 发送connect后接受到的第一个报文不是connack
-	RyanMqttConnectProtocolError,               // 多次收到connack
-	RyanMqttConnectInvalidPacketError,          // 收到不符合MQTT3.1.1协议的报文，并且要求关闭客户端的
-	RyanMqttConnectFailedError,                 // 杂项原因，比如内存分配失败，序列化失败等
-	RyanMqttConnectStatusForceInt32 = INT32_MAX // 强制编译器使用int32_t类型
+	RyanMqttConnectClientInvalid = 200, // 客户端处于无效状态
+	RyanMqttConnectNetWorkFail,         // 网络错误
+	RyanMqttConnectDisconnected,        // mqtt客户端断开连接
+	RyanMqttKeepaliveTimeout,           // 心跳超时断开连接
+	RyanMqttConnectUserDisconnected,    // 用户手动断开连接
+	RyanMqttConnectTimeout,             // 超时断开
+	RyanMqttConnectFirstPackNotConnack, // 发送connect后接受到的第一个报文不是connack
+	RyanMqttConnectProtocolError,       // 多次收到connack
+	RyanMqttConnectInvalidPacketError,  // 收到不符合MQTT3.1.1协议的报文，并且要求关闭客户端的
+	RyanMqttConnectFailedError,         // 杂项原因，比如内存分配失败，序列化失败等
+					    // RyanMqttConnectStatusForceInt32 = INT32_MAX // 强制编译器使用int32_t类型
 } RyanMqttConnectStatus_e;
 
 extern const char *RyanMqttStrError(int32_t state);
