@@ -470,42 +470,7 @@ void RyanMqttThread(void *argument)
 		{
 			RyanMqttEventMachine(client, RyanMqttEventDestroyBefore, (void *)NULL);
 
-			// 关闭网络组件
-			platformNetworkClose(client->config.userData, &client->network);
-
-			// 销毁网络组件
-			platformNetworkDestroy(client->config.userData, &client->network);
-
-			// 清除config信息
-			RyanMqttPurgeConfig(&client->config);
-
-			// 清除遗嘱相关配置
-			if (NULL != client->lwtOptions)
-			{
-				if (NULL != client->lwtOptions->payload)
-				{
-					platformMemoryFree(client->lwtOptions->payload);
-				}
-
-				if (NULL != client->lwtOptions->topic)
-				{
-					platformMemoryFree(client->lwtOptions->topic);
-				}
-
-				platformMemoryFree(client->lwtOptions);
-			}
-
-			// 清除session  ack链表和msg链表
-			RyanMqttPurgeSession(client);
-
-			// 清除互斥锁
-			platformMutexDestroy(client->config.userData, &client->sendLock);
-			platformMutexDestroy(client->config.userData, &client->msgHandleLock);
-			platformMutexDestroy(client->config.userData, &client->ackHandleLock);
-			platformMutexDestroy(client->config.userData, &client->userSessionLock);
-
-			// 清除临界区
-			platformCriticalDestroy(client->config.userData, &client->criticalLock);
+			RyanMqttPurgeClient(client);
 
 			// 清除掉线程动态资源
 			platformThread_t mqttThread;
@@ -541,7 +506,7 @@ void RyanMqttThread(void *argument)
 
 		case RyanMqttConnectState: // 连接状态
 			RyanMqttLog_d("连接状态");
-            // 不对返回值进行处理
+			// 不对返回值进行处理
 			RyanMqttProcessPacketHandler(client);
 			RyanMqttAckListScan(client, RyanMqttTrue);
 			RyanMqttKeepalive(client);

@@ -75,6 +75,7 @@ typedef enum
 	RyanMqttBit0 = 0x00000001,
 } RyanMqttBit_e;
 
+// 仅作兼容使用
 #define RyanMqttFalse (false)
 #define RyanMqttTrue  (true)
 typedef bool RyanMqttBool_e;

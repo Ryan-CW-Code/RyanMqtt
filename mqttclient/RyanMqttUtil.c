@@ -268,6 +268,11 @@ void RyanMqttPurgeSession(RyanMqttClient_t *client)
 	platformMutexUnLock(client->config.userData, &client->userSessionLock);
 }
 
+/**
+ * @brief 销毁mqtt客户端Config信息
+ *
+ * @param clientConfig
+ */
 void RyanMqttPurgeConfig(RyanMqttClientConfig_t *clientConfig)
 {
 	RyanMqttAssert(NULL != clientConfig);
@@ -276,26 +281,51 @@ void RyanMqttPurgeConfig(RyanMqttClientConfig_t *clientConfig)
 	{
 		platformMemoryFree(clientConfig->clientId);
 	}
+}
 
-	if (clientConfig->userName)
+/**
+ * @brief 销毁mqtt客户端资源
+ *
+ * @param client
+ */
+void RyanMqttPurgeClient(RyanMqttClient_t *client)
+{
+	RyanMqttAssert(NULL != client);
+
+	// 关闭销毁网络组件
+	platformNetworkClose(client->config.userData, &client->network);
+	platformNetworkDestroy(client->config.userData, &client->network);
+
+	// 清除config信息
+	RyanMqttPurgeConfig(&client->config);
+
+	// 清除遗嘱相关配置
+	if (NULL != client->lwtOptions)
 	{
-		platformMemoryFree(clientConfig->userName);
+		if (NULL != client->lwtOptions->payload)
+		{
+			platformMemoryFree(client->lwtOptions->payload);
+		}
+
+		if (NULL != client->lwtOptions->topic)
+		{
+			platformMemoryFree(client->lwtOptions->topic);
+		}
+
+		platformMemoryFree(client->lwtOptions);
 	}
 
-	if (clientConfig->password)
-	{
-		platformMemoryFree(clientConfig->password);
-	}
+	// 清除session  ack链表和msg链表
+	RyanMqttPurgeSession(client);
 
-	if (clientConfig->host)
-	{
-		platformMemoryFree(clientConfig->host);
-	}
+	// 清除互斥锁
+	platformMutexDestroy(client->config.userData, &client->sendLock);
+	platformMutexDestroy(client->config.userData, &client->msgHandleLock);
+	platformMutexDestroy(client->config.userData, &client->ackHandleLock);
+	platformMutexDestroy(client->config.userData, &client->userSessionLock);
 
-	if (clientConfig->taskName)
-	{
-		platformMemoryFree(clientConfig->taskName);
-	}
+	// 清除临界区
+	platformCriticalDestroy(client->config.userData, &client->criticalLock);
 }
 
 /**
