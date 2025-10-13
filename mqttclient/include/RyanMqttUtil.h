@@ -25,6 +25,7 @@ extern RyanMqttState_e RyanMqttGetClientState(RyanMqttClient_t *client);
 extern RyanMqttError_e RyanMqttDupString(char **dest, const char *src, uint32_t strLen);
 extern void RyanMqttPurgeSession(RyanMqttClient_t *client);
 extern void RyanMqttPurgeConfig(RyanMqttClientConfig_t *clientConfig);
+extern void RyanMqttPurgeClient(RyanMqttClient_t *client);
 
 extern RyanMqttError_e RyanMqttSendPacket(RyanMqttClient_t *client, uint8_t *buf, uint32_t length);
 extern RyanMqttError_e RyanMqttRecvPacket(RyanMqttClient_t *client, uint8_t *buf, uint32_t length);
@@ -38,7 +39,7 @@ extern RyanMqttError_e RyanMqttMsgHandlerFind(RyanMqttClient_t *client, RyanMqtt
 					      RyanMqttBool_e isTopicMatchedFlag, RyanMqttMsgHandler_t **pMsgHandler,
 					      RyanMqttBool_e removeOnMatch);
 extern void RyanMqttMsgHandlerFindAndDestroyByPacketId(RyanMqttClient_t *client, RyanMqttMsgHandler_t *msgMatchCriteria,
-						     RyanMqttBool_e skipSamePacketId);
+						       RyanMqttBool_e skipSamePacketId);
 extern RyanMqttError_e RyanMqttMsgHandlerAddToMsgList(RyanMqttClient_t *client, RyanMqttMsgHandler_t *msgHandler);
 extern RyanMqttError_e RyanMqttMsgHandlerRemoveToMsgList(RyanMqttClient_t *client, RyanMqttMsgHandler_t *msgHandler);
 

@@ -111,6 +111,7 @@ __exit:
  *  !mqtt删除自己的延时最大不会超过config里面 recvTimeout + 1秒
  *  !mqtt删除自己前会调用 RyanMqttEventDestroyBefore 事件回调
  *  !调用此函数后就不应该再对该客户端进行任何操作
+ *  ?这里用信号量通知mqtt线程是最好的，但是为了简化platform层，这里用标志位代替信号量
  * @param client
  * @return RyanMqttError_e
  */
@@ -118,9 +119,17 @@ RyanMqttError_e RyanMqttDestroy(RyanMqttClient_t *client)
 {
 	RyanMqttCheck(NULL != client, RyanMqttParamInvalidError, RyanMqttLog_d);
 
-	platformCriticalEnter(client->config.userData, &client->criticalLock);
-	client->destroyFlag = RyanMqttTrue;
-	platformCriticalExit(client->config.userData, &client->criticalLock);
+	if (RyanMqttInitState == RyanMqttGetClientState(client))
+	{
+		RyanMqttPurgeClient(client);
+		platformMemoryFree(client);
+	}
+	else
+	{
+		platformCriticalEnter(client->config.userData, &client->criticalLock);
+		client->destroyFlag = RyanMqttTrue;
+		platformCriticalExit(client->config.userData, &client->criticalLock);
+	}
 
 	return RyanMqttSuccessError;
 }
@@ -830,42 +839,56 @@ static RyanMqttError_e RyanMqttClientConfigDeepCopy(RyanMqttClientConfig_t *dest
 	RyanMqttError_e result = RyanMqttSuccessError;
 	RyanMqttAssert(NULL != destConfig && NULL != srcConfig);
 
-	RyanMqttMemcpy(destConfig, srcConfig, sizeof(RyanMqttClientConfig_t));
-
-	destConfig->clientId = NULL;
-	destConfig->userName = NULL;
-	destConfig->password = NULL;
-	destConfig->host = NULL;
-	destConfig->taskName = NULL;
-
-	result = RyanMqttDupString(&destConfig->clientId, srcConfig->clientId, RyanMqttStrlen(srcConfig->clientId));
-	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, result, RyanMqttLog_d, { goto __exit; });
-
+	// 清除需要申请内存的字段
+	uint16_t clientIdLen = RyanMqttStrlen(srcConfig->clientId) + 1;
+	uint16_t userNameLen = 0;
+	uint16_t passwordLen = 0;
+	uint16_t hostLen = RyanMqttStrlen(srcConfig->host) + 1;
+	uint16_t taskNameLen = RyanMqttStrlen(srcConfig->taskName) + 1;
 	if (NULL != srcConfig->userName)
 	{
-		result = RyanMqttDupString(&destConfig->userName, srcConfig->userName,
-					   RyanMqttStrlen(srcConfig->userName));
-		RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, result, RyanMqttLog_d, { goto __exit; });
+		userNameLen += RyanMqttStrlen(srcConfig->userName) + 1;
 	}
-
 	if (NULL != srcConfig->password)
 	{
-		result = RyanMqttDupString(&destConfig->password, srcConfig->password,
-					   RyanMqttStrlen(srcConfig->password));
-		RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, result, RyanMqttLog_d, { goto __exit; });
+		passwordLen += RyanMqttStrlen(srcConfig->password) + 1;
 	}
 
-	result = RyanMqttDupString(&destConfig->host, srcConfig->host, RyanMqttStrlen(srcConfig->host));
-	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, result, RyanMqttLog_d, { goto __exit; });
+	// 获取申请内存大小
+	uint32_t mallocSize = clientIdLen + userNameLen + passwordLen + hostLen + taskNameLen;
+	char *buf = (char *)platformMemoryMalloc(mallocSize);
+	RyanMqttCheck(NULL != buf, RyanMqttNotEnoughMemError, RyanMqttLog_d);
+	RyanMqttMemset(buf, 0, mallocSize);
 
-	result = RyanMqttDupString(&destConfig->taskName, srcConfig->taskName, RyanMqttStrlen(srcConfig->taskName));
-	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, result, RyanMqttLog_d, { goto __exit; });
+	// 拷贝数据
+	RyanMqttMemcpy(destConfig, srcConfig, sizeof(RyanMqttClientConfig_t));
+	uint32_t offset = 0;
 
-__exit:
-	if (RyanMqttSuccessError != result)
+	// 共同使用一块内存
+#define copyConfigFieldWithOffset(key, valueLen)                                                                       \
+	destConfig->key = buf + offset;                                                                                \
+	if ((valueLen) != 1) RyanMqttMemcpy(destConfig->key, srcConfig->key, valueLen);                                \
+	offset += (valueLen);
+
+	copyConfigFieldWithOffset(clientId, clientIdLen); // 必须第一个字段
+	if (NULL != srcConfig->userName)
 	{
-		RyanMqttPurgeConfig(destConfig);
+		copyConfigFieldWithOffset(userName, userNameLen);
 	}
+	else
+	{
+		destConfig->userName = NULL;
+	}
+	if (NULL != srcConfig->password)
+	{
+		copyConfigFieldWithOffset(password, passwordLen);
+	}
+	else
+	{
+		destConfig->password = NULL;
+	}
+	copyConfigFieldWithOffset(host, hostLen);
+	copyConfigFieldWithOffset(taskName, taskNameLen);
 
 	return result;
 }
@@ -987,7 +1010,7 @@ RyanMqttError_e RyanMqttSetLwt(RyanMqttClient_t *client, char *topicName, char *
 	RyanMqttError_e result = RyanMqttSuccessError;
 
 	RyanMqttCheck(NULL != client, RyanMqttParamInvalidError, RyanMqttLog_d);
-	RyanMqttCheck(NULL != topicName, RyanMqttParamInvalidError, RyanMqttLog_d);
+	RyanMqttCheck(NULL != topicName && RyanMqttStrlen(topicName) > 0, RyanMqttParamInvalidError, RyanMqttLog_d);
 	RyanMqttCheck(RyanMqttConnectState != RyanMqttGetClientState(client), RyanMqttFailedError, RyanMqttLog_d);
 	RyanMqttCheck(RyanMqttMaxPayloadLen >= payloadLen, RyanMqttParamInvalidError, RyanMqttLog_d);
 	RyanMqttCheck(RyanMqttQos0 <= qos && RyanMqttQos2 >= qos, RyanMqttParamInvalidError, RyanMqttLog_d);

@@ -166,7 +166,7 @@ RyanMqttError_e RyanMqttTestInit(RyanMqttClient_t **client, RyanMqttBool_e syncF
 	}
 
 	RyanMqttError_e result = RyanMqttSuccessError;
-	RyanMqttClientConfig_t mqttConfig = {.clientId = aaa,
+	RyanMqttClientConfig_t mqttConfig = {.clientId = count % 2 ? aaa : "", // 测试0长度字符串客户端ID
 					     .userName = RyanMqttUserName,
 					     .password = RyanMqttPassword,
 					     .host = RyanMqttHost,
@@ -199,7 +199,7 @@ RyanMqttError_e RyanMqttTestInit(RyanMqttClient_t **client, RyanMqttBool_e syncF
 	// 设置mqtt客户端config
 	result = RyanMqttSetConfig(*client, &mqttConfig);
 	RyanMqttCheck(RyanMqttSuccessError == result, result, RyanMqttLog_e);
-	// 重复设定一次测试
+	// 重复设定一次config测试
 	result = RyanMqttSetConfig(*client, &mqttConfig);
 	RyanMqttCheck(RyanMqttSuccessError == result, result, RyanMqttLog_e);
 
@@ -236,6 +236,15 @@ RyanMqttError_e RyanMqttTestInit(RyanMqttClient_t **client, RyanMqttBool_e syncF
 		RyanMqttLog_e("Connection timeout after %d ms", timeout_ms);
 		return RyanMqttFailedError;
 	}
+
+	// 重复设定一次config测试
+	result = RyanMqttSetConfig(*client, &mqttConfig);
+	RyanMqttCheck(RyanMqttSuccessError == result, result, RyanMqttLog_e);
+
+	// 获取config测试
+	result = RyanMqttGetConfig(*client, &mqttConfig22);
+	RyanMqttCheck(RyanMqttSuccessError == result, result, RyanMqttLog_e);
+	RyanMqttFreeConfigFromGet(mqttConfig22);
 
 	return RyanMqttSuccessError;
 }

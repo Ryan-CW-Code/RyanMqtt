@@ -122,6 +122,10 @@ static RyanMqttError_e RyanMqttLwtApiParamCheckTest(void)
 	result = RyanMqttSetLwt(validClient, NULL, "offline", 7, RyanMqttQos1, RyanMqttTrue);
 	RyanMqttCheckCodeNoReturn(RyanMqttParamInvalidError == result, result, RyanMqttLog_e, { goto __exit; });
 
+	// 非法主题
+	result = RyanMqttSetLwt(validClient, "", "offline", 7, RyanMqttQos1, RyanMqttTrue);
+	RyanMqttCheckCodeNoReturn(RyanMqttParamInvalidError == result, result, RyanMqttLog_e, { goto __exit; });
+
 	// NULL负载但长度不为0
 	result = RyanMqttSetLwt(validClient, "test/lwt", NULL, 7, RyanMqttQos1, RyanMqttTrue);
 	RyanMqttCheckCodeNoReturn(RyanMqttParamInvalidError == result, result, RyanMqttLog_e, { goto __exit; });
@@ -158,32 +162,6 @@ static RyanMqttError_e RyanMqttConfigApiParamCheckTest(void)
 	RyanMqttError_e result = RyanMqttSuccessError;
 
 	RyanMqttClient_t *validClient = NULL;
-	// 准备一个有效的客户端用于某些测试
-	result = RyanMqttTestInit(&validClient, RyanMqttTrue, RyanMqttFalse, 120, NULL, NULL);
-	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, result, RyanMqttLog_e, { goto __exit; });
-	RyanMqttDisconnect(validClient, RyanMqttTrue);
-
-	// NULL客户端指针
-	result = RyanMqttGetConfig(NULL, NULL);
-	RyanMqttCheckCodeNoReturn(RyanMqttParamInvalidError == result, result, RyanMqttLog_e, { goto __exit; });
-
-	RyanMqttClientConfig_t *getConfig = NULL;
-
-	/**
-	 * @brief RyanMqttGetConfig
-	 *
-	 */
-	// NULL客户端指针
-	result = RyanMqttGetConfig(NULL, &getConfig);
-	RyanMqttCheckCodeNoReturn(RyanMqttParamInvalidError == result, result, RyanMqttLog_e, { goto __exit; });
-
-	// NULL配置指针
-	result = RyanMqttGetConfig(validClient, NULL);
-	RyanMqttCheckCodeNoReturn(RyanMqttParamInvalidError == result, result, RyanMqttLog_e, { goto __exit; });
-
-	// NULL配置指针
-	result = RyanMqttFreeConfigFromGet(NULL);
-	RyanMqttCheckCodeNoReturn(RyanMqttParamInvalidError == result, result, RyanMqttLog_e, { goto __exit; });
 
 	/**
 	 * @brief RyanMqttSetConfig
@@ -210,6 +188,9 @@ static RyanMqttError_e RyanMqttConfigApiParamCheckTest(void)
 						 .mqttEventHandle = NULL,
 						 .userData = NULL};
 
+	result = RyanMqttInit(&validClient);
+	RyanMqttCheck(RyanMqttSuccessError == result, result, RyanMqttLog_e);
+
 	RyanMqttClientConfig_t mqttConfig = {0};
 
 	// NULL客户端指针
@@ -220,27 +201,77 @@ static RyanMqttError_e RyanMqttConfigApiParamCheckTest(void)
 	result = RyanMqttSetConfig(validClient, NULL);
 	RyanMqttCheckCodeNoReturn(RyanMqttParamInvalidError == result, result, RyanMqttLog_e, { goto __exit; });
 
-#define checkSetConfigParam(code)                                                                                      \
+#define checkSetConfigParam(code, errType)                                                                             \
 	do                                                                                                             \
 	{                                                                                                              \
 		RyanMqttMemcpy(&mqttConfig, &baseMqttConfig, sizeof(RyanMqttClientConfig_t));                          \
 		{code};                                                                                                \
 		result = RyanMqttSetConfig(validClient, &mqttConfig);                                                  \
-		RyanMqttCheckCodeNoReturn(RyanMqttParamInvalidError == result, result, RyanMqttLog_e,                  \
-					  { goto __exit; });                                                           \
+		RyanMqttCheckCodeNoReturn((errType) == result, result, RyanMqttLog_e, { goto __exit; });               \
 	} while (0)
 
-	checkSetConfigParam({ mqttConfig.clientId = NULL; });
-	checkSetConfigParam({ mqttConfig.host = NULL; });
-	checkSetConfigParam({ mqttConfig.taskName = NULL; });
-	checkSetConfigParam({
-		mqttConfig.recvTimeout = 10;
-		mqttConfig.keepaliveTimeoutS = 20 - 1;
-	});
-	checkSetConfigParam({
-		mqttConfig.recvTimeout = 10;
-		mqttConfig.sendTimeout = 11;
-	});
+	checkSetConfigParam({ mqttConfig.host = NULL; }, RyanMqttParamInvalidError);
+	checkSetConfigParam({ mqttConfig.taskName = NULL; }, RyanMqttParamInvalidError);
+	checkSetConfigParam({ mqttConfig.clientId = NULL; }, RyanMqttParamInvalidError);
+
+	// NULL用户名密码
+	checkSetConfigParam({ mqttConfig.userName = NULL; }, RyanMqttSuccessError);
+	checkSetConfigParam({ mqttConfig.password = NULL; }, RyanMqttSuccessError);
+
+	// 0长度
+	checkSetConfigParam({ mqttConfig.clientId = ""; }, RyanMqttSuccessError);
+	checkSetConfigParam({ mqttConfig.userName = ""; }, RyanMqttSuccessError);
+	checkSetConfigParam({ mqttConfig.password = ""; }, RyanMqttSuccessError);
+
+	// 配置错误
+	checkSetConfigParam(
+		{
+			mqttConfig.recvTimeout = 10;
+			mqttConfig.keepaliveTimeoutS = 20 - 1;
+		},
+		RyanMqttParamInvalidError);
+	checkSetConfigParam(
+		{
+			mqttConfig.recvTimeout = 10;
+			mqttConfig.sendTimeout = 11;
+		},
+		RyanMqttParamInvalidError);
+
+	RyanMqttSetConfig(validClient, &baseMqttConfig);
+
+	RyanMqttDestroy(validClient);
+	validClient = NULL;
+
+	/**
+	 * @brief RyanMqttGetConfig
+	 *
+	 */
+	// 准备一个有效的客户端用于某些测试
+	result = RyanMqttTestInit(&validClient, RyanMqttTrue, RyanMqttFalse, 120, NULL, NULL);
+	RyanMqttCheckCodeNoReturn(RyanMqttSuccessError == result, result, RyanMqttLog_e, { goto __exit; });
+	RyanMqttDisconnect(validClient, RyanMqttTrue);
+
+	// NULL客户端指针
+	result = RyanMqttGetConfig(NULL, NULL);
+	RyanMqttCheckCodeNoReturn(RyanMqttParamInvalidError == result, result, RyanMqttLog_e, { goto __exit; });
+
+	RyanMqttClientConfig_t *getConfig = NULL;
+
+	/**
+	 * @brief RyanMqttGetConfig
+	 *
+	 */
+	// NULL客户端指针
+	result = RyanMqttGetConfig(NULL, &getConfig);
+	RyanMqttCheckCodeNoReturn(RyanMqttParamInvalidError == result, result, RyanMqttLog_e, { goto __exit; });
+
+	// NULL配置指针
+	result = RyanMqttGetConfig(validClient, NULL);
+	RyanMqttCheckCodeNoReturn(RyanMqttParamInvalidError == result, result, RyanMqttLog_e, { goto __exit; });
+
+	// NULL配置指针
+	result = RyanMqttFreeConfigFromGet(NULL);
+	RyanMqttCheckCodeNoReturn(RyanMqttParamInvalidError == result, result, RyanMqttLog_e, { goto __exit; });
 
 	// 清理资源
 	if (validClient)
