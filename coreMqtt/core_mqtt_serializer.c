@@ -1715,11 +1715,11 @@ MQTTStatus_t MQTT_GetConnectPacketSize( const MQTTConnectInfo_t * pConnectInfo,
                     ( void * ) pPacketSize ) );
         status = MQTTBadParameter;
     }
-    else if( ( pConnectInfo->clientIdentifierLength == 0U ) || ( pConnectInfo->pClientIdentifier == NULL ) )
-    {
-        LogError( ( "Mqtt_GetConnectPacketSize() client identifier must be set." ) );
-        status = MQTTBadParameter;
-    }
+    // else if( ( pConnectInfo->clientIdentifierLength == 0U ) || ( pConnectInfo->pClientIdentifier == NULL ) )
+    // {
+    //     LogError( ( "Mqtt_GetConnectPacketSize() client identifier must be set." ) );
+    //     status = MQTTBadParameter;
+    // }
     else if( ( pWillInfo != NULL ) && ( pWillInfo->payloadLength > ( size_t ) UINT16_MAX ) )
     {
         /* The MQTTPublishInfo_t is reused for the will message. The payload
